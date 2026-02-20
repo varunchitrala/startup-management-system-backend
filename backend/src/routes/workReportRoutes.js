@@ -1,0 +1,24 @@
+const express = require("express");
+const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
+const workReportController = require("../controllers/workReportController");
+
+router.post(
+  "/daily",
+  authMiddleware.verifyToken,
+  workReportController.submitDailyReport
+);
+
+router.post(
+  "/weekly",
+  authMiddleware.verifyToken,
+  workReportController.submitWeeklyReport
+);
+router.get(
+  "/my",
+  authMiddleware.verifyToken,
+  workReportController.getMyReports
+);
+
+module.exports = router;

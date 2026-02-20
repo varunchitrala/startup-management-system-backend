@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In | SUN Nexus Solution</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+  <style>
+    :root {
+      --primary: #0f172a; /* Slate 900 - Very professional dark blue/black */
+      --accent: #4f46e5;  /* Indigo 600 - The brand highlight */
+      --text-main: #334155;
+      --text-light: #64748b;
+      --border-light: #e2e8f0;
+      --font-main: 'Inter', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-main);
+      height: 100vh;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .container-fluid {
+      height: 100%;
+      padding: 0;
+    }
+
+    /* --- LEFT SIDE: THE FORM --- */
+    .login-section {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 8%;
+      background: #ffffff;
+    }
+
+    .brand-header {
+      margin-bottom: 3rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px; height: 40px;
+      background: var(--primary);
+      color: white;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .brand-text {
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .login-header h2 {
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+      color: var(--text-light);
+      font-size: 0.95rem;
+    }
+
+    /* --- INPUTS --- */
+    .form-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+      background: #f8fafc;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+
+    .form-control:focus {
+      background: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    /* --- BUTTON --- */
+    .btn-login {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.9rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: 0.01em;
+      margin-top: 1rem;
+      transition: all 0.2s;
+    }
+
+    .btn-login:hover {
+      background: #1e293b; /* Slightly lighter slate */
+      transform: translateY(-1px);
+    }
+
+    .copyright {
+      margin-top: 3rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+
+    /* --- RIGHT SIDE: THE VISUAL --- */
+    .visual-section {
+      background: #0f172a; /* Fallback */
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Abstract professional pattern */
+    .visual-pattern {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.3;
+    }
+
+    .visual-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      color: white;
+      max-width: 450px;
+      padding: 2rem;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 2rem;
+      border-radius: 16px;
+      margin-bottom: 2rem;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="container-fluid">
+    <div class="row h-100">
+      
+      <div class="col-lg-5 login-section">
+        <div style="max-width: 400px; margin: 0 auto; width: 100%;">
+          
+          <div class="brand-header">
+            <div class="brand-icon">
+              <i class="bi bi-grid-3x3-gap-fill"></i>
+            </div>
+            <div class="brand-text">SUN Nexus</div>
+          </div>
+
+          <div class="login-header mb-4">
+            <h2>Welcome back</h2>
+            <p>Please enter your details to access the workspace.</p>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="email" class="form-control" placeholder="name@company.com" />
+          </div>
+
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label mb-0">Password</label>
+              <a href="#" class="text-decoration-none small text-secondary fw-medium">Forgot password?</a>
+            </div>
+            <input type="password" id="password" class="form-control" placeholder="••••••••" />
+          </div>
+
+          <button class="btn btn-login w-100" onclick="login()">
+            Sign In
+          </button>
+
+          <div id="error" class="text-danger mt-3 small fw-semibold text-center" style="min-height: 24px;"></div>
+
+          <div class="copyright">
+            &copy; 2026 SUN Nexus Solution. <br> Protected by Enterprise Security.
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7 d-none d-lg-flex visual-section">
+        <div class="visual-pattern"></div>
+        
+        <div class="visual-content">
+          <div class="glass-card">
+            <i class="bi bi-shield-lock-fill fs-1 mb-3 d-block text-white"></i>
+            <h3 class="fw-bold mb-2">Enterprise Security</h3>
+            <p class="text-white-50 m-0 small">Access to this system is restricted to authorized personnel only. All activities are monitored.</p>
+          </div>
+          <div class="small text-white-50 fw-bold letter-spacing-2 text-uppercase">
+            SUN Nexus Solution &bull; V 4.2.0
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>
