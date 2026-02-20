@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://startup-management-system-backend.onrender.com";
 
 async function loadDashboard() {
   try {
