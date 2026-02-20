@@ -8,7 +8,7 @@ async function login() {
   errorEl.innerText = "";
 
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    const res = await fetch(`https://startup-management-system-backend.onrender.com/api/auth/login/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
