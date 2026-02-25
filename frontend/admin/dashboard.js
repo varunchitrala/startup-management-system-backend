@@ -37,7 +37,7 @@ async function apiRequest(url, options = {}) {
 async function loadDashboardSummary() {
   try {
     const data = await apiRequest(
-      `${API_BASE}/admin/attendance/today`
+      `${API_BASE}/api/admin/attendance/today`
     );
 
     document.getElementById("totalUsers").innerText =
@@ -63,7 +63,7 @@ async function loadDashboardSummary() {
  ***********************/
 async function loadAdminProjects() {
   try {
-    const projects = await apiRequest(`${API_BASE}/admin/projects`);
+    const projects = await apiRequest(`${API_BASE}/api/admin/projects`);
     const select = document.getElementById("projectSelect");
 
     select.innerHTML =
@@ -98,7 +98,7 @@ document.getElementById("projectSelect").addEventListener("change", e => {
 
 async function loadTeamLeads() {
   try {
-    const leads = await apiRequest(`${API_BASE}/admin/team-leads`);
+    const leads = await apiRequest(`${API_BASE}/api/admin/team-leads`);
     const select = document.getElementById("teamLeadSelect");
 
     select.innerHTML = `<option value="">Assign Lead...</option>`;
@@ -151,7 +151,7 @@ async function createTeamLead() {
 
   try {
     const res = await apiRequest(
-      `${API_BASE}/admin/create-team-lead`,
+      `${API_BASE}/api/admin/create-team-lead`,
       {
         method: "POST",
         body: JSON.stringify({ name, email, password })
@@ -383,7 +383,7 @@ async function allowLateCheckIn(userId) {
   if (!confirm("Allow late check-in?")) return;
 
   const res = await fetch(
-    `${API_BASE}/admin/attendance/allow-late/${userId}`,
+    `${API_BASE}/api/admin/attendance/allow-late/${userId}`,
     {
       method: "POST",
       headers: {
@@ -450,7 +450,7 @@ async function submitAdminDailyReport() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/work/daily`, {
+    const res = await fetch(`${API_BASE}/api/work/daily`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -483,7 +483,7 @@ async function submitAdminDailyReport() {
 async function loadAdminWorkReports() {
   try {
     const reports = await apiRequest(
-      `${API_BASE}/admin/work-reports`
+      `${API_BASE}/api/admin/work-reports`
     );
 
     const tbody = document.getElementById("adminWorkReportsTable");
@@ -604,7 +604,7 @@ async function createShift() {
     return;
   }
 
-  const res = await fetch(`${API_BASE}/admin/shifts`, {
+  const res = await fetch(`${API_BASE}/api/admin/shifts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -624,7 +624,7 @@ async function createShift() {
 }
 
 async function loadShifts() {
-  const res = await fetch(`${API_BASE}/admin/shifts`, {
+  const res = await fetch(`${API_BASE}/api/admin/shifts`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -658,7 +658,7 @@ async function loadShifts() {
 async function deleteShift(id) {
   if (!confirm("Are you sure you want to delete this shift?")) return;
 
-  const res = await fetch(`${API_BASE}/admin/shifts/${id}`, {
+  const res = await fetch(`${API_BASE}/api/admin/shifts/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
