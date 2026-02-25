@@ -1,10 +1,11 @@
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://startup-management-system-backend.onrender.com";
+
 const token = localStorage.getItem("token");
 
 const table = document.getElementById("projectsTable");
 
 async function loadProjects() {
-  const res = await fetch(`${API_BASE}/admin/projects`, {
+  const res = await fetch(`${API_BASE}/api/admin/projects`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -47,7 +48,7 @@ async function viewMembers(projectId) {
 async function deleteProject(projectId) {
   if (!confirm("Delete this project?")) return;
 
-  const res = await fetch(`${API_BASE}/admin/project/${projectId}`, {
+  const res = await fetch(`${API_BASE}/api/admin/projects/${projectId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` }
   });

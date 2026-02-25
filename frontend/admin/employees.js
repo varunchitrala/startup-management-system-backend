@@ -11,7 +11,7 @@ let shiftsCache = [];
 
 /* ================= LOAD SHIFTS ================= */
 async function loadShifts() {
-  const res = await fetch(`${API_BASE}/admin/shifts`, {
+  const res = await fetch(`${API_BASE}/api/admin/shifts`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -21,7 +21,7 @@ async function loadShifts() {
 /* ================= LOAD EMPLOYEES ================= */
 async function loadEmployees() {
   try {
-    const res = await fetch(`${API_BASE}/admin/team-members`, {
+    const res = await fetch(`${API_BASE}/api/admin/team-members`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -105,7 +105,7 @@ function renderShiftDropdown(user) {
 async function assignShift(userId, shiftId) {
   if (!shiftId) return;
 
-  const res = await fetch(`${API_BASE}/admin/assign-shift`, {
+  const res = await fetch(`${API_BASE}/api/admin/assign-shift`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -130,8 +130,8 @@ async function deleteUser(userId, role) {
 
   let url =
     role === "MEMBER"
-      ? `${API_BASE}/admin/team-member/${userId}`
-      : `${API_BASE}/admin/team-lead/${userId}`;
+      ? `${API_BASE}/api/admin/team-member/${userId}`
+      : `${API_BASE}/api/admin/team-lead/${userId}`;
 
   const res = await fetch(url, {
     method: "DELETE",

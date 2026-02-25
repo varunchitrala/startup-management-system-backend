@@ -15,7 +15,7 @@ const projectTitle = document.getElementById("projectTitle");
 
 // Load status
 async function loadStatus() {
-  const res = await fetch(`${API_BASE}/attendance/my-status`, {
+  const res = await fetch(`${API_BASE}/api/attendance/my-status`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -46,7 +46,7 @@ checkInBtn.onclick = () => {
 
         console.log("📍 Member Location:", latitude, longitude);
 
-        const res = await fetch(`${API_BASE}/attendance/check-in`, {
+        const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -85,7 +85,7 @@ checkInBtn.onclick = () => {
 
 // Check Out
 checkOutBtn.onclick = async () => {
-  const res = await fetch(`${API_BASE}/attendance/check-out`, {
+  const res = await fetch(`${API_BASE}/api/attendance/check-out`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`
@@ -120,7 +120,7 @@ async function submitMemberDailyReport() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/work/daily`, {
+    const res = await fetch(`${API_BASE}/api/work/daily`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -152,7 +152,7 @@ async function submitMemberDailyReport() {
 }
 async function loadMemberProjects() {
   try {
-    const res = await fetch(`${API_BASE}/admin/member/roadmap`, {
+    const res = await fetch(`${API_BASE}/api/admin/member/roadmap`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -224,7 +224,7 @@ function renderMemberRoadmap(project) {
 }
 
 async function updateStep(stepId, isCompleted) {
-  await fetch(`${API_BASE}/admin/roadmap-step`, {
+  await fetch(`${API_BASE}/api/admin/roadmap-step`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -257,7 +257,7 @@ async function applyLeave() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/attendance/apply-leave`, {
+    const res = await fetch(`${API_BASE}/api/attendance/apply-leave`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
