@@ -130,7 +130,7 @@ async function deleteProject() {
 
   try {
     await apiRequest(
-      `${API_BASE}/admin/projects/${projectId}`,
+      `${API_BASE}/api/admin/projects/${projectId}`,
       { method: "DELETE" }
     );
 
@@ -174,7 +174,7 @@ async function createTeamMember() {
 
   try {
     const res = await apiRequest(
-      `${API_BASE}/admin/create-team-member`,
+      `${API_BASE}/api/admin/create-team-member`,
       {
         method: "POST",
         body: JSON.stringify({ name, email, password })
@@ -203,7 +203,7 @@ async function createProject() {
 
   try {
     // 🔹 Create project
-    await apiRequest(`${API_BASE}/admin/projects`, {
+    await apiRequest(`${API_BASE}/api/admin/projects`, {
       method: "POST",
       body: JSON.stringify({
         project_name,
@@ -234,7 +234,7 @@ async function createProject() {
 async function loadAdminProjectMembers(projectId) {
   try {
     const data = await apiRequest(
-  `${API_BASE}/admin/admin-project-members/${projectId}`
+  `${API_BASE}/api/admin/admin-project-members/${projectId}`
 );
 
 
@@ -271,7 +271,7 @@ async function loadAdminProjectMembers(projectId) {
 }
 async function loadTodayAttendance() {
   const data = await apiRequest(
-    `${API_BASE}/admin/attendance/today/list`
+    `${API_BASE}/api/admin/attendance/today/list`
   );
 
   const tbody = document.getElementById("attendanceTableBody");
@@ -332,7 +332,7 @@ document.addEventListener("DOMContentLoaded", () => {
 async function loadRoadmapProgress(projectId) {
   try {
     const data = await apiRequest(
-      `${API_BASE}/admin/roadmap-progress/${projectId}`
+      `${API_BASE}/api/admin/roadmap-progress/${projectId}`
     );
 
     // 🔹 Progress bar
@@ -533,7 +533,7 @@ async function exportWorkReportsCSV() {
     }
 
     const url =
-      `${API_BASE}/admin/work-reports/export/csv?from=${from}&to=${to}`;
+      `${API_BASE}/api/admin/work-reports/export/csv?from=${from}&to=${to}`;
 
     const res = await fetch(url, {
       headers: {
@@ -571,7 +571,7 @@ async function exportWorkReportsExcel() {
     }
 
     const url =
-      `${API_BASE}/admin/work-reports/export/excel?from=${from}&to=${to}`;
+      `${API_BASE}/api/admin/work-reports/export/excel?from=${from}&to=${to}`;
 
     const res = await fetch(url, {
       headers: {
@@ -676,7 +676,7 @@ async function deleteShift(id) {
   loadShifts();
 }
 async function loadLateUsers() {
-  const res = await fetch(`${API_BASE}/admin/attendance/late-users`, {
+  const res = await fetch(`${API_BASE}/api/admin/attendance/late-users`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -691,7 +691,7 @@ async function loadLateUsers() {
   }
 
   // Get shifts
-  const shiftRes = await fetch(`${API_BASE}/admin/shifts`, {
+  const shiftRes = await fetch(`${API_BASE}/api/admin/shifts`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -722,7 +722,7 @@ async function loadLateUsers() {
 async function approveLate(userId) {
   const shiftId = document.getElementById(`shiftSelect_${userId}`).value;
 
-  const res = await fetch(`${API_BASE}/admin/attendance/approve-late`, {
+  const res = await fetch(`${API_BASE}/api/admin/attendance/approve-late`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -741,7 +741,7 @@ async function approveLate(userId) {
   loadLateUsers();
 }
 async function loadWorkReportDashboard() {
-  const res = await fetch(`${API_BASE}/admin/work-reports/today`, {
+  const res = await fetch(`${API_BASE}/api/admin/work-reports/today`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -779,7 +779,7 @@ const adminAttendanceMessage = document.getElementById("adminAttendanceMessage")
 
 async function loadAdminStatus() {
   try {
-    const res = await fetch(`${API_BASE}/attendance/my-status`, {
+    const res = await fetch(`${API_BASE}/api/attendance/my-status`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -815,7 +815,7 @@ adminCheckInBtn.onclick = () => {
         const longitude = position.coords.longitude;
         console.log("Latitude:", latitude);
     console.log("Longitude:", longitude);
-        const res = await fetch(`${API_BASE}/attendance/check-in`, {
+        const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -858,7 +858,7 @@ adminCheckInBtn.onclick = () => {
 adminCheckOutBtn.onclick = async () => {
   try {
 
-    const res = await fetch(`${API_BASE}/attendance/check-out`, {
+    const res = await fetch(`${API_BASE}/api/attendance/check-out`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`
@@ -898,7 +898,7 @@ async function exportDailyCSV() {
     }
 
     const url =
-      `${API_BASE}/admin/attendance/daily/export/csv?date=${date}`;
+      `${API_BASE}/api/admin/attendance/daily/export/csv?date=${date}`;
 
     const res = await fetch(url, {
       headers: {
@@ -930,7 +930,7 @@ async function exportDailyExcel() {
     }
 
     const url =
-      `${API_BASE}/admin/attendance/daily/export/excel?date=${date}`;
+      `${API_BASE}/api/admin/attendance/daily/export/excel?date=${date}`;
 
     const res = await fetch(url, {
       headers: {
@@ -956,7 +956,7 @@ const geoToggle = document.getElementById("geoToggle");
 
 async function loadGeoSetting() {
   try {
-    const res = await fetch(`${API_BASE}/admin/geo-setting`, {
+    const res = await fetch(`${API_BASE}/api/admin/geo-setting`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -981,7 +981,7 @@ geoToggle.addEventListener("change", async () => {
 
     console.log("🌍 Saving geo:", isEnabled);
 
-    await fetch(`${API_BASE}/admin/geo-setting`, {
+    await fetch(`${API_BASE}/api/admin/geo-setting`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -996,7 +996,7 @@ geoToggle.addEventListener("change", async () => {
 });
 
 async function loadLeaveRequests() {
-  const res = await fetch(`${API_BASE}/admin/leave-requests`, {
+  const res = await fetch(`${API_BASE}/api/admin/leave-requests`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -1054,7 +1054,7 @@ async function loadLeaveRequests() {
   });
 }
 async function reviewLeave(id, status) {
-  const res = await fetch(`${API_BASE}/admin/leave-requests/${id}`, {
+  const res = await fetch(`${API_BASE}/api/admin/leave-requests/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
