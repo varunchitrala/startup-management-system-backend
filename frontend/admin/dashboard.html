@@ -1,562 +1,403 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Console | SUN Nexus Solution</title>
+  <title>System Console | SUN Nexus Solution</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
   <style>
     :root {
-      /* --- SUN NEXUS PRO PALETTE --- */
-      --primary: #4f46e5;       /* Indigo 600 */
-      --primary-hover: #4338ca;
-      --primary-soft: #e0e7ff;
-      
-      --bg-body: #f1f5f9;       /* Slate 100 */
-      --bg-card: #ffffff;
-      
-      --text-main: #0f172a;     /* Slate 900 */
-      --text-muted: #64748b;    /* Slate 500 */
-      --border-color: #e2e8f0;  /* Slate 200 */
-      
-      --radius-md: 12px;
-      --shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-      
-      --font-main: 'Inter', sans-serif;
+      --bg-app: #f4f5f7;
+      --bg-panel: #ffffff;
+      --nav-bg: #172b4d;
+      --text-main: #172b4d;
+      --text-muted: #5e6c84;
+      --border-color: #dfe1e6;
+      --primary: #0052cc;
+      --primary-hover: #0047b3;
+      --danger: #de350b;
+      --success: #00875a;
+      --warning: #ffab00;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-      background-color: var(--bg-body);
-      font-family: var(--font-main);
+      background-color: var(--bg-app);
+      font-family: var(--font-family);
       color: var(--text-main);
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
+      font-size: 14px;
+      margin: 0;
+      padding-top: 56px; /* Space for fixed topnav */
     }
 
-    /* --- SIDEBAR --- */
-    .sidebar {
-      width: 260px;
-      background: var(--bg-card);
-      border-right: 1px solid var(--border-color);
+    /* --- TOP NAVIGATION (Global Context) --- */
+    .topnav {
       position: fixed;
-      height: 100vh;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .brand-box {
-      padding: 1.5rem;
-      border-bottom: 1px solid var(--border-color);
+      top: 0; left: 0; right: 0;
+      height: 56px;
+      background-color: var(--nav-bg);
       display: flex;
       align-items: center;
-      gap: 12px;
-    }
-
-    .nav-box {
-      padding: 1.5rem 1rem;
-      flex-grow: 1;
-      overflow-y: auto;
-    }
-
-    .nav-link {
-      color: var(--text-muted);
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      transition: all 0.2s;
-      font-size: 0.9rem;
-    }
-
-    .nav-link:hover, .nav-link.active {
-      background-color: var(--primary-soft);
-      color: var(--primary);
-    }
-
-    .user-box {
-      padding: 1rem;
-      border-top: 1px solid var(--border-color);
-      background: #f8fafc;
-    }
-
-    /* --- MAIN CONTENT --- */
-    .main-content {
-      margin-left: 260px;
-      padding: 2rem;
-      min-height: 100vh;
-    }
-
-    /* --- PRO CARDS --- */
-    .card-pro {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-soft);
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .card-header-pro {
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--border-color);
-      background: #ffffff;
-      display: flex;
       justify-content: space-between;
-      align-items: center;
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--text-main);
+      padding: 0 24px;
+      z-index: 1030;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
     }
 
-    .card-body-pro {
-      padding: 1.5rem;
-      flex-grow: 1;
-      overflow-y: auto;
-    }
+    .topnav-brand { color: #ffffff; font-weight: 600; font-size: 16px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+    .topnav-tools { display: flex; align-items: center; gap: 20px; color: #ffffff; }
+    
+    .geo-switch { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+    .geo-switch .form-check-input { cursor: pointer; }
 
-    /* --- STATS --- */
-    .stat-val { font-size: 1.75rem; font-weight: 700; line-height: 1; }
-    .stat-label { font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted); letter-spacing: 0.05em; }
-
-    /* --- TABLES --- */
-    .table-custom { margin-bottom: 0; }
-    .table-custom th {
-      background: #f8fafc;
-      font-weight: 600;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-      padding: 0.75rem 1.5rem;
+    /* --- SUB NAVIGATION (Module Routing) --- */
+    .subnav {
+      background: var(--bg-panel);
       border-bottom: 1px solid var(--border-color);
+      padding: 0 24px;
+      display: flex;
+      gap: 24px;
     }
-    .table-custom td {
-      padding: 0.75rem 1.5rem;
-      vertical-align: middle;
-      font-size: 0.85rem;
-      border-bottom: 1px solid var(--border-color);
+    .subnav a {
+      color: var(--text-muted); text-decoration: none; font-weight: 500;
+      padding: 14px 0; border-bottom: 2px solid transparent; transition: all 0.2s;
     }
+    .subnav a:hover { color: var(--text-main); }
+    .subnav a.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-    /* --- FORMS --- */
-    .form-control, .form-select {
-      border-radius: 8px;
+    /* --- LAYOUT GRID --- */
+    .container-app { padding: 24px; max-width: 1600px; margin: 0 auto; }
+    
+    /* --- ENTERPRISE PANELS --- */
+    .panel {
+      background: var(--bg-panel);
       border: 1px solid var(--border-color);
-      padding: 0.6rem 0.8rem;
-      font-size: 0.9rem;
-    }
-    .form-control:focus, .form-select:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-soft);
-    }
-
-    /* --- RESPONSIVE --- */
-    @media (max-width: 992px) {
-      .sidebar { display: none; }
-      .main-content { margin-left: 0; padding: 1rem; }
+      border-radius: 3px;
+      box-shadow: 0 1px 1px rgba(9, 30, 66, 0.05);
+      margin-bottom: 24px;
+      display: flex; flex-direction: column;
     }
     
-    .section-gap { margin-bottom: 2rem; }
+    .panel-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex; justify-content: space-between; align-items: center;
+      background-color: #fafbfc;
+    }
+    
+    .panel-title { font-size: 14px; font-weight: 600; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+    .panel-body { padding: 20px; flex-grow: 1; }
+    .panel-body-flush { padding: 0; }
+
+    /* --- METRICS ROW --- */
+    .metric-group { display: flex; gap: 16px; margin-bottom: 24px; }
+    .metric-card {
+      flex: 1; background: var(--bg-panel); border: 1px solid var(--border-color);
+      border-radius: 3px; padding: 16px 20px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .metric-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+    .metric-value { font-size: 24px; font-weight: 700; color: var(--text-main); line-height: 1; }
+
+    /* --- TABLES (Data Dense) --- */
+    .table-responsive { overflow-x: auto; }
+    .table-enterprise { width: 100%; margin: 0; border-collapse: collapse; }
+    .table-enterprise th {
+      background: #fafbfc; color: var(--text-muted); font-size: 12px; font-weight: 600;
+      text-transform: uppercase; padding: 10px 16px; border-bottom: 2px solid var(--border-color); text-align: left;
+    }
+    .table-enterprise td {
+      padding: 10px 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; color: var(--text-main); font-size: 13px;
+    }
+    .table-enterprise tbody tr:hover { background-color: #ebecf0; }
+
+    /* --- FORMS & BUTTONS --- */
+    .form-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+    .form-control, .form-select { border-radius: 3px; border: 2px solid #dfe1e6; padding: 6px 12px; font-size: 14px; transition: border-color 0.2s; background-color: #fafbfc; }
+    .form-control:focus, .form-select:focus { border-color: var(--primary); background-color: #fff; box-shadow: none; }
+    
+    .btn-sys { border-radius: 3px; font-weight: 500; font-size: 13px; padding: 6px 16px; border: none; transition: 0.2s; cursor: pointer; }
+    .btn-sys-primary { background: var(--primary); color: white; }
+    .btn-sys-primary:hover { background: var(--primary-hover); }
+    .btn-sys-default { background: rgba(9, 30, 66, 0.04); color: var(--text-main); }
+    .btn-sys-default:hover { background: rgba(9, 30, 66, 0.08); }
+    
+    .status-tag { padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+
+    /* Layout Utilities */
+    .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .grid-3-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+    .grid-sidebar-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
   </style>
 </head>
 <body>
 
-  <nav class="sidebar">
-    <div class="brand-box">
-      <div class="bg-primary text-white rounded-3 shadow-sm d-flex justify-content-center align-items-center" style="width: 38px; height: 38px;">
-        <i class="bi bi-grid-3x3-gap-fill fs-6"></i>
+  <header class="topnav">
+    <div class="topnav-brand">
+      <i class="bi bi-hdd-network"></i> SUN Nexus | System Administration
+    </div>
+    <div class="topnav-tools">
+      <div class="geo-switch form-check form-switch mb-0">
+        <input class="form-check-input mt-0" type="checkbox" id="geoToggle">
+        <label class="form-check-label text-white" for="geoToggle">Enforce Geo-Fence</label>
       </div>
-      <div class="d-flex flex-column ms-2">
-        <span class="fw-bold tracking-tight text-dark" style="font-size: 1rem; line-height: 1.1;">SUN Nexus</span>
-        <span class="text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 0.15em;">SOLUTION</span>
+      <div class="d-flex align-items-center gap-2 border-start border-secondary ps-3 ms-2">
+        <i class="bi bi-person-circle fs-5"></i>
+        <span style="font-size: 13px; font-weight: 500;">Admin User</span>
+        <button class="btn btn-sm btn-link text-white ms-2" onclick="logout()" title="Logout"><i class="bi bi-box-arrow-right"></i></button>
       </div>
     </div>
+  </header>
 
-    <div class="nav-box d-flex flex-column gap-1">
-      <div class="small fw-bold text-muted mb-2 px-3 mt-2" style="font-size: 0.7rem; letter-spacing: 0.05em;">MENU</div>
-      <a href="dashboard.html" class="nav-link active"><i class="bi bi-grid-1x2"></i> <span>Dashboard</span></a>
-      <a href="employees.html" class="nav-link"><i class="bi bi-people"></i> <span>Employees</span></a>
-      <a href="projects.html" class="nav-link"><i class="bi bi-kanban"></i> <span>Projects</span></a>
-      
-      <div class="small fw-bold text-muted mb-2 px-3 mt-4" style="font-size: 0.7rem; letter-spacing: 0.05em;">SYSTEM</div>
-      <a href="#" class="nav-link"><i class="bi bi-gear"></i> <span>Settings</span></a>
-    </div>
-
-    <div class="user-box">
-      <div class="d-flex align-items-center gap-3 mb-3">
-        <div class="rounded-circle bg-primary-subtle text-primary border border-primary-subtle d-flex align-items-center justify-content-center fw-bold" style="width: 36px; height: 36px; font-size: 12px;">AD</div>
-        <div class="lh-1">
-          <div class="fw-semibold text-dark" style="font-size: 0.85rem;">Admin User</div>
-          <div class="text-muted" style="font-size: 0.7rem;">admin@sunnexus.com</div>
-        </div>
-      </div>
-      <button class="btn btn-outline-danger btn-sm w-100 border-opacity-25" onclick="logout()">
-        <i class="bi bi-box-arrow-right me-2"></i> Sign out
-      </button>
-    </div>
+  <nav class="subnav">
+    <a href="dashboard.html" class="active">Operations Dashboard</a>
+    <a href="employees.html">Workforce Roster</a>
+    <a href="projects.html">Project Sandbox</a>
   </nav>
 
-  <main class="main-content">
+  <main class="container-app">
     
-    <header class="d-flex justify-content-between align-items-center mb-5">
-      <div>
-        <h3 class="fw-bold mb-1 text-dark">Executive Dashboard</h3>
-        <p class="text-muted mb-0 small">Real-time overview of workforce and project milestones.</p>
+    <div class="metric-group">
+      <div class="metric-card">
+        <span class="metric-label">Total Organization</span>
+        <span class="metric-value" id="totalUsers">0</span>
       </div>
-      <span class="badge bg-white text-dark border px-3 py-2 fw-medium rounded-pill shadow-sm">
-        <i class="bi bi-calendar3 me-2 text-primary"></i> Today
-      </span>
-    </header>
-
-    <div class="row g-4 section-gap">
-      <div class="col-md-3">
-        <div class="card-pro">
-          <div class="card-body-pro d-flex justify-content-between align-items-center">
-            <div>
-              <div class="stat-label mb-2">Total Users</div>
-              <div class="stat-val" id="totalUsers">4</div>
-            </div>
-            <div class="text-muted bg-body rounded p-2"><i class="bi bi-people fs-4"></i></div>
-          </div>
-        </div>
+      <div class="metric-card" style="border-left: 4px solid var(--success);">
+        <span class="metric-label text-success">Active / Present</span>
+        <span class="metric-value" id="presentCount">0</span>
       </div>
-      <div class="col-md-3">
-        <div class="card-pro border-bottom border-success border-3">
-          <div class="card-body-pro d-flex justify-content-between align-items-center">
-            <div>
-              <div class="stat-label mb-2">Present</div>
-              <div class="stat-val text-success" id="presentCount">1</div>
-            </div>
-            <div class="text-success bg-success-subtle rounded p-2"><i class="bi bi-check-circle fs-4"></i></div>
-          </div>
-        </div>
+      <div class="metric-card" style="border-left: 4px solid var(--primary);">
+        <span class="metric-label text-primary">In Transit</span>
+        <span class="metric-value" id="checkedInCount">0</span>
       </div>
-      <div class="col-md-3">
-        <div class="card-pro">
-          <div class="card-body-pro d-flex justify-content-between align-items-center">
-            <div>
-              <div class="stat-label mb-2">Checking In</div>
-              <div class="d-flex align-items-center gap-2">
-                 <div class="stat-val text-primary" id="checkedInCount">0</div>
-                 <div class="spinner-grow spinner-grow-sm text-primary" role="status"></div>
-              </div>
-            </div>
-            <div class="text-primary bg-primary-soft rounded p-2"><i class="bi bi-activity fs-4"></i></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card-pro border-bottom border-danger border-3">
-          <div class="card-body-pro d-flex justify-content-between align-items-center">
-            <div>
-              <div class="stat-label mb-2">Absent</div>
-              <div class="stat-val text-danger" id="absentCount">3</div>
-            </div>
-            <div class="text-danger bg-danger-subtle rounded p-2"><i class="bi bi-exclamation-octagon fs-4"></i></div>
-          </div>
-        </div>
+      <div class="metric-card" style="border-left: 4px solid var(--danger);">
+        <span class="metric-label text-danger">Absent</span>
+        <span class="metric-value" id="absentCount">0</span>
       </div>
     </div>
 
-    <div class="row g-4 section-gap">
+    <div class="grid-sidebar-layout">
       
-      <div class="col-lg-4 d-flex flex-column gap-4">
-        
-        <div class="card-pro">
-          <div class="card-header-pro">
-            <span>My Status</span>
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Personal</span>
-          </div>
-          <div class="card-body-pro">
-            <div class="bg-body rounded p-3 text-center border mb-3">
-              <small class="text-uppercase fw-bold text-muted" style="font-size: 10px;">Current State</small>
-              <div id="statusText" class="fw-bold fs-3 mt-1 text-dark">PRESENT</div>
+      <div>
+        <div class="panel">
+          <div class="panel-header"><h2 class="panel-title"><i class="bi bi-terminal"></i> My Status Console</h2></div>
+          <div class="panel-body text-center">
+            <h3 id="statusText" class="mb-1 fw-bold text-success">PRESENT</h3>
+            <p id="adminStatusText" class="text-muted small mb-4">Status: -</p>
+            <div class="d-flex gap-2">
+              <button id="adminCheckInBtn" class="btn-sys btn-sys-primary flex-fill">Check In</button>
+              <button id="adminCheckOutBtn" class="btn-sys btn-sys-default flex-fill border text-danger">Check Out</button>
             </div>
-            <p id="adminStatusText" class="text-center small text-muted mb-3">Status: -</p>
-            <div class="d-grid gap-2 mb-3">
-              <button id="adminCheckInBtn" class="btn btn-success btn-sm fw-medium py-2">Check In</button>
-              <button id="adminCheckOutBtn" class="btn btn-outline-danger btn-sm fw-medium py-2">Check Out</button>
-            </div>
-            <div id="adminAttendanceMessage" class="text-center small fw-bold text-primary"></div>
-            
-            
+            <div id="adminAttendanceMessage" class="mt-3 small fw-bold"></div>
           </div>
         </div>
-          <div class="form-check form-switch d-flex justify-content-center bg-light rounded py-2 border mt-3">
-              <input class="form-check-input me-2" type="checkbox" id="geoToggle">
-              <label class="form-check-label small text-muted fw-medium" for="geoToggle">
-                Office Geo-Restriction
-              </label>
-            </div>
-        <div class="card-pro">
-          <div class="card-header-pro">Shift Configuration</div>
-          <div class="card-body-pro">
+
+        <div class="panel">
+          <div class="panel-header"><h2 class="panel-title"><i class="bi bi-clock-history"></i> Shift Matrix</h2></div>
+          <div class="panel-body">
             <div class="mb-3">
-              <label class="form-label small text-muted fw-bold">SHIFT NAME</label>
-              <input type="text" id="shiftName" class="form-control" placeholder="e.g. Morning Shift">
+              <label class="form-label">Shift Identifier</label>
+              <input type="text" id="shiftName" class="form-control form-control-sm" placeholder="e.g. MORNING_A">
             </div>
             <div class="row g-2 mb-3">
               <div class="col-6">
-                <label class="form-label small text-muted fw-bold">START</label>
-                <input type="time" id="checkInTime" class="form-control">
+                <label class="form-label">Start Time</label>
+                <input type="time" id="checkInTime" class="form-control form-control-sm">
               </div>
               <div class="col-6">
-                <label class="form-label small text-muted fw-bold">CUT-OFF</label>
-                <input type="time" id="lastCheckInTime" class="form-control">
+                <label class="form-label">Cut-off Time</label>
+                <input type="time" id="lastCheckInTime" class="form-control form-control-sm">
               </div>
             </div>
-            <button class="btn btn-dark w-100 btn-sm mb-4" onclick="createShift()">Save Configuration</button>
+            <button class="btn-sys btn-sys-default w-100" onclick="createShift()">Deploy Shift Rule</button>
             
-            <div class="border-top pt-3">
-               <div class="small fw-bold text-muted mb-2">ACTIVE SHIFTS</div>
-               <div class="table-responsive rounded border" style="max-height: 150px;">
-                  <table class="table table-sm table-borderless mb-0" style="font-size: 0.8rem;">
-                    <thead class="bg-light text-muted sticky-top">
-                      <tr><th class="ps-3 bg-light">Name</th><th class="bg-light">In</th><th class="bg-light">Last</th></tr>
-                    </thead>
-                    <tbody id="shiftTableBody"></tbody>
-                  </table>
-               </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card-pro">
-          <div class="card-header-pro">Late Approvals</div>
-          <div class="card-body-pro">
-            <div id="lateUsersContainer" class="text-muted small text-center py-3">
-               <i class="bi bi-check2-all fs-5 d-block text-secondary"></i> No pending approvals
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="col-lg-8 d-flex flex-column gap-4">
-        
-        <div class="card-pro">
-          <div class="card-header-pro">
-            <span>Live Attendance Feed</span>
-            <div class="d-flex align-items-center gap-2">
-              <input type="date" id="attendanceExportDate" class="form-control form-control-sm" style="width: 130px;">
-              <button class="btn btn-sm btn-outline-dark" onclick="exportDailyCSV()">CSV</button>
-              <button class="btn btn-sm btn-outline-success" onclick="exportDailyExcel()">Excel</button>
-            </div>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-custom table-hover w-100">
-              <thead>
-                <tr><th>ID</th><th>User</th><th>Role</th><th>In</th><th>Out</th><th>Status</th></tr>
-              </thead>
-              <tbody id="attendanceTableBody">
-                <tr>
-                  <td>ADMIN001</td>
-                  <td class="fw-medium">Super Admin</td>
-                  <td><span class="badge bg-secondary-subtle text-secondary border">ADMIN</span></td>
-                  <td>8:04:30 AM</td>
-                  <td>-</td>
-                  <td><span class="badge bg-success-subtle text-success border border-success-subtle">PRESENT</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card-pro">
-          <div class="card-header-pro">
-            <span>Work Report Submissions</span>
-            <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-outline-dark" onclick="exportWorkReportsCSV()">CSV</button>
-              <button class="btn btn-sm btn-outline-success" onclick="exportWorkReportsExcel()">Excel</button>
-            </div>
-          </div>
-          <div class="card-body-pro p-0">
-            <div class="table-responsive" style="max-height: 250px;">
-              <table class="table table-custom table-striped mb-0">
-                <thead>
-                  <tr><th>User ID</th><th>Name</th><th>Role</th><th>Shift</th><th>Attendance</th><th>Report Status</th></tr>
+            <div class="mt-4 table-responsive border" style="max-height: 200px; overflow-y: auto;">
+              <table class="table-enterprise">
+                <thead class="sticky-top bg-light">
+                  <tr><th>Name</th><th>Start</th><th>Cut-off</th><th>Action</th></tr>
                 </thead>
-                <tbody id="workReportTable">
-                  <tr><td colspan="6" class="text-center py-4 text-muted">Loading status data...</td></tr>
-                </tbody>
+                <tbody id="shiftTableBody"></tbody>
               </table>
             </div>
           </div>
         </div>
 
-      </div>
-    </div>
-      <div class="card-clean section-gap">
-  <div class="card-header-clean">
-    <span>Leave Management</span>
-  </div>
-
-  <div class="card-body-clean p-0">
-    <div class="table-responsive">
-      <table class="table table-custom mb-0">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Role</th>
-            <th>From</th>
-            <th>To</th>
-            <th>Reason</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="leaveRequestsTable">
-          <tr>
-            <td colspan="7" class="text-center text-muted py-4">
-              Loading leave requests...
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-    <div class="card-pro section-gap">
-      <div class="card-header-pro">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-kanban text-primary"></i>
-          <span>Product Roadmap Overview</span>
-        </div>
-        <div style="width: 250px;">
-          <select id="projectSelect" class="form-select form-select-sm">
-            <option value="">Select project context...</option>
-            <option value="6">Website Redesign</option>
-          </select>
-        </div>
-      </div>
-      <div class="card-body-pro">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="stat-label">Milestone Progress</span>
-          <span class="badge bg-primary-soft text-primary rounded-pill">Tracking Active</span>
-        </div>
-        <div class="progress mb-4" style="height: 10px;">
-          <div id="adminProgressBar" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
-        </div>
-        <div class="row">
-          <div class="col-md-6 border-end">
-             <h6 class="fw-bold mb-3 small text-dark">ASSIGNED MEMBERS</h6>
-             <ul id="adminProjectMembers" class="list-group list-group-flush mb-3">
-               <li class="list-group-item px-0 border-0 text-muted small">Select a project to view members</li>
-             </ul>
-             <button id="deleteProjectBtn" class="btn btn-sm btn-outline-danger mt-2" onclick="deleteProject()">
-               <i class="bi bi-trash me-1"></i> Archive Project
-             </button>
+        <div class="panel border-warning">
+          <div class="panel-header bg-warning bg-opacity-10">
+            <h2 class="panel-title text-dark"><i class="bi bi-exclamation-triangle"></i> Pending Late Approvals</h2>
           </div>
-          <div class="col-md-6 ps-md-4">
-            <h6 class="fw-bold mb-3 small text-dark">ROADMAP STEPS</h6>
-            <ul id="adminRoadmapSteps" class="list-group list-group-flush"></ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row g-4 section-gap">
-      
-      <div class="col-lg-4">
-        <div class="card-pro h-100">
-          <div class="card-header-pro">
-            <span>Submit Daily Report</span>
-            <span class="badge bg-warning text-dark border border-warning-subtle">Required</span>
-          </div>
-          <div class="card-body-pro">
-            <label class="form-label small fw-bold text-muted">TASKS COMPLETED</label>
-            <textarea id="adminWorkDone" class="form-control mb-3" rows="5" placeholder="Describe today’s tasks..."></textarea>
-            <button class="btn btn-primary w-100" onclick="submitAdminDailyReport()">Submit Report</button>
-            <div id="adminWorkMessage" class="mt-2 text-center small"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-8">
-        <div class="card-pro h-100">
-          <div class="card-header-pro">
-            <span>Work Reports History</span>
-            <div class="d-flex align-items-center gap-2">
-              <input type="date" id="reportFromDate" class="form-control form-control-sm" style="width: 130px;">
-              <span class="text-muted">-</span>
-              <input type="date" id="reportToDate" class="form-control form-control-sm" style="width: 130px;">
-              <button class="btn btn-sm btn-outline-dark" onclick="exportWorkReportsCSV()">CSV</button>
-              <button class="btn btn-sm btn-outline-success" onclick="exportWorkReportsExcel()">Excel</button>
+          <div class="panel-body p-2 bg-light">
+            <div id="lateUsersContainer" class="d-flex flex-column gap-2">
+               <div class="text-center text-muted small py-3">No pending exception requests.</div>
             </div>
           </div>
-          <div class="table-responsive h-100">
-            <table class="table table-custom mb-0">
-              <thead class="sticky-top bg-light">
-                <tr><th>User</th><th>Role</th><th style="width: 40%;">Work Done</th><th>Date</th></tr>
+        </div>
+
+      </div>
+
+      <div class="d-flex flex-column gap-4">
+        
+        <div class="panel mb-0">
+          <div class="panel-header">
+            <h2 class="panel-title"><i class="bi bi-activity"></i> Live Operations Log</h2>
+            <div class="d-flex gap-2">
+              <input type="date" id="attendanceExportDate" class="form-control form-control-sm" style="width: 140px;">
+              <button class="btn-sys btn-sys-default border" onclick="exportDailyCSV()">CSV</button>
+              <button class="btn-sys btn-sys-default border" onclick="exportDailyExcel()">XLSX</button>
+            </div>
+          </div>
+          <div class="panel-body-flush table-responsive" style="max-height: 350px;">
+            <table class="table-enterprise">
+              <thead class="sticky-top">
+                <tr><th>User ID</th><th>Name</th><th>Role</th><th>Check-In</th><th>Check-Out</th><th>Status</th><th>Action</th></tr>
               </thead>
-              <tbody id="adminWorkReportsTable">
-                <tr><td colspan="4" class="text-center text-muted py-5">Select dates to view reports...</td></tr>
+              <tbody id="attendanceTableBody">
+                <tr><td colspan="7" class="text-center text-muted py-4">Loading operational data...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
-      </div>
-    </div>
-      
 
-    <div class="mb-5">
-      <h4 class="fw-bold mb-4 text-dark">Management Console</h4>
-      <div class="row g-4">
-        <div class="col-md-4">
-          <div class="card-pro h-100">
-            <div class="card-header-pro bg-light"><i class="bi bi-person-badge me-2"></i> Create Team Lead</div>
-            <div class="card-body-pro">
-              <div class="d-flex flex-column gap-3">
-                <input id="tlName" class="form-control" placeholder="Full Name">
-                <input id="tlEmail" class="form-control" placeholder="Email Address">
-                <input id="tlPassword" class="form-control" type="password" placeholder="Password">
-                <button class="btn btn-dark w-100" onclick="createTeamLead()">Create Account</button>
+        <div class="panel mb-0">
+          <div class="panel-header"><h2 class="panel-title"><i class="bi bi-database-add"></i> System Provisioning</h2></div>
+          <div class="panel-body bg-light">
+            <div class="grid-3-col">
+              
+              <div class="bg-white p-3 border rounded-1 shadow-sm">
+                <label class="form-label text-primary">Provision Team Lead</label>
+                <input id="tlName" class="form-control form-control-sm mb-2" placeholder="Full Name">
+                <input id="tlEmail" class="form-control form-control-sm mb-2" placeholder="Email Address">
+                <input id="tlPassword" class="form-control form-control-sm mb-3" type="password" placeholder="Password">
+                <button class="btn-sys btn-sys-primary w-100" onclick="createTeamLead()">Create Resource</button>
               </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card-pro h-100">
-            <div class="card-header-pro bg-light"><i class="bi bi-person me-2"></i> Create Team Member</div>
-            <div class="card-body-pro">
-              <div class="d-flex flex-column gap-3">
-                <input id="tmName" class="form-control" placeholder="Full Name">
-                <input id="tmEmail" class="form-control" placeholder="Email Address">
-                <input id="tmPassword" class="form-control" type="password" placeholder="Password">
-                <button class="btn btn-outline-dark w-100" onclick="createTeamMember()">Add Member</button>
+
+              <div class="bg-white p-3 border rounded-1 shadow-sm">
+                <label class="form-label text-dark">Provision Member</label>
+                <input id="tmName" class="form-control form-control-sm mb-2" placeholder="Full Name">
+                <input id="tmEmail" class="form-control form-control-sm mb-2" placeholder="Email Address">
+                <input id="tmPassword" class="form-control form-control-sm mb-3" type="password" placeholder="Password">
+                <button class="btn-sys btn-sys-default w-100 border" onclick="createTeamMember()">Create Resource</button>
               </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card-pro h-100">
-            <div class="card-header-pro bg-light"><i class="bi bi-rocket-takeoff me-2"></i> Initialize Project</div>
-            <div class="card-body-pro">
-              <div class="d-flex flex-column gap-3">
-                <input id="projectName" class="form-control" placeholder="Project Title">
-                <textarea id="projectDesc" class="form-control" rows="1" placeholder="Description"></textarea>
-                <select id="teamLeadSelect" class="form-select">
+
+              <div class="bg-white p-3 border rounded-1 shadow-sm">
+                <label class="form-label text-success">Initialize Project Context</label>
+                <input id="projectName" class="form-control form-control-sm mb-2" placeholder="Project Codename">
+                <textarea id="projectDesc" class="form-control form-control-sm mb-2" rows="1" placeholder="Scope"></textarea>
+                <select id="teamLeadSelect" class="form-select form-select-sm mb-3">
                   <option value="">Assign Lead...</option>
-                  <option value="114">test2 (TL005)</option>
                 </select>
-                <button class="btn btn-success w-100" onclick="createProject()">Launch Project</button>
+                <button class="btn-sys w-100 text-white" style="background: var(--success);" onclick="createProject()">Launch Project</button>
               </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div> <div class="grid-2-col mt-4">
+      
+      <div class="panel mb-0">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="bi bi-kanban"></i> Project Telemetry</h2>
+          <select id="projectSelect" class="form-select form-select-sm w-auto">
+            <option value="">Select context...</option>
+          </select>
+        </div>
+        <div class="panel-body">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="form-label">Completion Status</span>
+            <button id="deleteProjectBtn" class="btn btn-sm btn-link text-danger p-0 border-0" onclick="deleteProject()">Drop Project</button>
+          </div>
+          <div class="progress mb-4 rounded-0" style="height: 10px;">
+            <div id="adminProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+          </div>
+          <div class="row">
+            <div class="col-6 border-end">
+              <label class="form-label">Assigned Resources</label>
+              <ul id="adminProjectMembers" class="list-group list-group-flush small border rounded"></ul>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Roadmap Nodes</label>
+              <ul id="adminRoadmapSteps" class="list-unstyled small"></ul>
             </div>
           </div>
         </div>
       </div>
-      <div id="adminMessage" class="mt-3 text-center fw-bold"></div>
+
+      <div class="panel mb-0">
+        <div class="panel-header"><h2 class="panel-title"><i class="bi bi-journal-code"></i> Submit Protocol (Admin EOD)</h2></div>
+        <div class="panel-body d-flex flex-column">
+          <label class="form-label">Execution Summary</label>
+          <textarea id="adminWorkDone" class="form-control mb-3 flex-grow-1" style="min-height: 100px; font-family: monospace;" placeholder="Enter console commands/actions executed today..."></textarea>
+          <button class="btn-sys btn-sys-primary w-100" onclick="submitAdminDailyReport()">Commit End of Day Report</button>
+          <div id="adminWorkMessage" class="mt-2 text-center small fw-bold"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="panel mt-4">
+      <div class="panel-header">
+        <h2 class="panel-title"><i class="bi bi-hdd-stack"></i> Global System Logs</h2>
+      </div>
+      <div class="panel-body p-0">
+        
+        <ul class="nav nav-tabs px-3 pt-3 bg-light border-bottom-0" id="logTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab" data-bs-target="#tab-submissions">Daily Status Matrix</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab" data-bs-target="#tab-history">EOD Report Archives</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab" data-bs-target="#tab-leaves">Leave Exception Registry</button>
+          </li>
+        </ul>
+
+        <div class="tab-content border-top" style="max-height: 400px; overflow-y: auto;">
+          
+          <div class="tab-pane fade show active p-0" id="tab-submissions">
+             <table class="table-enterprise">
+               <thead class="bg-light sticky-top">
+                 <tr><th>User ID</th><th>Name</th><th>Role</th><th>Shift</th><th>Attendance</th><th>Report Status</th></tr>
+               </thead>
+               <tbody id="workReportTable"></tbody>
+             </table>
+          </div>
+
+          <div class="tab-pane fade p-0" id="tab-history">
+            <div class="bg-light p-2 border-bottom d-flex gap-2 align-items-center">
+              <span class="small fw-bold text-muted ms-2">FILTER ARCHIVE:</span>
+              <input type="date" id="reportFromDate" class="form-control form-control-sm w-auto">
+              <input type="date" id="reportToDate" class="form-control form-control-sm w-auto">
+              <button class="btn-sys btn-sys-default border" onclick="exportWorkReportsCSV()">CSV</button>
+              <button class="btn-sys btn-sys-default border" onclick="exportWorkReportsExcel()">XLSX</button>
+            </div>
+            <table class="table-enterprise">
+              <thead class="bg-light sticky-top">
+                <tr><th>User</th><th>Role</th><th style="width: 50%;">Work Done</th><th>Date</th></tr>
+              </thead>
+              <tbody id="adminWorkReportsTable"></tbody>
+            </table>
+          </div>
+
+          <div class="tab-pane fade p-0" id="tab-leaves">
+            <table class="table-enterprise">
+              <thead class="bg-light sticky-top">
+                <tr><th>User</th><th>Role</th><th>From</th><th>To</th><th>Reason</th><th>Status</th><th>Action</th></tr>
+              </thead>
+              <tbody id="leaveRequestsTable"></tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
     </div>
 
   </main>

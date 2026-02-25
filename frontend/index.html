@@ -3,229 +3,288 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In | SUN Nexus Solution</title>
-  
+  <title>Sign In | SUN Nexus Tech Club</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
   <style>
     :root {
-      --primary: #0f172a; /* Slate 900 - Very professional dark blue/black */
-      --accent: #4f46e5;  /* Indigo 600 - The brand highlight */
-      --text-main: #334155;
-      --text-light: #64748b;
-      --border-light: #e2e8f0;
+      /* Tech Club Colors based on your logo */
+      --primary: #9c75df;       /* Logo Purple */
+      --primary-hover: #8b62cf;
+      --accent: #ffb100;        /* Logo Orange */
+      
+      /* Clean Dark Theme */
+      --bg-black: #000000;      /* Matches the JPEG logo background perfectly */
+      --bg-surface: #0f1115;    /* Slightly lighter for the form area */
+      --border-color: #27272a;
+      --text-main: #f8fafc;
+      --text-muted: #a1a1aa;
+      
       --font-main: 'Inter', sans-serif;
     }
 
+    * { box-sizing: border-box; }
+
     body {
+      margin: 0;
+      padding: 0;
       font-family: var(--font-main);
+      background-color: var(--bg-black);
+      color: var(--text-main);
       height: 100vh;
       overflow: hidden;
-      background: #ffffff;
     }
 
-    .container-fluid {
-      height: 100%;
-      padding: 0;
+    /* --- LAYOUT --- */
+    .split-layout {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
     }
 
-    /* --- LEFT SIDE: THE FORM --- */
-    .login-section {
+    /* --- LEFT: BRANDING (Tech Club Vibe) --- */
+    .brand-side {
+      flex: 1.2;
+      background-color: var(--bg-black);
+      padding: 4rem;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: 0 8%;
-      background: #ffffff;
+      position: relative;
+      border-right: 1px solid var(--border-color);
+      /* Subtle dot grid for a "tech/dev" feel */
+      background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+      background-size: 32px 32px;
     }
 
-    .brand-header {
-      margin-bottom: 3rem;
+    .brand-content {
+      max-width: 500px;
+    }
+
+    .club-logo {
+      width: 220px;
+      margin-bottom: 2rem;
+      /* The black background of the JPEG will disappear into the --bg-black of the page */
+    }
+
+    .club-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      color: #ffffff;
+    }
+
+    .club-title span {
+      color: var(--primary);
+    }
+
+    .club-description {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* --- RIGHT: FORM AREA --- */
+    .form-side {
+      flex: 1;
+      background-color: var(--bg-surface);
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      padding: 2rem;
     }
 
-    .brand-icon {
-      width: 40px; height: 40px;
-      background: var(--primary);
-      color: white;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem;
+    .form-container {
+      width: 100%;
+      max-width: 400px;
     }
 
-    .brand-text {
+    .form-header {
+      margin-bottom: 2.5rem;
+    }
+
+    .form-header h2 {
+      font-size: 1.75rem;
       font-weight: 700;
-      font-size: 1.25rem;
-      letter-spacing: -0.02em;
-      color: var(--primary);
-      line-height: 1;
-    }
-
-    .login-header h2 {
-      font-weight: 700;
-      color: #0f172a;
-      letter-spacing: -0.03em;
       margin-bottom: 0.5rem;
+      color: var(--text-main);
     }
 
-    .login-header p {
-      color: var(--text-light);
+    .form-header p {
+      color: var(--text-muted);
       font-size: 0.95rem;
     }
 
-    /* --- INPUTS --- */
-    .form-label {
+    /* --- STANDARD CLEAN INPUTS --- */
+    .input-group-custom {
+      margin-bottom: 1.5rem;
+    }
+
+    .label-custom {
+      display: block;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #334155;
+      color: #e2e8f0;
       margin-bottom: 0.5rem;
     }
 
-    .form-control {
-      padding: 0.85rem 1rem;
+    .input-custom {
+      width: 100%;
+      background-color: #18181b;
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      border: 1px solid var(--border-light);
-      background: #f8fafc;
-      font-size: 0.95rem;
-      transition: all 0.2s;
+      padding: 0.85rem 1rem;
+      color: #ffffff;
+      font-size: 1rem;
+      font-family: var(--font-main);
+      transition: all 0.2s ease;
     }
 
-    .form-control:focus {
-      background: #fff;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    .input-custom::placeholder {
+      color: #52525b;
+    }
+
+    .input-custom:focus {
+      outline: none;
+      border-color: var(--primary);
+      background-color: #000000;
+      box-shadow: 0 0 0 3px rgba(156, 117, 223, 0.15);
+    }
+
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .forgot-password {
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .forgot-password:hover {
+      opacity: 0.8;
+      text-decoration: underline;
     }
 
     /* --- BUTTON --- */
     .btn-login {
-      background: var(--primary);
-      color: white;
+      width: 100%;
+      background-color: var(--primary);
+      color: #ffffff;
       border: none;
-      padding: 0.9rem;
       border-radius: 8px;
-      font-weight: 600;
+      padding: 0.9rem;
       font-size: 1rem;
-      letter-spacing: 0.01em;
+      font-weight: 600;
+      cursor: pointer;
       margin-top: 1rem;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
     }
 
     .btn-login:hover {
-      background: #1e293b; /* Slightly lighter slate */
+      background-color: var(--primary-hover);
       transform: translateY(-1px);
     }
 
-    .copyright {
-      margin-top: 3rem;
-      font-size: 0.8rem;
-      color: #94a3b8;
+    .btn-login:active {
+      transform: translateY(0);
     }
 
-    /* --- RIGHT SIDE: THE VISUAL --- */
-    .visual-section {
-      background: #0f172a; /* Fallback */
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+    /* --- VISIBLE ANIMATIONS --- */
+    /* 1. Slide in from left for the branding */
+    .anim-slide-right {
+      opacity: 0;
+      animation: slideRight 0.8s ease-out forwards;
     }
 
-    /* Abstract professional pattern */
-    .visual-pattern {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-      background-size: 40px 40px;
-      opacity: 0.3;
+    /* 2. Slide up with stagger for the form elements */
+    .anim-slide-up {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideUp 0.6s ease-out forwards;
     }
 
-    .visual-content {
-      position: relative;
-      z-index: 10;
-      text-align: center;
-      color: white;
-      max-width: 450px;
-      padding: 2rem;
+    /* Stagger Delays so they load in sequence */
+    .delay-1 { animation-delay: 0.2s; }
+    .delay-2 { animation-delay: 0.3s; }
+    .delay-3 { animation-delay: 0.4s; }
+    .delay-4 { animation-delay: 0.5s; }
+    .delay-5 { animation-delay: 0.6s; }
+
+    @keyframes slideRight {
+      from { opacity: 0; transform: translateX(-40px); }
+      to { opacity: 1; transform: translateX(0); }
     }
 
-    .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 2rem;
-      border-radius: 16px;
-      margin-bottom: 2rem;
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
+    /* --- RESPONSIVE --- */
+    @media (max-width: 992px) {
+      .split-layout { flex-direction: column; overflow-y: auto; }
+      .brand-side { flex: none; padding: 3rem 2rem; border-right: none; border-bottom: 1px solid var(--border-color); text-align: center; align-items: center; }
+      .club-title { font-size: 2.5rem; }
+      .form-side { padding: 3rem 2rem; }
+    }
   </style>
 </head>
 <body>
 
-  <div class="container-fluid">
-    <div class="row h-100">
-      
-      <div class="col-lg-5 login-section">
-        <div style="max-width: 400px; margin: 0 auto; width: 100%;">
-          
-          <div class="brand-header">
-            <div class="brand-icon">
-              <i class="bi bi-grid-3x3-gap-fill"></i>
-            </div>
-            <div class="brand-text">SUN Nexus</div>
-          </div>
-
-          <div class="login-header mb-4">
-            <h2>Welcome back</h2>
-            <p>Please enter your details to access the workspace.</p>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Email Address</label>
-            <input type="email" id="email" class="form-control" placeholder="name@company.com" />
-          </div>
-
-          <div class="mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-              <label class="form-label mb-0">Password</label>
-              <a href="#" class="text-decoration-none small text-secondary fw-medium">Forgot password?</a>
-            </div>
-            <input type="password" id="password" class="form-control" placeholder="••••••••" />
-          </div>
-
-          <button class="btn btn-login w-100" onclick="login()">
-            Sign In
-          </button>
-
-          <div id="error" class="text-danger mt-3 small fw-semibold text-center" style="min-height: 24px;"></div>
-
-          <div class="copyright">
-            &copy; 2026 SUN Nexus Solution. <br> Protected by Enterprise Security.
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-7 d-none d-lg-flex visual-section">
-        <div class="visual-pattern"></div>
+  <div class="split-layout">
+    
+    <div class="brand-side">
+      <div class="brand-content anim-slide-right">
+        <img src="WhatsApp Image 2026-02-25 at 3.37.21 PM.jpeg" alt="SUN Nexus Solutions" class="club-logo">
         
-        <div class="visual-content">
-          <div class="glass-card">
-            <i class="bi bi-shield-lock-fill fs-1 mb-3 d-block text-white"></i>
-            <h3 class="fw-bold mb-2">Enterprise Security</h3>
-            <p class="text-white-50 m-0 small">Access to this system is restricted to authorized personnel only. All activities are monitored.</p>
-          </div>
-          <div class="small text-white-50 fw-bold letter-spacing-2 text-uppercase">
-            SUN Nexus Solution &bull; V 4.2.0
-          </div>
-        </div>
+        <h1 class="club-title">Build the future with <span>Nexus.</span></h1>
+        <p class="club-description">
+          Welcome to the official SUN Nexus tech club portal. Sign in to access project dashboards, employee rosters, and team management tools.
+        </p>
       </div>
-
     </div>
+
+    <div class="form-side">
+      <div class="form-container">
+        
+        <div class="form-header anim-slide-up delay-1">
+          <h2>Sign In</h2>
+          <p>Enter your account details to continue.</p>
+        </div>
+
+        <div class="input-group-custom anim-slide-up delay-2">
+          <label class="label-custom" for="email">Email Address</label>
+          <input type="email" id="email" class="input-custom" placeholder="name@sunnexus.com" autocomplete="email" />
+        </div>
+
+        <div class="input-group-custom anim-slide-up delay-3">
+          <div class="flex-between">
+            <label class="label-custom" for="password" style="margin-bottom: 0;">Password</label>
+            <a href="#" class="forgot-password">Forgot password?</a>
+          </div>
+          <input type="password" id="password" class="input-custom" placeholder="••••••••" style="margin-top: 0.5rem;" />
+        </div>
+
+        <button class="btn-login anim-slide-up delay-4" onclick="login()">
+          Sign In
+        </button>
+
+        <div id="error" class="text-danger mt-3 text-center small fw-bold anim-slide-up delay-5" style="min-height: 20px;"></div>
+
+      </div>
+    </div>
+
   </div>
 
   <script src="js/auth.js"></script>
