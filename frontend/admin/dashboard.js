@@ -297,16 +297,7 @@ async function loadTodayAttendance() {
       <td>${row.check_in ?? "-"}</td>
       <td>${row.check_out ?? "-"}</td>
       <td><strong>${row.status}</strong></td>
-      <td>
-        ${
-          row.status === "ABSENT"
-            ? `<button class="btn btn-sm btn-warning"
-                onclick="allowLateCheckIn('${row.user_db_id}')">
-                Allow
-              </button>`
-            : "-"
-        }
-      </td>
+      
     `;
 
     tbody.appendChild(tr);
