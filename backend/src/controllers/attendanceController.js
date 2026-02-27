@@ -569,14 +569,17 @@ exports.applyLeave = async (req, res) => {
 exports.getMyAttendanceHistory = async (req, res) => {
   try {
     const userId = req.user.id;
-    // Default to current month if no ?month= param provided (format: YYYY-MM)
     const month = req.query.month || new Date().toISOString().slice(0, 7);
 
     const result = await pool.query(
       `SELECT
          a.date,
-         TO_CHAR(a.check_in AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM') AS check_in,
-         TO_CHAR(a.check_out AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM') AS check_out,
+         CASE WHEN a.check_in IS NOT NULL
+              THEN TO_CHAR(a.check_in AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM')
+              ELSE NULL END AS check_in,
+         CASE WHEN a.check_out IS NOT NULL
+              THEN TO_CHAR(a.check_out AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM')
+              ELSE NULL END AS check_out,
          a.status,
          s.name AS shift_name
        FROM attendance a

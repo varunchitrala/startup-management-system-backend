@@ -562,22 +562,22 @@ exports.broadcastAnnouncement = async (req, res) => {
       return res.status(400).json({ message: "Announcement message is required" });
     }
 
-    // Get all user IDs
     const users = await pool.query(`SELECT id FROM users`);
 
     if (users.rows.length === 0) {
       return res.json({ message: "No users to notify", sent: 0 });
     }
 
-    // Bulk insert one notification per user
-    const values = users.rows.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(", ");
-    const params = users.rows.flatMap(u => [u.id, `📢 Admin Announcement: ${message.trim()}`]);
+    const text = `📢 Admin Announcement: ${message.trim()}`;
 
-    await pool.query(
-      `INSERT INTO notifications (user_id, message, is_read, created_at)
-       VALUES ${users.rows.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2}, false, NOW())`).join(", ")}`,
-      params
-    );
+    // Insert one notification per user (simple, safe, works on all PG versions)
+    for (const user of users.rows) {
+      await pool.query(
+        `INSERT INTO notifications (user_id, message, is_read, created_at)
+         VALUES ($1, $2, $3, NOW())`,
+        [user.id, text, false]
+      );
+    }
 
     res.json({ message: `Announcement sent to ${users.rows.length} users`, sent: users.rows.length });
 
