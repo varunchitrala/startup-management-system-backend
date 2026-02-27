@@ -409,6 +409,38 @@
       </div>
     </div>
 
+    <!-- ===== MY ATTENDANCE HISTORY ===== -->
+    <div class="card-pro mt-4">
+      <div class="card-header-pro justify-content-between">
+        <span><i class="bi bi-calendar3 text-primary"></i> My Attendance History</span>
+        <input type="month" id="attendanceMonthPicker" class="form-control form-control-sm w-auto"
+          onchange="loadMyAttendanceHistory()" style="border-radius:6px; font-size:0.85rem;">
+      </div>
+      <div class="card-body-pro p-0">
+        <div class="table-responsive" style="max-height:350px; overflow-y:auto;">
+          <table class="table table-sm mb-0" style="font-size:0.85rem;">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Check-In</th>
+                <th>Check-Out</th>
+                <th>Status</th>
+                <th>Shift</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceHistoryBody">
+              <tr>
+                <td colspan="6" class="text-center text-muted py-3">Select a month to view records</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="attendanceSummaryBar" class="d-flex gap-3 flex-wrap px-3 py-2 border-top bg-light small text-muted">
+        </div>
+      </div>
+    </div>
+    <!-- ===== END MY ATTENDANCE HISTORY ===== -->
 
   </div>
 

@@ -564,3 +564,32 @@ exports.applyLeave = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* ================= MY ATTENDANCE HISTORY ================= */
+exports.getMyAttendanceHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    // Default to current month if no ?month= param provided (format: YYYY-MM)
+    const month = req.query.month || new Date().toISOString().slice(0, 7);
+
+    const result = await pool.query(
+      `SELECT
+         a.date,
+         TO_CHAR(a.check_in AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM') AS check_in,
+         TO_CHAR(a.check_out AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM') AS check_out,
+         a.status,
+         s.name AS shift_name
+       FROM attendance a
+       LEFT JOIN shifts s ON s.id = a.shift_id
+       WHERE a.user_id = $1
+         AND TO_CHAR(a.date, 'YYYY-MM') = $2
+       ORDER BY a.date DESC`,
+      [userId, month]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("My attendance history error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
