@@ -624,26 +624,20 @@ async function loadShifts() {
   tbody.innerHTML = "";
 
   shifts.forEach(s => {
-
     const tr = document.createElement("tr");
-
     tr.innerHTML = `
-    <td>${s.shift_name}</td>
-<td>${s.start_time}</td>
-<td>${s.last_checkin_time}</td>
-
-
-    <td>
-      <button class="btn btn-sm btn-danger"
-        onclick="deleteShift(${s.id})">
-        Delete
-      </button>
-    </td>
-  `;
-
+      <td>${s.name}</td>
+      <td>${s.check_in_time}</td>
+      <td>${s.last_checkin_time}</td>
+      <td>
+        <button class="btn btn-sm btn-danger"
+          onclick="deleteShift(${s.id})">
+          Delete
+        </button>
+      </td>
+    `;
     tbody.appendChild(tr);
   });
-
 }
 async function deleteShift(id) {
   if (!confirm("Are you sure you want to delete this shift?")) return;
@@ -666,51 +660,67 @@ async function deleteShift(id) {
   loadShifts();
 }
 async function loadLateUsers() {
-  const res = await fetch(`${API_BASE}/api/admin/attendance/late-users`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/attendance/late-users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
-  const users = await res.json();
+    const users = await res.json();
+    const container = document.getElementById("lateUsersContainer");
+    container.innerHTML = "";
 
-  const container = document.getElementById("lateUsersContainer");
-  container.innerHTML = "";
+    if (!Array.isArray(users) || users.length === 0) {
+      container.innerHTML = `<div class="text-center text-muted small py-3">No pending exception requests.</div>`;
+      return;
+    }
 
-  if (users.length === 0) {
-    container.innerHTML = "<p>No late users today</p>";
+    // Load shifts for dropdown
+    const shiftRes = await fetch(`${API_BASE}/api/admin/shifts`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const shifts = await shiftRes.json();
+
+    users.forEach(user => {
+      const div = document.createElement("div");
+      div.className = "d-flex align-items-center justify-content-between gap-2 p-2 border rounded mb-2 bg-white";
+
+      // Shifts use correct field: s.name, s.id
+      const shiftOptions = shifts.map(s =>
+        `<option value="${s.id}">${s.name}</option>`
+      ).join("");
+
+      // user.user_id = DB integer primary key
+      // user.user_code = e.g. TM001
+      div.innerHTML = `
+        <div>
+          <strong>${user.user_code}</strong>
+          <span class="text-muted small ms-1">${user.name}</span>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <select id="shiftSelect_${user.user_id}" class="form-select form-select-sm" style="width:130px;">
+            ${shiftOptions}
+          </select>
+          <button class="btn btn-sm btn-success" onclick="approveLate(${user.user_id})">
+            Approve
+          </button>
+        </div>
+      `;
+
+      container.appendChild(div);
+    });
+
+  } catch (err) {
+    console.error("loadLateUsers error:", err);
+  }
+}
+
+async function approveLate(dbUserId) {
+  const shiftId = document.getElementById(`shiftSelect_${dbUserId}`).value;
+
+  if (!shiftId) {
+    alert("Please select a shift");
     return;
   }
-
-  // Get shifts
-  const shiftRes = await fetch(`${API_BASE}/api/admin/shifts`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-
-  const shifts = await shiftRes.json();
-
-  users.forEach(user => {
-    const div = document.createElement("div");
-    div.className = "card p-2 mb-2";
-
-    const shiftOptions = shifts.map(s =>
-      `<option value="${s.id}">${s.name}</option>`
-    ).join("");
-
-    div.innerHTML = `
-      <strong>${user.user_code} - ${user.name}</strong>
-      <select id="shiftSelect_${user.user_id}" class="form-select mt-2">
-        ${shiftOptions}
-      </select>
-      <button class="btn btn-success mt-2"
-        onclick="approveLate(${user.user_id})">
-        Approve
-      </button>
-    `;
-
-    container.appendChild(div);
-  });
-}
-async function approveLate(userId) {
-  const shiftId = document.getElementById(`shiftSelect_${userId}`).value;
 
   const res = await fetch(`${API_BASE}/api/admin/attendance/approve-late`, {
     method: "POST",
@@ -719,16 +729,21 @@ async function approveLate(userId) {
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({
-      userId,
-      shiftId
+      userId: dbUserId,   // DB integer primary key
+      shiftId: Number(shiftId)
     })
   });
 
   const data = await res.json();
 
-  alert(data.message);
+  if (!res.ok) {
+    alert(data.message || "Approval failed");
+    return;
+  }
 
+  alert(data.message);
   loadLateUsers();
+  loadTodayAttendance(); // refresh live ops table
 }
 async function loadWorkReportDashboard() {
   const res = await fetch(`${API_BASE}/api/admin/work-reports/today`, {
