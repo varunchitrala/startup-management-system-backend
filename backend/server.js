@@ -17,12 +17,14 @@ const adminRoutes = require("./src/routes/adminRoutes");
 const attendanceRoutes = require("./src/routes/attendanceRoutes");
 const workReportRoutes = require("./src/routes/workReportRoutes");
 const leaveRoutes = require("./src/routes/leaveRoutes");
+const notificationRoutes = require("./src/routes/notificationRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/work", workReportRoutes);
 app.use("/api/leave", leaveRoutes);
+app.use("/api/notifications", notificationRoutes);
 /* ================= AUTOMATION ================= */
 
 const { autoCreateTodayAttendance } = require("./src/controllers/attendanceController");

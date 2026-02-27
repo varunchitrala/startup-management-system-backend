@@ -318,4 +318,92 @@ async function applyLeave() {
 document.addEventListener("DOMContentLoaded", () => {
   loadMemberProjects();
   loadStatus();
+  loadNotifications();
+  // Poll for new notifications every 60 seconds
+  setInterval(loadNotifications, 60000);
 });
+
+/* ================= NOTIFICATIONS ================= */
+
+async function loadNotifications() {
+  try {
+    const res = await fetch(`${API_BASE}/api/notifications/my-notifications`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const notifs = await res.json();
+    const list = document.getElementById("notifList");
+    const badge = document.getElementById("notifBadge");
+
+    const unread = notifs.filter(n => !n.is_read);
+
+    // Update badge
+    if (unread.length > 0) {
+      badge.style.display = "flex";
+      badge.textContent = unread.length > 9 ? "9+" : unread.length;
+    } else {
+      badge.style.display = "none";
+    }
+
+    // Render list
+    if (notifs.length === 0) {
+      list.innerHTML = `<div class="notif-empty">No notifications yet</div>`;
+      return;
+    }
+
+    list.innerHTML = notifs.map(n => `
+      <div class="notif-item ${n.is_read ? "" : "unread"}"
+           onclick="markOneRead(event, ${n.id}, this)">
+        <div>${n.message}</div>
+        <div class="notif-time">${new Date(n.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</div>
+      </div>
+    `).join("");
+
+  } catch (err) {
+    console.error("Load notifications error:", err);
+  }
+}
+
+function toggleNotifDropdown() {
+  const dropdown = document.getElementById("notifDropdown");
+  dropdown.classList.toggle("open");
+}
+
+// Close dropdown when clicking outside
+document.addEventListener("click", (e) => {
+  const bell = document.getElementById("notifBell");
+  if (bell && !bell.contains(e.target)) {
+    document.getElementById("notifDropdown").classList.remove("open");
+  }
+});
+
+async function markOneRead(e, id, el) {
+  e.stopPropagation();
+  if (!el.classList.contains("unread")) return;
+
+  try {
+    await fetch(`${API_BASE}/api/notifications/${id}/read`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    el.classList.remove("unread");
+    loadNotifications(); // refresh badge
+  } catch (err) {
+    console.error("Mark read error:", err);
+  }
+}
+
+async function markAllRead(e) {
+  e.stopPropagation();
+  const items = document.querySelectorAll(".notif-item.unread");
+  for (const item of items) {
+    const id = item.getAttribute("data-id");
+    if (id) {
+      await fetch(`${API_BASE}/api/notifications/${id}/read`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    }
+  }
+  loadNotifications();
+}

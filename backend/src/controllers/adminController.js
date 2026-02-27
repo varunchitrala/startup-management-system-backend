@@ -13,10 +13,10 @@ exports.createTeamLead = async (req, res) => {
 
     // Generate next TEAM_LEAD user_id (TL001, TL002...)
     const seqResult = await pool.query(
-  "SELECT nextval('team_lead_seq')"
-);
+      "SELECT nextval('team_lead_seq')"
+    );
 
-const user_id = `TL${String(seqResult.rows[0].nextval).padStart(3, "0")}`;
+    const user_id = `TL${String(seqResult.rows[0].nextval).padStart(3, "0")}`;
 
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -55,9 +55,9 @@ exports.createTeamMember = async (req, res) => {
     }
 
     // Generate next MEMBER user_id (TM001, TM002...)
-     const seqResult = await pool.query(
-    "SELECT nextval('team_member_seq')"
-      );
+    const seqResult = await pool.query(
+      "SELECT nextval('team_member_seq')"
+    );
 
     const user_id = `TM${String(seqResult.rows[0].nextval).padStart(3, "0")}`;
 
@@ -428,7 +428,7 @@ exports.assignShiftToUser = async (req, res) => {
   }
 };
 
-   
+
 // ================= GET ALL TEAM LEADS (ADMIN) =================
 exports.getAllTeamLeads = async (req, res) => {
   try {
@@ -501,43 +501,51 @@ exports.reviewLeaveRequest = async (req, res) => {
     const { status } = req.body;
 
     if (!["APPROVED", "REJECTED"].includes(status)) {
-      return res.status(400).json({
-        message: "Invalid status"
-      });
+      return res.status(400).json({ message: "Invalid status" });
     }
 
     await pool.query(
-      `
-      UPDATE leave_requests
-      SET
-        status = $1,
-        reviewed_at = NOW(),
-        reviewed_by = $2
-      WHERE id = $3
-      `,
+      `UPDATE leave_requests
+       SET status = $1, reviewed_at = NOW(), reviewed_by = $2
+       WHERE id = $3`,
       [status, req.user.id, id]
     );
 
+    // Fetch leave + user details for notification and attendance
+    const leave = await pool.query(
+      `SELECT lr.user_id, lr.from_date, lr.to_date
+       FROM leave_requests lr WHERE lr.id = $1`,
+      [id]
+    );
+
+    if (leave.rows.length > 0) {
+      const { user_id, from_date, to_date } = leave.rows[0];
+
+      // 🔔 Notify the user of the decision
+      const emoji = status === "APPROVED" ? "✅" : "❌";
+      const notifMessage = `${emoji} Your leave request (${from_date} → ${to_date}) has been ${status} by Admin.`;
+
+      await pool.query(
+        `INSERT INTO notifications (user_id, message, is_read, created_at)
+         VALUES ($1, $2, false, NOW())`,
+        [user_id, notifMessage]
+      );
+
+      // If APPROVED — mark attendance as ON_LEAVE for those days
+      if (status === "APPROVED") {
+        await pool.query(`
+          INSERT INTO attendance (user_id, date, status)
+          SELECT $1, d::date, 'ON_LEAVE'
+          FROM generate_series($2::date, $3::date, interval '1 day') d
+          WHERE NOT EXISTS (
+            SELECT 1 FROM attendance a
+            WHERE a.user_id = $1 AND a.date = d::date
+          )
+        `, [user_id, from_date, to_date]);
+      }
+    }
+
     res.json({ message: `Leave ${status}` });
-    if (status === "APPROVED") {
-  const leave = await pool.query(
-    `SELECT * FROM leave_requests WHERE id = $1`,
-    [id]
-  );
-
-  const { user_id, from_date, to_date } = leave.rows[0];
-
-  await pool.query(`
-    INSERT INTO attendance (user_id, date, status)
-    SELECT $1, d::date, 'ON_LEAVE'
-    FROM generate_series($2::date, $3::date, interval '1 day') d
-    WHERE NOT EXISTS (
-      SELECT 1 FROM attendance a
-      WHERE a.user_id = $1 AND a.date = d::date
-    )
-  `, [user_id, from_date, to_date]);
-}
-
 
   } catch (err) {
     console.error("Review leave error:", err);
