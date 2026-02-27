@@ -22,6 +22,8 @@ exports.getMyNotifications = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Mark a single notification as read
 exports.markAsRead = async (req, res) => {
   const userId = req.user.id;
   const notificationId = req.params.id;
@@ -43,6 +45,27 @@ exports.markAsRead = async (req, res) => {
     res.json({ message: "Notification marked as read" });
   } catch (err) {
     console.error("Mark read error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Mark ALL unread notifications as read for the logged-in user
+exports.markAllRead = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    await pool.query(
+      `
+      UPDATE notifications
+      SET is_read = true
+      WHERE user_id = $1 AND is_read = false
+      `,
+      [userId]
+    );
+
+    res.json({ message: "All notifications marked as read" });
+  } catch (err) {
+    console.error("Mark all read error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
