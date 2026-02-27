@@ -1,7 +1,6 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -33,13 +32,16 @@
       color: var(--text-main);
       font-size: 14px;
       margin: 0;
-      padding-top: 56px; /* Space for fixed topnav */
+      padding-top: 56px;
+      /* Space for fixed topnav */
     }
 
     /* --- TOP NAVIGATION (Global Context) --- */
     .topnav {
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       height: 56px;
       background-color: var(--nav-bg);
       display: flex;
@@ -47,14 +49,37 @@
       justify-content: space-between;
       padding: 0 24px;
       z-index: 1030;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     }
 
-    .topnav-brand { color: #ffffff; font-weight: 600; font-size: 16px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
-    .topnav-tools { display: flex; align-items: center; gap: 20px; color: #ffffff; }
-    
-    .geo-switch { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
-    .geo-switch .form-check-input { cursor: pointer; }
+    .topnav-brand {
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topnav-tools {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: #ffffff;
+    }
+
+    .geo-switch {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .geo-switch .form-check-input {
+      cursor: pointer;
+    }
 
     /* --- SUB NAVIGATION (Module Routing) --- */
     .subnav {
@@ -64,16 +89,32 @@
       display: flex;
       gap: 24px;
     }
+
     .subnav a {
-      color: var(--text-muted); text-decoration: none; font-weight: 500;
-      padding: 14px 0; border-bottom: 2px solid transparent; transition: all 0.2s;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 14px 0;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
     }
-    .subnav a:hover { color: var(--text-main); }
-    .subnav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .subnav a:hover {
+      color: var(--text-main);
+    }
+
+    .subnav a.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
 
     /* --- LAYOUT GRID --- */
-    .container-app { padding: 24px; max-width: 1600px; margin: 0 auto; }
-    
+    .container-app {
+      padding: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
     /* --- ENTERPRISE PANELS --- */
     .panel {
       background: var(--bg-panel);
@@ -81,61 +122,188 @@
       border-radius: 3px;
       box-shadow: 0 1px 1px rgba(9, 30, 66, 0.05);
       margin-bottom: 24px;
-      display: flex; flex-direction: column;
+      display: flex;
+      flex-direction: column;
     }
-    
+
     .panel-header {
       padding: 12px 20px;
       border-bottom: 1px solid var(--border-color);
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       background-color: #fafbfc;
     }
-    
-    .panel-title { font-size: 14px; font-weight: 600; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
-    .panel-body { padding: 20px; flex-grow: 1; }
-    .panel-body-flush { padding: 0; }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-body {
+      padding: 20px;
+      flex-grow: 1;
+    }
+
+    .panel-body-flush {
+      padding: 0;
+    }
 
     /* --- METRICS ROW --- */
-    .metric-group { display: flex; gap: 16px; margin-bottom: 24px; }
-    .metric-card {
-      flex: 1; background: var(--bg-panel); border: 1px solid var(--border-color);
-      border-radius: 3px; padding: 16px 20px;
-      display: flex; flex-direction: column; justify-content: center;
+    .metric-group {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
     }
-    .metric-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
-    .metric-value { font-size: 24px; font-weight: 700; color: var(--text-main); line-height: 1; }
+
+    .metric-card {
+      flex: 1;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 3px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1;
+    }
 
     /* --- TABLES (Data Dense) --- */
-    .table-responsive { overflow-x: auto; }
-    .table-enterprise { width: 100%; margin: 0; border-collapse: collapse; }
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    .table-enterprise {
+      width: 100%;
+      margin: 0;
+      border-collapse: collapse;
+    }
+
     .table-enterprise th {
-      background: #fafbfc; color: var(--text-muted); font-size: 12px; font-weight: 600;
-      text-transform: uppercase; padding: 10px 16px; border-bottom: 2px solid var(--border-color); text-align: left;
+      background: #fafbfc;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 10px 16px;
+      border-bottom: 2px solid var(--border-color);
+      text-align: left;
     }
+
     .table-enterprise td {
-      padding: 10px 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; color: var(--text-main); font-size: 13px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+      color: var(--text-main);
+      font-size: 13px;
     }
-    .table-enterprise tbody tr:hover { background-color: #ebecf0; }
+
+    .table-enterprise tbody tr:hover {
+      background-color: #ebecf0;
+    }
 
     /* --- FORMS & BUTTONS --- */
-    .form-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
-    .form-control, .form-select { border-radius: 3px; border: 2px solid #dfe1e6; padding: 6px 12px; font-size: 14px; transition: border-color 0.2s; background-color: #fafbfc; }
-    .form-control:focus, .form-select:focus { border-color: var(--primary); background-color: #fff; box-shadow: none; }
-    
-    .btn-sys { border-radius: 3px; font-weight: 500; font-size: 13px; padding: 6px 16px; border: none; transition: 0.2s; cursor: pointer; }
-    .btn-sys-primary { background: var(--primary); color: white; }
-    .btn-sys-primary:hover { background: var(--primary-hover); }
-    .btn-sys-default { background: rgba(9, 30, 66, 0.04); color: var(--text-main); }
-    .btn-sys-default:hover { background: rgba(9, 30, 66, 0.08); }
-    
-    .status-tag { padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 3px;
+      border: 2px solid #dfe1e6;
+      padding: 6px 12px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      background-color: #fafbfc;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: var(--primary);
+      background-color: #fff;
+      box-shadow: none;
+    }
+
+    .btn-sys {
+      border-radius: 3px;
+      font-weight: 500;
+      font-size: 13px;
+      padding: 6px 16px;
+      border: none;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-sys-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-sys-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-sys-default {
+      background: rgba(9, 30, 66, 0.04);
+      color: var(--text-main);
+    }
+
+    .btn-sys-default:hover {
+      background: rgba(9, 30, 66, 0.08);
+    }
+
+    .status-tag {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
 
     /* Layout Utilities */
-    .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .grid-3-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
-    .grid-sidebar-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
+    .grid-2-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .grid-3-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
+    }
+
+    .grid-sidebar-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 24px;
+    }
   </style>
 </head>
+
 <body>
 
   <header class="topnav">
@@ -150,7 +318,8 @@
       <div class="d-flex align-items-center gap-2 border-start border-secondary ps-3 ms-2">
         <i class="bi bi-person-circle fs-5"></i>
         <span style="font-size: 13px; font-weight: 500;">Admin User</span>
-        <button class="btn btn-sm btn-link text-white ms-2" onclick="logout()" title="Logout"><i class="bi bi-box-arrow-right"></i></button>
+        <button class="btn btn-sm btn-link text-white ms-2" onclick="logout()" title="Logout"><i
+            class="bi bi-box-arrow-right"></i></button>
       </div>
     </div>
   </header>
@@ -162,7 +331,7 @@
   </nav>
 
   <main class="container-app">
-    
+
     <div class="metric-group">
       <div class="metric-card">
         <span class="metric-label">Total Organization</span>
@@ -183,23 +352,28 @@
     </div>
 
     <div class="grid-sidebar-layout">
-      
+
       <div>
         <div class="panel">
-          <div class="panel-header"><h2 class="panel-title"><i class="bi bi-terminal"></i> My Status Console</h2></div>
+          <div class="panel-header">
+            <h2 class="panel-title"><i class="bi bi-terminal"></i> My Status Console</h2>
+          </div>
           <div class="panel-body text-center">
             <h3 id="statusText" class="mb-1 fw-bold text-success">PRESENT</h3>
             <p id="adminStatusText" class="text-muted small mb-4">Status: -</p>
             <div class="d-flex gap-2">
               <button id="adminCheckInBtn" class="btn-sys btn-sys-primary flex-fill">Check In</button>
-              <button id="adminCheckOutBtn" class="btn-sys btn-sys-default flex-fill border text-danger">Check Out</button>
+              <button id="adminCheckOutBtn" class="btn-sys btn-sys-default flex-fill border text-danger">Check
+                Out</button>
             </div>
             <div id="adminAttendanceMessage" class="mt-3 small fw-bold"></div>
           </div>
         </div>
 
         <div class="panel">
-          <div class="panel-header"><h2 class="panel-title"><i class="bi bi-clock-history"></i> Shift Matrix</h2></div>
+          <div class="panel-header">
+            <h2 class="panel-title"><i class="bi bi-clock-history"></i> Shift Matrix</h2>
+          </div>
           <div class="panel-body">
             <div class="mb-3">
               <label class="form-label">Shift Identifier</label>
@@ -216,11 +390,16 @@
               </div>
             </div>
             <button class="btn-sys btn-sys-default w-100" onclick="createShift()">Deploy Shift Rule</button>
-            
+
             <div class="mt-4 table-responsive border" style="max-height: 200px; overflow-y: auto;">
               <table class="table-enterprise">
                 <thead class="sticky-top bg-light">
-                  <tr><th>Name</th><th>Start</th><th>Cut-off</th><th>Action</th></tr>
+                  <tr>
+                    <th>Name</th>
+                    <th>Start</th>
+                    <th>Cut-off</th>
+                    <th>Action</th>
+                  </tr>
                 </thead>
                 <tbody id="shiftTableBody"></tbody>
               </table>
@@ -234,15 +413,45 @@
           </div>
           <div class="panel-body p-2 bg-light">
             <div id="lateUsersContainer" class="d-flex flex-column gap-2">
-               <div class="text-center text-muted small py-3">No pending exception requests.</div>
+              <div class="text-center text-muted small py-3">No pending exception requests.</div>
             </div>
           </div>
         </div>
 
+        <!-- ===== OFFICE LOCATION SETTINGS ===== -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title"><i class="bi bi-geo-alt-fill text-danger"></i> Office Geo-Fence Settings</h2>
+          </div>
+          <div class="panel-body">
+            <div class="mb-2">
+              <label class="form-label">Latitude</label>
+              <input type="text" id="officeLat" class="form-control form-control-sm" placeholder="e.g. 19.9653935">
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Longitude</label>
+              <input type="text" id="officeLon" class="form-control form-control-sm" placeholder="e.g. 73.668244">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Allowed Radius (meters)</label>
+              <input type="number" id="officeRadius" class="form-control form-control-sm" placeholder="e.g. 200"
+                min="50" max="5000">
+            </div>
+            <button class="btn-sys btn-sys-default border w-100 mb-2" onclick="captureMyLocation()">
+              <i class="bi bi-crosshair"></i> Use My Current Location
+            </button>
+            <button class="btn-sys btn-sys-primary w-100" onclick="saveOfficeLocation()">
+              <i class="bi bi-save"></i> Save Office Location
+            </button>
+            <div id="officeSettingsMessage" class="mt-2 small fw-bold text-center"></div>
+          </div>
+        </div>
+        <!-- ===== END OFFICE LOCATION SETTINGS ===== -->
+
       </div>
 
       <div class="d-flex flex-column gap-4">
-        
+
         <div class="panel mb-0">
           <div class="panel-header">
             <h2 class="panel-title"><i class="bi bi-activity"></i> Live Operations Log</h2>
@@ -255,20 +464,31 @@
           <div class="panel-body-flush table-responsive" style="max-height: 350px;">
             <table class="table-enterprise">
               <thead class="sticky-top">
-                <tr><th>User ID</th><th>Name</th><th>Role</th><th>Check-In</th><th>Check-Out</th><th>Status</th></tr>
+                <tr>
+                  <th>User ID</th>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Check-In</th>
+                  <th>Check-Out</th>
+                  <th>Status</th>
+                </tr>
               </thead>
               <tbody id="attendanceTableBody">
-                <tr><td colspan="7" class="text-center text-muted py-4">Loading operational data...</td></tr>
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-4">Loading operational data...</td>
+                </tr>
               </tbody>
             </table>
           </div>
         </div>
 
         <div class="panel mb-0">
-          <div class="panel-header"><h2 class="panel-title"><i class="bi bi-database-add"></i> System Provisioning</h2></div>
+          <div class="panel-header">
+            <h2 class="panel-title"><i class="bi bi-database-add"></i> System Provisioning</h2>
+          </div>
           <div class="panel-body bg-light">
             <div class="grid-3-col">
-              
+
               <div class="bg-white p-3 border rounded-1 shadow-sm">
                 <label class="form-label text-primary">Provision Team Lead</label>
                 <input id="tlName" class="form-control form-control-sm mb-2" placeholder="Full Name">
@@ -282,17 +502,20 @@
                 <input id="tmName" class="form-control form-control-sm mb-2" placeholder="Full Name">
                 <input id="tmEmail" class="form-control form-control-sm mb-2" placeholder="Email Address">
                 <input id="tmPassword" class="form-control form-control-sm mb-3" type="password" placeholder="Password">
-                <button class="btn-sys btn-sys-default w-100 border" onclick="createTeamMember()">Create Resource</button>
+                <button class="btn-sys btn-sys-default w-100 border" onclick="createTeamMember()">Create
+                  Resource</button>
               </div>
 
               <div class="bg-white p-3 border rounded-1 shadow-sm">
                 <label class="form-label text-success">Initialize Project Context</label>
                 <input id="projectName" class="form-control form-control-sm mb-2" placeholder="Project Codename">
-                <textarea id="projectDesc" class="form-control form-control-sm mb-2" rows="1" placeholder="Scope"></textarea>
+                <textarea id="projectDesc" class="form-control form-control-sm mb-2" rows="1"
+                  placeholder="Scope"></textarea>
                 <select id="teamLeadSelect" class="form-select form-select-sm mb-3">
                   <option value="">Assign Lead...</option>
                 </select>
-                <button class="btn-sys w-100 text-white" style="background: var(--success);" onclick="createProject()">Launch Project</button>
+                <button class="btn-sys w-100 text-white" style="background: var(--success);"
+                  onclick="createProject()">Launch Project</button>
               </div>
 
             </div>
@@ -300,8 +523,9 @@
         </div>
 
       </div>
-    </div> <div class="grid-2-col mt-4">
-      
+    </div>
+    <div class="grid-2-col mt-4">
+
       <div class="panel mb-0">
         <div class="panel-header">
           <h2 class="panel-title"><i class="bi bi-kanban"></i> Project Telemetry</h2>
@@ -312,7 +536,8 @@
         <div class="panel-body">
           <div class="d-flex justify-content-between mb-1">
             <span class="form-label">Completion Status</span>
-            <button id="deleteProjectBtn" class="btn btn-sm btn-link text-danger p-0 border-0" onclick="deleteProject()">Drop Project</button>
+            <button id="deleteProjectBtn" class="btn btn-sm btn-link text-danger p-0 border-0"
+              onclick="deleteProject()">Drop Project</button>
           </div>
           <div class="progress mb-4 rounded-0" style="height: 10px;">
             <div id="adminProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
@@ -331,11 +556,16 @@
       </div>
 
       <div class="panel mb-0">
-        <div class="panel-header"><h2 class="panel-title"><i class="bi bi-journal-code"></i> Submit Protocol (Admin EOD)</h2></div>
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="bi bi-journal-code"></i> Submit Protocol (Admin EOD)</h2>
+        </div>
         <div class="panel-body d-flex flex-column">
           <label class="form-label">Execution Summary</label>
-          <textarea id="adminWorkDone" class="form-control mb-3 flex-grow-1" style="min-height: 100px; font-family: monospace;" placeholder="Enter console commands/actions executed today..."></textarea>
-          <button class="btn-sys btn-sys-primary w-100" onclick="submitAdminDailyReport()">Commit End of Day Report</button>
+          <textarea id="adminWorkDone" class="form-control mb-3 flex-grow-1"
+            style="min-height: 100px; font-family: monospace;"
+            placeholder="Enter console commands/actions executed today..."></textarea>
+          <button class="btn-sys btn-sys-primary w-100" onclick="submitAdminDailyReport()">Commit End of Day
+            Report</button>
           <div id="adminWorkMessage" class="mt-2 text-center small fw-bold"></div>
         </div>
       </div>
@@ -347,28 +577,38 @@
         <h2 class="panel-title"><i class="bi bi-hdd-stack"></i> Global System Logs</h2>
       </div>
       <div class="panel-body p-0">
-        
+
         <ul class="nav nav-tabs px-3 pt-3 bg-light border-bottom-0" id="logTabs" role="tablist">
           <li class="nav-item" role="presentation">
-            <button class="nav-link active rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab" data-bs-target="#tab-submissions">Daily Status Matrix</button>
+            <button class="nav-link active rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab"
+              data-bs-target="#tab-submissions">Daily Status Matrix</button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab" data-bs-target="#tab-history">EOD Report Archives</button>
+            <button class="nav-link rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab"
+              data-bs-target="#tab-history">EOD Report Archives</button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab" data-bs-target="#tab-leaves">Leave Exception Registry</button>
+            <button class="nav-link rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab"
+              data-bs-target="#tab-leaves">Leave Exception Registry</button>
           </li>
         </ul>
 
         <div class="tab-content border-top" style="max-height: 400px; overflow-y: auto;">
-          
+
           <div class="tab-pane fade show active p-0" id="tab-submissions">
-             <table class="table-enterprise">
-               <thead class="bg-light sticky-top">
-                 <tr><th>User ID</th><th>Name</th><th>Role</th><th>Shift</th><th>Attendance</th><th>Report Status</th></tr>
-               </thead>
-               <tbody id="workReportTable"></tbody>
-             </table>
+            <table class="table-enterprise">
+              <thead class="bg-light sticky-top">
+                <tr>
+                  <th>User ID</th>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Shift</th>
+                  <th>Attendance</th>
+                  <th>Report Status</th>
+                </tr>
+              </thead>
+              <tbody id="workReportTable"></tbody>
+            </table>
           </div>
 
           <div class="tab-pane fade p-0" id="tab-history">
@@ -381,7 +621,12 @@
             </div>
             <table class="table-enterprise">
               <thead class="bg-light sticky-top">
-                <tr><th>User</th><th>Role</th><th style="width: 50%;">Work Done</th><th>Date</th></tr>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th style="width: 50%;">Work Done</th>
+                  <th>Date</th>
+                </tr>
               </thead>
               <tbody id="adminWorkReportsTable"></tbody>
             </table>
@@ -390,7 +635,15 @@
           <div class="tab-pane fade p-0" id="tab-leaves">
             <table class="table-enterprise">
               <thead class="bg-light sticky-top">
-                <tr><th>User</th><th>Role</th><th>From</th><th>To</th><th>Reason</th><th>Status</th><th>Action</th></tr>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
               </thead>
               <tbody id="leaveRequestsTable"></tbody>
             </table>
@@ -405,4 +658,5 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="dashboard.js"></script>
 </body>
+
 </html>

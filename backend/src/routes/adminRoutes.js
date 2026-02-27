@@ -14,8 +14,8 @@ const {
   createTeamMember,
   deleteTeamMember,
   deleteTeamLead,
-  
-  
+
+
 } = require("../controllers/adminController");
 const attendanceController = require("../controllers/attendanceController");
 
@@ -38,8 +38,8 @@ const {
   getLeadRoadmap,
   updateRoadmapStep,
   getRoadmapProgress,
-  getAllMembersForLead,     
-  getMemberRoadmaps     
+  getAllMembersForLead,
+  getMemberRoadmaps
 } = projectController;
 const { getAllProjects } = require("../controllers/projectController");
 
@@ -49,7 +49,9 @@ const { getAllProjects } = require("../controllers/projectController");
 const {
   autoProcessAttendance,
   getGeoSetting,
-  updateGeoSetting
+  updateGeoSetting,
+  getOfficeSettings,
+  updateOfficeSettings
 } = require("../controllers/adminAttendanceController");
 console.log("GEO 👉", getGeoSetting);
 console.log("GEO UPDATE 👉", updateGeoSetting);
@@ -70,7 +72,7 @@ const {
   exportDailyAttendanceExcel
 } = require("../controllers/adminAttendanceController");
 const {
-  getTodayAttendanceDashboard,allowLateCheckIn
+  getTodayAttendanceDashboard, allowLateCheckIn
 } = require("../controllers/attendanceController");
 const {
   getTodayAttendanceList
@@ -408,5 +410,9 @@ router.put(
   isAdmin,
   adminController.reviewLeaveRequest
 );
+
+/* ================= OFFICE SETTINGS ROUTES ================= */
+router.get("/office-settings", verifyToken, isAdmin, getOfficeSettings);
+router.put("/office-settings", verifyToken, isAdmin, updateOfficeSettings);
 
 module.exports = router;

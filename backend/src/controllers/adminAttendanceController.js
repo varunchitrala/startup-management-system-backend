@@ -651,7 +651,7 @@ exports.getGeoSetting = async (req, res) => {
   }
 };
 exports.updateGeoSetting = async (req, res) => {
-  
+
   try {
     const { is_enabled } = req.body;
 
@@ -672,4 +672,51 @@ exports.updateGeoSetting = async (req, res) => {
   }
 };
 
+/* ================= OFFICE SETTINGS ================= */
 
+exports.getOfficeSettings = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT latitude, longitude, allowed_radius FROM office_settings LIMIT 1
+    `);
+
+    if (result.rows.length === 0) {
+      return res.json({ latitude: null, longitude: null, allowed_radius: 100 });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Get office settings error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.updateOfficeSettings = async (req, res) => {
+  try {
+    const { latitude, longitude, allowed_radius } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: "Latitude and longitude are required" });
+    }
+
+    const existing = await pool.query(`SELECT id FROM office_settings LIMIT 1`);
+
+    if (existing.rows.length > 0) {
+      await pool.query(`
+        UPDATE office_settings
+        SET latitude = $1, longitude = $2, allowed_radius = $3
+        WHERE id = $4
+      `, [latitude, longitude, allowed_radius || 100, existing.rows[0].id]);
+    } else {
+      await pool.query(`
+        INSERT INTO office_settings (latitude, longitude, allowed_radius)
+        VALUES ($1, $2, $3)
+      `, [latitude, longitude, allowed_radius || 100]);
+    }
+
+    res.json({ message: "Office location updated successfully" });
+  } catch (err) {
+    console.error("Update office settings error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

@@ -1073,3 +1073,84 @@ async function reviewLeave(id, status) {
   loadLeaveRequests();
 }
 loadLeaveRequests();
+
+/* ================= OFFICE LOCATION SETTINGS ================= */
+
+async function loadOfficeSettings() {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/office-settings`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const data = await res.json();
+
+    if (data.latitude) document.getElementById("officeLat").value = data.latitude;
+    if (data.longitude) document.getElementById("officeLon").value = data.longitude;
+    if (data.allowed_radius) document.getElementById("officeRadius").value = data.allowed_radius;
+
+  } catch (err) {
+    console.error("Load office settings failed:", err);
+  }
+}
+
+function captureMyLocation() {
+  const msgDiv = document.getElementById("officeSettingsMessage");
+
+  if (!navigator.geolocation) {
+    msgDiv.innerHTML = `<span class="text-danger">Geolocation not supported</span>`;
+    return;
+  }
+
+  msgDiv.innerHTML = `<span class="text-muted">📡 Detecting location...</span>`;
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      document.getElementById("officeLat").value = position.coords.latitude;
+      document.getElementById("officeLon").value = position.coords.longitude;
+      msgDiv.innerHTML = `<span class="text-success">✅ Location captured! Click Save to update.</span>`;
+    },
+    () => {
+      msgDiv.innerHTML = `<span class="text-danger">Location permission denied</span>`;
+    },
+    { enableHighAccuracy: true }
+  );
+}
+
+async function saveOfficeLocation() {
+  const msgDiv = document.getElementById("officeSettingsMessage");
+  const latitude = parseFloat(document.getElementById("officeLat").value);
+  const longitude = parseFloat(document.getElementById("officeLon").value);
+  const allowed_radius = parseInt(document.getElementById("officeRadius").value) || 200;
+
+  if (!latitude || !longitude) {
+    msgDiv.innerHTML = `<span class="text-danger">Latitude and longitude are required</span>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/office-settings`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ latitude, longitude, allowed_radius })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msgDiv.innerHTML = `<span class="text-danger">${data.message}</span>`;
+      return;
+    }
+
+    msgDiv.innerHTML = `<span class="text-success">✅ ${data.message}</span>`;
+
+  } catch (err) {
+    console.error("Save office settings failed:", err);
+    msgDiv.innerHTML = `<span class="text-danger">Failed to save</span>`;
+  }
+}
+
+// Load saved office settings on page load
+loadOfficeSettings();
