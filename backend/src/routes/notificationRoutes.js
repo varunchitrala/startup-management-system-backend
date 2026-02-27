@@ -9,9 +9,8 @@ const {
 } = require("../controllers/notificationController");
 
 router.get("/my-notifications", verifyToken, getMyNotifications);
-// ⚠️ /read-all MUST come before /:id/read so Express doesn't treat "read-all" as an ID
-router.patch("/read-all", verifyToken, markAllRead);
+// ⚠️ /mark-all-read MUST come before /:id/read — Express matches routes top-down
+router.patch("/mark-all-read", verifyToken, markAllRead);
 router.patch("/:id/read", verifyToken, markAsRead);
 
 module.exports = router;
-

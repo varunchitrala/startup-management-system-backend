@@ -606,6 +606,7 @@ async function loadNotifications() {
 
     list.innerHTML = notifs.map(n => `
       <div class="notif-item ${n.is_read ? "" : "unread"}"
+           data-id="${n.id}"
            onclick="markOneRead(event, ${n.id}, this)">
         <div>${n.message}</div>
         <div class="notif-time">${new Date(n.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</div>
@@ -645,15 +646,13 @@ async function markOneRead(e, id, el) {
 
 async function markAllRead(e) {
   e.stopPropagation();
-  const items = document.querySelectorAll(".notif-item.unread");
-  for (const item of items) {
-    const id = item.getAttribute("data-id");
-    if (id) {
-      await fetch(`${API_BASE}/api/notifications/${id}/read`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-    }
+  try {
+    await fetch(`${API_BASE}/api/notifications/mark-all-read`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    loadNotifications();
+  } catch (err) {
+    console.error("Mark all read error:", err);
   }
-  loadNotifications();
 }
