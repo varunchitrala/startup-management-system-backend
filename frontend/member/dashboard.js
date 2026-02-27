@@ -321,6 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadNotifications();
   setInterval(loadNotifications, 60000);
   loadMyLeaveBalance();
+  loadMyWorkReports();
 
   // Set month picker to current month and auto-load
   const picker = document.getElementById("attendanceMonthPicker");
@@ -329,6 +330,52 @@ document.addEventListener("DOMContentLoaded", () => {
     loadMyAttendanceHistory();
   }
 });
+
+/* ================= MY WORK REPORTS ================= */
+async function loadMyWorkReports() {
+  const tbody = document.getElementById("myWorkReportsBody");
+  const countBadge = document.getElementById("workReportCount");
+
+  try {
+    const res = await fetch(`${API_BASE}/api/work/my?type=DAILY`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-3">Failed to load reports</td></tr>`;
+      return;
+    }
+
+    const reports = await res.json();
+
+    if (reports.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-3">No reports submitted yet</td></tr>`;
+      countBadge.textContent = "0 reports";
+      return;
+    }
+
+    countBadge.textContent = `${reports.length} report${reports.length !== 1 ? "s" : ""}`;
+
+    tbody.innerHTML = reports.map(r => {
+      const dateStr = new Date(r.report_date).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"
+      });
+      // Truncate long work_done text with expandable title tooltip
+      const workText = r.work_done.length > 120 ? r.work_done.slice(0, 120) + "…" : r.work_done;
+      return `
+        <tr>
+          <td class="text-nowrap">${dateStr}</td>
+          <td class="text-muted">${r.title || "—"}</td>
+          <td title="${r.work_done.replace(/"/g, '&quot;')}">${workText}</td>
+        </tr>`;
+    }).join("");
+
+  } catch (err) {
+    console.error("Work reports error:", err);
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-3">Error loading reports</td></tr>`;
+  }
+}
+
 
 /* ================= LEAVE BALANCE ================= */
 async function loadMyLeaveBalance() {
