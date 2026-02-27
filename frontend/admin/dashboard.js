@@ -1210,3 +1210,56 @@ async function sendAnnouncement() {
     msgDiv.innerHTML = `<span class="text-danger">Failed to send</span>`;
   }
 }
+
+/* ================= CHANGE PASSWORD ================= */
+async function changePassword() {
+  const msgDiv = document.getElementById("cpMessage");
+  const current = document.getElementById("cpCurrent").value.trim();
+  const newPass = document.getElementById("cpNew").value.trim();
+  const confirm = document.getElementById("cpConfirm").value.trim();
+
+  msgDiv.innerHTML = "";
+
+  if (!current || !newPass || !confirm) {
+    msgDiv.innerHTML = `<span class="text-danger">All fields are required</span>`;
+    return;
+  }
+  if (newPass.length < 6) {
+    msgDiv.innerHTML = `<span class="text-danger">New password must be at least 6 characters</span>`;
+    return;
+  }
+  if (newPass !== confirm) {
+    msgDiv.innerHTML = `<span class="text-danger">New passwords do not match</span>`;
+    return;
+  }
+
+  msgDiv.innerHTML = `<span class="text-muted">Updating...</span>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msgDiv.innerHTML = `<span class="text-danger">❌ ${data.message}</span>`;
+      return;
+    }
+
+    msgDiv.innerHTML = `<span class="text-success">✅ ${data.message}</span>`;
+    document.getElementById("cpCurrent").value = "";
+    document.getElementById("cpNew").value = "";
+    document.getElementById("cpConfirm").value = "";
+    setTimeout(() => { msgDiv.innerHTML = ""; }, 5000);
+
+  } catch (err) {
+    console.error("Change password error:", err);
+    msgDiv.innerHTML = `<span class="text-danger">Failed to update password</span>`;
+  }
+}
