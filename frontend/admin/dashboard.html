@@ -448,6 +448,23 @@
         </div>
         <!-- ===== END OFFICE LOCATION SETTINGS ===== -->
 
+        <!-- ===== ANNOUNCEMENTS ===== -->
+        <div class="panel border-primary">
+          <div class="panel-header" style="background: #e8f0fe;">
+            <h2 class="panel-title text-primary"><i class="bi bi-megaphone-fill"></i> Broadcast Announcement</h2>
+          </div>
+          <div class="panel-body">
+            <label class="form-label">Message to All Staff</label>
+            <textarea id="announcementText" class="form-control form-control-sm mb-3" rows="3"
+              placeholder="e.g. Office closed on Friday. Please work from home."></textarea>
+            <button class="btn-sys btn-sys-primary w-100" onclick="sendAnnouncement()">
+              <i class="bi bi-send-fill me-1"></i> Send to All Users
+            </button>
+            <div id="announcementMessage" class="mt-2 small fw-bold text-center"></div>
+          </div>
+        </div>
+        <!-- ===== END ANNOUNCEMENTS ===== -->
+
       </div>
 
       <div class="d-flex flex-column gap-4">

@@ -1169,3 +1169,44 @@ async function saveOfficeLocation() {
 
 // Load saved office settings on page load
 loadOfficeSettings();
+
+/* ================= ANNOUNCEMENTS ================= */
+async function sendAnnouncement() {
+  const msgDiv = document.getElementById("announcementMessage");
+  const text = document.getElementById("announcementText").value.trim();
+
+  if (!text) {
+    msgDiv.innerHTML = `<span class="text-danger">Please enter a message</span>`;
+    return;
+  }
+
+  msgDiv.innerHTML = `<span class="text-muted">📡 Sending...</span>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/announcements`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ message: text })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msgDiv.innerHTML = `<span class="text-danger">${data.message}</span>`;
+      return;
+    }
+
+    msgDiv.innerHTML = `<span class="text-success">✅ ${data.message}</span>`;
+    document.getElementById("announcementText").value = "";
+
+    // Auto-clear message after 4 seconds
+    setTimeout(() => { msgDiv.innerHTML = ""; }, 4000);
+
+  } catch (err) {
+    console.error("Send announcement error:", err);
+    msgDiv.innerHTML = `<span class="text-danger">Failed to send</span>`;
+  }
+}

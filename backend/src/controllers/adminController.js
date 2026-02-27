@@ -552,3 +552,37 @@ exports.reviewLeaveRequest = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* ================== BROADCAST ANNOUNCEMENT ================== */
+exports.broadcastAnnouncement = async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: "Announcement message is required" });
+    }
+
+    // Get all user IDs
+    const users = await pool.query(`SELECT id FROM users`);
+
+    if (users.rows.length === 0) {
+      return res.json({ message: "No users to notify", sent: 0 });
+    }
+
+    // Bulk insert one notification per user
+    const values = users.rows.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(", ");
+    const params = users.rows.flatMap(u => [u.id, `📢 Admin Announcement: ${message.trim()}`]);
+
+    await pool.query(
+      `INSERT INTO notifications (user_id, message, is_read, created_at)
+       VALUES ${users.rows.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2}, false, NOW())`).join(", ")}`,
+      params
+    );
+
+    res.json({ message: `Announcement sent to ${users.rows.length} users`, sent: users.rows.length });
+
+  } catch (err) {
+    console.error("Broadcast announcement error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

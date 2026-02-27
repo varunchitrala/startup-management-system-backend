@@ -415,4 +415,8 @@ router.put(
 router.get("/office-settings", verifyToken, isAdmin, getOfficeSettings);
 router.put("/office-settings", verifyToken, isAdmin, updateOfficeSettings);
 
+/* ================= ANNOUNCEMENTS ================= */
+const { broadcastAnnouncement } = require("../controllers/adminController");
+router.post("/announcements", verifyToken, isAdmin, broadcastAnnouncement);
+
 module.exports = router;
