@@ -25,117 +25,123 @@ exports.checkIn = async (req, res) => {
     console.log("📍 Received Location:", req.body);
 
     const userId = req.user.id;
+    const userRole = req.user.role; // e.g. 'ADMIN', 'LEAD', 'MEMBER'
+    const isAdmin = userRole === "ADMIN";
+
     const today = new Date().toISOString().split("T")[0];
-    const now = new Date();
+
+    // Convert current server time (UTC) to IST for shift comparisons
+    // Render.com runs in UTC; shift times are entered as IST by the admin
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    const nowIST = new Date(Date.now() + IST_OFFSET_MS);
+
     const { latitude, longitude } = req.body;
-      const leaveCheck = await pool.query(`
-  SELECT 1 FROM leave_requests
-  WHERE user_id = $1
-  AND status = 'APPROVED'
-  AND CURRENT_DATE BETWEEN from_date AND to_date
-`, [userId]);
 
-if (leaveCheck.rows.length > 0) {
-  return res.status(400).json({
-    message: "You are on approved leave"
-  });
-}
+    // 🔹 Leave check
+    const leaveCheck = await pool.query(`
+      SELECT 1 FROM leave_requests
+      WHERE user_id = $1
+        AND status = 'APPROVED'
+        AND CURRENT_DATE BETWEEN from_date AND to_date
+    `, [userId]);
 
+    if (leaveCheck.rows.length > 0) {
+      return res.status(400).json({ message: "You are on approved leave" });
+    }
 
-    // 1️⃣ Prevent double check-in
+    // 🔹 Prevent double check-in
     const existing = await pool.query(
-      `SELECT * FROM attendance
-       WHERE user_id = $1 AND date = $2`,
+      `SELECT * FROM attendance WHERE user_id = $1 AND date = $2`,
       [userId, today]
     );
 
     if (existing.rows.length > 0 && existing.rows[0].check_in) {
-      return res.status(400).json({
-        message: "Already checked in today"
-      });
+      return res.status(400).json({ message: "Already checked in today" });
     }
-    // 🔹 Check if geo restriction is enabled
-const geoSetting = await pool.query(`
-  SELECT geo_enabled FROM system_settings LIMIT 1
-`);
 
-const geoEnabled = geoSetting.rows[0]?.geo_enabled;
+    // 🔹 Geo restriction (skip for ADMIN)
+    if (!isAdmin) {
+      const geoSetting = await pool.query(`
+        SELECT geo_enabled FROM system_settings LIMIT 1
+      `);
+      const geoEnabled = geoSetting.rows[0]?.geo_enabled;
 
-    // 1️⃣ Fetch office location
-const office = await pool.query(`
-  SELECT latitude, longitude, allowed_radius
-  FROM office_settings
-  LIMIT 1
-`);
+      const office = await pool.query(`
+        SELECT latitude, longitude, allowed_radius FROM office_settings LIMIT 1
+      `);
 
-if (office.rows.length === 0) {
-  return res.status(400).json({ message: "Office location not configured" });
-}
+      if (office.rows.length === 0) {
+        return res.status(400).json({ message: "Office location not configured" });
+      }
 
-const officeLat = office.rows[0].latitude;
-const officeLon = office.rows[0].longitude;
-const allowedRadius = office.rows[0].allowed_radius;
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "Location required for check-in" });
+      }
 
-// 2️⃣ Validate coordinates
-if (!latitude || !longitude) {
-  return res.status(400).json({
-    message: "Location required for check-in"
-  });
-}
+      const officeLat = office.rows[0].latitude;
+      const officeLon = office.rows[0].longitude;
+      const allowedRadius = office.rows[0].allowed_radius;
 
-// 3️⃣ Calculate distance
-const distance = getDistanceInMeters(
-  latitude,
-  longitude,
-  officeLat,
-  officeLon
-  
-);
-console.log("📏 Distance from office:", distance);
+      const distance = getDistanceInMeters(latitude, longitude, officeLat, officeLon);
 
+      console.log(`📏 Distance from office: ${distance}m | Allowed: ${allowedRadius}m | GeoEnabled: ${geoEnabled}`);
 
-// 🔹 Apply geo validation ONLY if enabled
-if (geoEnabled && distance > allowedRadius) {
-  return res.status(403).json({
-    message: "You are outside office location"
-  });
-}
-    // 2️⃣ Get both shifts ordered
-    const shiftRes = await pool.query(
-      `SELECT * FROM shifts ORDER BY check_in_time ASC`
-    );
+      if (geoEnabled && distance > allowedRadius) {
+        return res.status(403).json({ message: "You are outside office location" });
+      }
+    } else {
+      console.log("👑 Admin user — skipping geo check");
+    }
+
+    // 🔹 Shift window check (skip for ADMIN)
+    const shiftRes = await pool.query(`SELECT * FROM shifts ORDER BY check_in_time ASC`);
 
     if (shiftRes.rows.length < 2) {
-      return res.status(500).json({
-        message: "Two shifts must be configured"
-      });
+      return res.status(500).json({ message: "Two shifts must be configured" });
     }
 
     const shift1 = shiftRes.rows[0];
     const shift2 = shiftRes.rows[1];
 
-    const todayDate = new Date();
-
-    function buildTime(timeString) {
+    // Build shift window times in IST (same timezone the admin used when entering times)
+    function buildTimeIST(timeString) {
       const [h, m, s] = timeString.split(":");
-      const t = new Date();
-      t.setHours(h, m, s, 0);
+      const t = new Date(nowIST);
+      t.setUTCHours(Number(h), Number(m), Number(s || 0), 0);
       return t;
     }
 
-    const shift1Last = buildTime(shift1.last_checkin_time);
-    const shift2Last = buildTime(shift2.last_checkin_time);
+    const shift1Last = buildTimeIST(shift1.last_checkin_time);
+    const shift2Last = buildTimeIST(shift2.last_checkin_time);
+
+    console.log(`🕐 Server UTC now: ${new Date().toISOString()}`);
+    console.log(`🕐 IST now: ${nowIST.toISOString()}`);
+    console.log(`🕐 Shift1 last check-in (IST): ${shift1.last_checkin_time} → ${shift1Last.toISOString()}`);
+    console.log(`🕐 Shift2 last check-in (IST): ${shift2.last_checkin_time} → ${shift2Last.toISOString()}`);
 
     let selectedShift = null;
 
-    // 3️⃣ Auto select shift
-    if (now <= shift1Last) {
-      selectedShift = shift1;
-    } else if (now <= shift2Last) {
-      selectedShift = shift2;
+    if (isAdmin) {
+      // Admin gets auto-assigned to whichever shift window is closest/current
+      // If both windows passed, assign to shift2 (latest) — no blocking
+      if (nowIST <= shift1Last) {
+        selectedShift = shift1;
+      } else if (nowIST <= shift2Last) {
+        selectedShift = shift2;
+      } else {
+        // Admin can still check in even after all windows — assign to nearest shift
+        selectedShift = shift2;
+        console.log("👑 Admin checking in after shift windows — assigning to shift2");
+      }
+    } else {
+      if (nowIST <= shift1Last) {
+        selectedShift = shift1;
+      } else if (nowIST <= shift2Last) {
+        selectedShift = shift2;
+      }
     }
 
-    // 4️⃣ Missed both shifts
+    // 🔹 Missed both shifts (non-admin only)
     if (!selectedShift) {
       await pool.query(
         `INSERT INTO attendance (user_id, date, status)
@@ -150,7 +156,7 @@ if (geoEnabled && distance > allowedRadius) {
       });
     }
 
-    // 5️⃣ Successful check-in
+    // ✅ Successful check-in
     await pool.query(
       `INSERT INTO attendance
        (user_id, date, check_in, status, shift_id)
@@ -163,15 +169,12 @@ if (geoEnabled && distance > allowedRadius) {
       [userId, today, selectedShift.id]
     );
 
-    res.json({
-      message: `Checked in under ${selectedShift.name}`
-    });
+    res.json({ message: `Checked in under ${selectedShift.name}` });
 
   } catch (err) {
     console.error("Check-in error:", err);
     res.status(500).json({ message: "Server error" });
   }
-  
 };
 
 // User check-out
