@@ -5,9 +5,7 @@ const cors = require("cors");
 const app = express();
 
 /* ================= MIDDLEWARE ================= */
-app.use(cors({
-  origin: "https://startup-management-frontend.onrender.com"
-}));
+app.use(cors());
 app.use(express.json());
 
 /* ================= DB INIT ================= */
