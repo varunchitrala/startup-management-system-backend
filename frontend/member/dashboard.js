@@ -87,25 +87,44 @@ checkInBtn.onclick = () => {
 
 // Check Out
 checkOutBtn.onclick = async () => {
-  const res = await fetch(`${API_BASE}/api/attendance/check-out`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`
+  try {
+    // 🔒 Block checkout if daily work report not submitted
+    const reportCheck = await fetch(`${API_BASE}/api/work/check-today`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const reportData = await reportCheck.json();
+
+    if (!reportData.submitted) {
+      messageDiv.innerHTML =
+        `<div class="alert alert-warning">⚠️ Please submit your daily work report before checking out.</div>`;
+      return;
     }
-  });
 
-  const data = await res.json();
+    const res = await fetch(`${API_BASE}/api/attendance/check-out`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
-  if (!res.ok) {
+    const data = await res.json();
+
+    if (!res.ok) {
+      messageDiv.innerHTML =
+        `<div class="alert alert-danger">${data.message}</div>`;
+      return;
+    }
+
     messageDiv.innerHTML =
-      `<div class="alert alert-danger">${data.message}</div>`;
-    return;
+      `<div class="alert alert-success">${data.message}</div>`;
+
+    loadStatus();
+
+  } catch (err) {
+    console.error("Check-out error:", err);
+    messageDiv.innerHTML =
+      `<div class="alert alert-danger">Check-out failed</div>`;
   }
-
-  messageDiv.innerHTML =
-    `<div class="alert alert-success">${data.message}</div>`;
-
-  loadStatus();
 };
 
 async function submitMemberDailyReport() {
@@ -297,6 +316,6 @@ async function applyLeave() {
 
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadMemberProjects(); 
+  loadMemberProjects();
   loadStatus();
 });

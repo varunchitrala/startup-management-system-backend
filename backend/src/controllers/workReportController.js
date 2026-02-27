@@ -127,3 +127,26 @@ exports.getMyReports = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* ================= CHECK TODAY'S REPORT ================= */
+exports.checkTodayReport = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const today = new Date().toISOString().split("T")[0];
+
+    const result = await pool.query(
+      `SELECT 1 FROM work_reports
+       WHERE user_id = $1
+         AND report_type = 'DAILY'
+         AND report_date = $2
+       LIMIT 1`,
+      [userId, today]
+    );
+
+    res.json({ submitted: result.rows.length > 0 });
+
+  } catch (err) {
+    console.error("Check today report error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

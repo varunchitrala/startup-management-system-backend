@@ -48,8 +48,8 @@ async function loadDashboardSummary() {
 
     document.getElementById("absentCount").innerText =
       data.absent ?? 0;
-      document.getElementById("checkedInCount").innerText =
-  data.checked_in ?? 0;
+    document.getElementById("checkedInCount").innerText =
+      data.checked_in ?? 0;
 
 
   } catch (err) {
@@ -234,8 +234,8 @@ async function createProject() {
 async function loadAdminProjectMembers(projectId) {
   try {
     const data = await apiRequest(
-  `${API_BASE}/api/admin/admin-project-members/${projectId}`
-);
+      `${API_BASE}/api/admin/admin-project-members/${projectId}`
+    );
 
 
     const list = document.getElementById("adminProjectMembers");
@@ -350,8 +350,7 @@ async function loadRoadmapProgress(projectId) {
 
       li.innerHTML = `
         <span>${step.step_title}</span>
-        <span class="badge ${
-          step.is_completed ? "bg-success" : "bg-secondary"
+        <span class="badge ${step.is_completed ? "bg-success" : "bg-secondary"
         }">
           ${step.is_completed ? "Completed" : "Pending"}
         </span>
@@ -402,7 +401,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAdminWorkReports();
   loadShifts();
   loadLateUsers();
-  loadWorkReportDashboard(); 
+  loadWorkReportDashboard();
   loadAdminStatus();
   loadGeoSetting();
 
@@ -626,9 +625,9 @@ async function loadShifts() {
 
   shifts.forEach(s => {
 
-  const tr = document.createElement("tr");
+    const tr = document.createElement("tr");
 
-  tr.innerHTML = `
+    tr.innerHTML = `
     <td>${s.shift_name}</td>
 <td>${s.start_time}</td>
 <td>${s.last_checkin_time}</td>
@@ -642,8 +641,8 @@ async function loadShifts() {
     </td>
   `;
 
-  tbody.appendChild(tr);
-});
+    tbody.appendChild(tr);
+  });
 
 }
 async function deleteShift(id) {
@@ -752,9 +751,9 @@ async function loadWorkReportDashboard() {
       <td>${user.attendance_status || "ABSENT"}</td>
       <td>
         ${user.work_report_status === "SUBMITTED"
-          ? '<span class="text-success">SUBMITTED</span>'
-          : '<span class="text-danger">NOT SUBMITTED</span>'
-        }
+        ? '<span class="text-success">SUBMITTED</span>'
+        : '<span class="text-danger">NOT SUBMITTED</span>'
+      }
       </td>
     `;
 
@@ -805,7 +804,7 @@ adminCheckInBtn.onclick = () => {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
         console.log("Latitude:", latitude);
-    console.log("Longitude:", longitude);
+        console.log("Longitude:", longitude);
         const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
           method: "POST",
           headers: {
@@ -848,6 +847,17 @@ adminCheckInBtn.onclick = () => {
 
 adminCheckOutBtn.onclick = async () => {
   try {
+    // 🔒 Block checkout if daily work report not submitted
+    const reportCheck = await fetch(`${API_BASE}/api/work/check-today`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const reportData = await reportCheck.json();
+
+    if (!reportData.submitted) {
+      adminAttendanceMessage.innerHTML =
+        `<div class="alert alert-warning">⚠️ Please submit your daily work report before checking out.</div>`;
+      return;
+    }
 
     const res = await fetch(`${API_BASE}/api/attendance/check-out`, {
       method: "POST",
@@ -1016,18 +1026,16 @@ async function loadLeaveRequests() {
         <td>${l.to_date}</td>
         <td>${l.reason}</td>
         <td>
-          <span class="badge ${
-            l.status === "PENDING" ? "bg-warning text-dark" :
-            l.status === "APPROVED" ? "bg-success" :
-            "bg-danger"
-          }">
+          <span class="badge ${l.status === "PENDING" ? "bg-warning text-dark" :
+        l.status === "APPROVED" ? "bg-success" :
+          "bg-danger"
+      }">
             ${l.status}
           </span>
         </td>
         <td>
-          ${
-            l.status === "PENDING"
-              ? `
+          ${l.status === "PENDING"
+        ? `
                 <button class="btn btn-sm btn-success"
                   onclick="reviewLeave(${l.id}, 'APPROVED')">
                   Approve
@@ -1037,8 +1045,8 @@ async function loadLeaveRequests() {
                   Reject
                 </button>
               `
-              : "-"
-          }
+        : "-"
+      }
         </td>
       </tr>
     `;

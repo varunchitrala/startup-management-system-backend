@@ -233,6 +233,18 @@ checkInBtn.onclick = () => {
 };
 checkOutBtn.onclick = async () => {
   try {
+    // 🔒 Block checkout if daily work report not submitted
+    const reportCheck = await fetch(`${API_BASE}/api/work/check-today`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const reportData = await reportCheck.json();
+
+    if (!reportData.submitted) {
+      messageDiv.innerHTML =
+        `<div class="alert alert-warning">⚠️ Please submit your daily work report before checking out.</div>`;
+      return;
+    }
+
     const res = await fetch(`${API_BASE}/api/attendance/check-out`, {
       method: "POST",
       headers: {
@@ -438,12 +450,12 @@ async function createRoadmap() {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          project_id: selectedProjectId,
-          steps
-        })
-      }
+      },
+      body: JSON.stringify({
+        project_id: selectedProjectId,
+        steps
+      })
+    }
     );
 
     const data = await res.json();
@@ -507,7 +519,7 @@ async function submitLeadDailyReport() {
 }
 document.addEventListener("DOMContentLoaded", () => {
   loadProjects();
-   loadMembers();    // members checkbox list
+  loadMembers();    // members checkbox list
   loadMyStatus();   // attendance
 });
 async function applyLeave() {
