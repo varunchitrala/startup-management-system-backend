@@ -596,3 +596,42 @@ exports.getMyAttendanceHistory = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* ================= MY LEAVE BALANCE ================= */
+exports.getMyLeaveBalance = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const year = new Date().getFullYear();
+    const QUOTA = 18; // Annual leave quota
+
+    // Approved leave days this year
+    const approvedResult = await pool.query(
+      `SELECT COALESCE(SUM((to_date::date - from_date::date) + 1), 0) AS used_days
+       FROM leave_requests
+       WHERE user_id = $1
+         AND status = 'APPROVED'
+         AND EXTRACT(YEAR FROM from_date::date) = $2`,
+      [userId, year]
+    );
+
+    // Pending leave days this year
+    const pendingResult = await pool.query(
+      `SELECT COALESCE(SUM((to_date::date - from_date::date) + 1), 0) AS pending_days
+       FROM leave_requests
+       WHERE user_id = $1
+         AND status = 'PENDING'
+         AND EXTRACT(YEAR FROM from_date::date) = $2`,
+      [userId, year]
+    );
+
+    const used = parseInt(approvedResult.rows[0].used_days, 10);
+    const pending = parseInt(pendingResult.rows[0].pending_days, 10);
+    const remaining = Math.max(0, QUOTA - used);
+
+    res.json({ quota: QUOTA, used, remaining, pending, year });
+
+  } catch (err) {
+    console.error("Leave balance error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

@@ -523,6 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadMyStatus();   // attendance
   loadNotifications();
   setInterval(loadNotifications, 60000);
+  loadMyLeaveBalance();
 
   // Set month picker and auto-load attendance history
   const picker = document.getElementById("attendanceMonthPicker");
@@ -531,6 +532,36 @@ document.addEventListener("DOMContentLoaded", () => {
     loadMyAttendanceHistory();
   }
 });
+
+/* ================= LEAVE BALANCE ================= */
+async function loadMyLeaveBalance() {
+  try {
+    const res = await fetch(`${API_BASE}/api/attendance/my-leave-balance`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) return;
+
+    const { quota, used, remaining, pending, year } = await res.json();
+
+    document.getElementById("leaveBalanceYear").textContent = `(${year})`;
+    document.getElementById("lbQuota").textContent = quota;
+    document.getElementById("lbUsed").textContent = used;
+    document.getElementById("lbRemaining").textContent = remaining;
+    document.getElementById("lbPending").textContent = pending;
+
+    const remPct = Math.round((remaining / quota) * 100);
+    const pendPct = Math.round((pending / quota) * 100);
+    const usedPct = Math.round((used / quota) * 100);
+
+    document.getElementById("lbProgressBar").style.width = `${remPct}%`;
+    document.getElementById("lbPendingBar").style.width = `${pendPct}%`;
+    document.getElementById("lbUsedBar").style.width = `${usedPct}%`;
+
+  } catch (err) {
+    console.error("Leave balance error:", err);
+  }
+}
 
 /* ================= ATTENDANCE HISTORY ================= */
 const STATUS_STYLE = {

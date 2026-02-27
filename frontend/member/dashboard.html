@@ -409,6 +409,43 @@
       </div>
     </div>
 
+    <!-- ===== LEAVE BALANCE ===== -->
+    <div class="card-pro mt-4" id="leaveBalanceCard">
+      <div class="card-header-pro">
+        <i class="bi bi-calendar-check text-success"></i> My Leave Balance <span id="leaveBalanceYear"
+          class="text-muted small fw-normal"></span>
+      </div>
+      <div class="card-body-pro">
+        <div class="d-flex gap-3 flex-wrap mb-3" id="leaveBalanceStats">
+          <div class="text-center px-3 py-2 rounded border flex-fill">
+            <div class="fw-bold fs-4 text-secondary" id="lbQuota">—</div>
+            <div class="small text-muted">Total Quota</div>
+          </div>
+          <div class="text-center px-3 py-2 rounded border flex-fill">
+            <div class="fw-bold fs-4 text-danger" id="lbUsed">—</div>
+            <div class="small text-muted">Used</div>
+          </div>
+          <div class="text-center px-3 py-2 rounded border flex-fill">
+            <div class="fw-bold fs-4 text-success" id="lbRemaining">—</div>
+            <div class="small text-muted">Remaining</div>
+          </div>
+          <div class="text-center px-3 py-2 rounded border flex-fill">
+            <div class="fw-bold fs-4 text-warning" id="lbPending">—</div>
+            <div class="small text-muted">Pending</div>
+          </div>
+        </div>
+        <div class="progress rounded-pill" style="height:10px;">
+          <div id="lbProgressBar" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
+          <div id="lbPendingBar" class="progress-bar bg-warning" role="progressbar" style="width:0%"></div>
+          <div id="lbUsedBar" class="progress-bar bg-danger" role="progressbar" style="width:0%"></div>
+        </div>
+        <div class="d-flex justify-content-between small text-muted mt-1">
+          <span>🟢 Remaining &nbsp;🟡 Pending &nbsp;🔴 Used</span>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END LEAVE BALANCE ===== -->
+
     <!-- ===== MY ATTENDANCE HISTORY ===== -->
     <div class="card-pro mt-4">
       <div class="card-header-pro justify-content-between">

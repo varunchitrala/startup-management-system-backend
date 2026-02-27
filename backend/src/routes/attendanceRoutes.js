@@ -10,5 +10,6 @@ router.post("/check-out", verifyToken, checkOut);
 router.get("/my-status", verifyToken, getMyTodayStatus);
 router.post("/apply-leave", verifyToken, attendanceController.applyLeave);
 router.get("/my-history", verifyToken, attendanceController.getMyAttendanceHistory);
+router.get("/my-leave-balance", verifyToken, attendanceController.getMyLeaveBalance);
 
 module.exports = router;
