@@ -10,9 +10,9 @@ function getDistanceInMeters(lat1, lon1, lat2, lon2) {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
@@ -382,10 +382,16 @@ exports.allowLateCheckIn = async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({
-        message: "No late record found"
-      });
+      return res.status(404).json({ message: "No late record found" });
     }
+
+    // 🔔 Send notification to user
+    const notifMessage = `✅ Your late check-in exception for today has been approved by Admin. You are now checked in.`;
+    await pool.query(
+      `INSERT INTO notifications (user_id, message, is_read, created_at)
+       VALUES ($1, $2, false, NOW())`,
+      [userId, notifMessage]
+    );
 
     res.json({ message: "Late check-in approved" });
 
@@ -394,6 +400,7 @@ exports.allowLateCheckIn = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 exports.autoCreateTodayAttendance = async () => {
   try {
