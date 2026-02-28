@@ -4,215 +4,251 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Team Lead Workspace | Enterprise</title>
+  <title>System Console | Team Lead Workspace</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
   <style>
     :root {
-      /* --- PRO PALETTE (Matches Admin but optimized for Workflow) --- */
-      --primary: #4f46e5;
-      /* Indigo 600 */
-      --primary-hover: #4338ca;
-      --primary-soft: #e0e7ff;
-
-      --bg-body: #f1f5f9;
-      /* Slate 100 */
-      --bg-card: #ffffff;
-
-      --text-main: #0f172a;
-      /* Slate 900 */
-      --text-muted: #64748b;
-      /* Slate 500 */
-
-      --border-color: #e2e8f0;
-      --radius-md: 12px;
-      --shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-
-      --font-main: 'Inter', sans-serif;
+      --bg-app: #f4f5f7;
+      --bg-panel: #ffffff;
+      --nav-bg: #172b4d;
+      --text-main: #172b4d;
+      --text-muted: #5e6c84;
+      --border-color: #dfe1e6;
+      --primary: #0052cc;
+      --primary-hover: #0047b3;
+      --danger: #de350b;
+      --success: #00875a;
+      --warning: #ffab00;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-      background-color: var(--bg-body);
-      font-family: var(--font-main);
+      background-color: var(--bg-app);
+      font-family: var(--font-family);
       color: var(--text-main);
-      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
+      margin: 0;
+      padding-top: 56px;
+      /* Space for fixed topnav */
     }
 
-    /* --- NAVIGATION --- */
-    .navbar-custom {
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border-color);
-      padding: 0.75rem 1.5rem;
-      box-shadow: var(--shadow-soft);
-      position: sticky;
+    /* --- TOP NAVIGATION (Global Context) --- */
+    .topnav {
+      position: fixed;
       top: 0;
-      z-index: 100;
-    }
-
-    .brand-text {
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      color: var(--text-main);
+      left: 0;
+      right: 0;
+      height: 56px;
+      background-color: var(--nav-bg);
       display: flex;
       align-items: center;
-      gap: 10px;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 1030;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     }
 
-    .brand-icon {
-      width: 32px;
-      height: 32px;
-      background: var(--primary);
-      color: white;
-      border-radius: 8px;
-      display: grid;
-      place-items: center;
-    }
-
-    /* --- LAYOUT UTILS --- */
-    .container-custom {
-      max-width: 1200px;
-      margin: 2rem auto;
-      padding: 0 1.5rem;
-    }
-
-    .section-title {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
+    .topnav-brand {
+      color: #ffffff;
       font-weight: 600;
-      margin-bottom: 1rem;
+      font-size: 16px;
+      letter-spacing: 0.5px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .section-title::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border-color);
+    .topnav-tools {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: #ffffff;
     }
 
-    /* --- CARDS --- */
-    .card-pro {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
-      height: 100%;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .card-pro:hover {
-      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05);
-      border-color: #cbd5e1;
-    }
-
-    .card-header-pro {
-      background: #f8fafc;
-      padding: 1rem 1.5rem;
+    /* --- SUB NAVIGATION (Module Routing) --- */
+    .subnav {
+      background: var(--bg-panel);
       border-bottom: 1px solid var(--border-color);
+      padding: 0 24px;
+      display: flex;
+      gap: 24px;
+    }
+
+    .subnav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 14px 0;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .subnav a:hover {
+      color: var(--text-main);
+    }
+
+    .subnav a.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    /* --- LAYOUT GRID --- */
+    .container-app {
+      padding: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* --- ENTERPRISE PANELS --- */
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 3px;
+      box-shadow: 0 1px 1px rgba(9, 30, 66, 0.05);
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #fafbfc;
+    }
+
+    .panel-title {
+      font-size: 14px;
       font-weight: 600;
-      font-size: 0.95rem;
+      margin: 0;
       color: var(--text-main);
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .card-body-pro {
-      padding: 1.5rem;
+    .panel-body {
+      padding: 20px;
+      flex-grow: 1;
     }
 
-    /* --- STATUS INDICATORS --- */
-    .status-badge {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
+    .panel-body-flush {
+      padding: 0;
     }
 
-    /* --- FORM ELEMENTS --- */
+    /* --- TABLES (Data Dense) --- */
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    .table-enterprise {
+      width: 100%;
+      margin: 0;
+      border-collapse: collapse;
+    }
+
+    .table-enterprise th {
+      background: #fafbfc;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 10px 16px;
+      border-bottom: 2px solid var(--border-color);
+      text-align: left;
+    }
+
+    .table-enterprise td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    .table-enterprise tbody tr:hover {
+      background-color: #ebecf0;
+    }
+
+    /* --- FORMS & BUTTONS --- */
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
     .form-control,
     .form-select {
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      padding: 0.65rem 1rem;
-      font-size: 0.925rem;
-      transition: all 0.2s;
+      border-radius: 3px;
+      border: 2px solid #dfe1e6;
+      padding: 6px 12px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      background-color: #fafbfc;
     }
 
     .form-control:focus,
     .form-select:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-soft);
+      background-color: #fff;
+      box-shadow: none;
     }
 
-    /* --- BUTTONS --- */
-    .btn {
-      padding: 0.6rem 1.25rem;
+    .btn-sys {
+      border-radius: 3px;
       font-weight: 500;
-      border-radius: 8px;
-      font-size: 0.925rem;
-    }
-
-    .btn-primary {
-      background-color: var(--primary);
-      border-color: var(--primary);
-    }
-
-    .btn-primary:hover {
-      background-color: var(--primary-hover);
-    }
-
-    /* --- LISTS --- */
-    .list-group-item {
+      font-size: 13px;
+      padding: 6px 16px;
       border: none;
-      border-bottom: 1px solid var(--border-color);
-      padding: 1rem 1.5rem;
+      transition: 0.2s;
+      cursor: pointer;
     }
 
-    .list-group-item:last-child {
-      border-bottom: none;
-    }
-
-    /* --- ROADMAP SPECIFIC --- */
-    #roadmapSection {
-      animation: slideDown 0.3s ease-out;
-    }
-
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .step-item {
-      position: relative;
-      padding-left: 20px;
-    }
-
-    .step-item::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 10px;
-      width: 8px;
-      height: 8px;
+    .btn-sys-primary {
       background: var(--primary);
-      border-radius: 50%;
+      color: white;
+    }
+
+    .btn-sys-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-sys-default {
+      background: rgba(9, 30, 66, 0.04);
+      color: var(--text-main);
+    }
+
+    .btn-sys-default:hover {
+      background: rgba(9, 30, 66, 0.08);
+    }
+
+    .status-tag {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    /* Layout Utilities */
+    .grid-2-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .grid-3-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
     }
 
     /* --- NOTIFICATIONS --- */
@@ -246,12 +282,13 @@
       width: 340px;
       background: white;
       border: 1px solid var(--border-color);
-      border-radius: 12px;
+      border-radius: 3px;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
       z-index: 999;
       display: none;
       max-height: 420px;
       overflow-y: auto;
+      color: var(--text-main);
     }
 
     .notif-dropdown.open {
@@ -261,7 +298,7 @@
     .notif-header {
       padding: 14px 16px 10px;
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 14px;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
@@ -270,14 +307,14 @@
 
     .notif-item {
       padding: 12px 16px;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 0.82rem;
+      border-bottom: 1px solid var(--bg-app);
+      font-size: 13px;
       cursor: pointer;
       transition: background 0.15s;
     }
 
     .notif-item:hover {
-      background: #f8fafc;
+      background: var(--bg-app);
     }
 
     .notif-item.unread {
@@ -286,7 +323,7 @@
     }
 
     .notif-item .notif-time {
-      font-size: 0.72rem;
+      font-size: 11px;
       color: var(--text-muted);
       margin-top: 3px;
     }
@@ -295,33 +332,55 @@
       padding: 24px;
       text-align: center;
       color: var(--text-muted);
-      font-size: 0.85rem;
+      font-size: 13px;
+    }
+
+    /* Roadmap list styling */
+    .roadmap-list {
+      list-style-type: none;
+      padding-left: 0;
+      margin: 0;
+    }
+
+    .roadmap-list li {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13px;
+    }
+
+    .roadmap-list li:last-child {
+      border-bottom: none;
+    }
+
+    /* List group override for projects */
+    .list-group-pro .list-group-item {
+      border: none;
+      border-bottom: 1px solid var(--border-color);
+      padding: 14px 20px;
+      font-size: 13px;
+    }
+
+    .list-group-pro .list-group-item:last-child {
+      border-bottom: none;
     }
   </style>
 </head>
 
 <body>
 
-  <nav class="navbar-custom d-flex justify-content-between align-items-center">
-    <div class="brand-text">
-      <div class="brand-icon">
-        <i class="bi bi-grid-3x3-gap-fill"></i>
-      </div>
-      <div class="d-flex flex-column ms-2" style="line-height: 1.1;">
-        <span class="fw-bold text-dark" style="letter-spacing: -0.01em;">SUN Nexus</span>
-        <span class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.1em;">Team Lead
-          Console</span>
-      </div>
+  <header class="topnav">
+    <div class="topnav-brand">
+      <i class="bi bi-hdd-network"></i> SUN Nexus | Team Lead Console
     </div>
+    <div class="topnav-tools">
 
-    <div class="d-flex align-items-center gap-3">
       <!-- 🔔 Notification Bell -->
       <div class="notif-bell" id="notifBell" onclick="toggleNotifDropdown()">
-        <i class="bi bi-bell fs-5 text-muted"></i>
+        <i class="bi bi-bell"></i>
         <span class="notif-badge" id="notifBadge">0</span>
         <div class="notif-dropdown" id="notifDropdown">
           <div class="notif-header">
-            <span>🔔 Notifications</span>
+            <span>Notifications</span>
             <span class="text-primary small fw-normal" style="cursor:pointer" onclick="markAllRead(event)">Mark all
               read</span>
           </div>
@@ -331,345 +390,298 @@
         </div>
       </div>
 
-      <div class="d-flex align-items-center gap-2">
-        <div
-          class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-primary fw-bold"
-          style="width: 36px; height: 36px; font-size: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);">
-          TL
-        </div>
-        <div class="d-none d-md-block lh-1 text-end">
-          <div class="fw-bold text-dark" style="font-size: 0.85rem;">Team Lead</div>
-          <div class="text-muted" style="font-size: 0.7rem;">Engineering Dept</div>
-        </div>
+      <div class="d-flex align-items-center gap-2 border-start border-secondary ps-3 ms-2">
+        <i class="bi bi-person-circle fs-5"></i>
+        <span style="font-size: 13px; font-weight: 500;">Team Lead</span>
+        <button class="btn btn-sm btn-link text-white ms-2" onclick="logout()" title="Logout"><i
+            class="bi bi-box-arrow-right"></i></button>
       </div>
-
-      <div class="mx-1" style="height: 24px; width: 1px; background: #e2e8f0;"></div>
-
-      <button class="btn btn-outline-danger btn-sm border-0 bg-danger-subtle text-danger fw-medium" onclick="logout()"
-        style="font-size: 0.85rem;">
-        <i class="bi bi-box-arrow-right me-1"></i> Logout
-      </button>
     </div>
+  </header>
+
+  <nav class="subnav">
+    <a href="dashboard.html" class="active">Operations Dashboard</a>
   </nav>
-  <div class="container-custom">
 
-    <div class="section-title">Daily Actions</div>
-    <div class="row g-4 mb-5">
+  <main class="container-app">
 
-      <div class="col-lg-5">
-        <div class="card-pro h-100">
-          <div class="card-header-pro">
-            <i class="bi bi-clock-history text-primary"></i> Time & Attendance
+    <div class="grid-2-col mb-4">
+
+      <div class="panel mb-0">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="bi bi-terminal"></i> My Status Console</h2>
+        </div>
+        <div class="panel-body text-center d-flex flex-column justify-content-center">
+          <h3 id="statusText" class="mb-1 fw-bold text-success">STATUS: -</h3>
+          <p class="text-muted small mb-4">Daily Attendance</p>
+          <div class="d-flex gap-2">
+            <button id="checkInBtn" class="btn-sys btn-sys-primary flex-fill">Check In</button>
+            <button id="checkOutBtn" class="btn-sys btn-sys-default flex-fill border text-danger">Check Out</button>
           </div>
-          <div class="card-body-pro d-flex flex-column justify-content-between">
-            <div class="text-center mb-4">
-              <small class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Current Status</small>
-              <div id="statusText" class="status-badge text-dark mt-1">Status: -</div>
-              <div id="message" class="mt-2 small text-primary fw-medium" style="min-height: 20px;"></div>
-            </div>
+          <div id="message" class="mt-3 small fw-bold text-primary"></div>
+        </div>
+      </div>
 
-            <div class="d-grid gap-2 d-md-flex justify-content-center">
-              <button id="checkInBtn" class="btn btn-success px-4 shadow-sm">
-                <i class="bi bi-check-circle-fill me-2"></i>Check In
-              </button>
-              <button id="checkOutBtn" class="btn btn-outline-danger px-4">
-                <i class="bi bi-stop-circle me-2"></i>Check Out
-              </button>
-            </div>
+      <div class="panel mb-0">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="bi bi-journal-code"></i> Submit Protocol (Work Report)</h2>
+          <span class="status-tag border bg-warning bg-opacity-10 text-dark border-warning">Pending Submission</span>
+        </div>
+        <div class="panel-body d-flex flex-column">
+          <label class="form-label">Activity Log</label>
+          <textarea id="leadWorkDone" class="form-control mb-3 flex-grow-1"
+            style="min-height: 80px; font-family: monospace;"
+            placeholder="Summarize your key tasks, blockers, and achievements today..."></textarea>
+          <div class="d-flex justify-content-between align-items-center mt-auto">
+            <div id="leadWorkMessage" class="small text-muted fw-bold"></div>
+            <button class="btn-sys btn-sys-primary" onclick="submitLeadDailyReport()">Commit Report</button>
           </div>
         </div>
       </div>
 
-      <div class="col-lg-7">
-        <div class="card-pro h-100">
-          <div class="card-header-pro justify-content-between">
-            <span><i class="bi bi-journal-text text-primary"></i> Daily Work Report</span>
-            <span class="badge bg-warning text-dark fw-normal border border-warning-subtle">Pending Submission</span>
-          </div>
-          <div class="card-body-pro">
-            <label class="form-label fw-medium text-muted small">WORK DESCRIPTION</label>
-            <textarea id="leadWorkDone" class="form-control mb-3" rows="3"
-              placeholder="Summarize your key tasks, blockers, and achievements today..."></textarea>
-            <div class="d-flex justify-content-between align-items-center">
-              <div id="leadWorkMessage" class="small text-muted"></div>
-              <button class="btn btn-primary" onclick="submitLeadDailyReport()">
-                <i class="bi bi-send me-2"></i>Submit Report
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-    <div class="card mt-4">
-      <div class="card-body">
 
-        <h5>Apply Leave</h5>
+    <!-- Project Context -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title"><i class="bi bi-kanban"></i> Active Projects Portfolio</h2>
+      </div>
 
-        <div class="row g-2">
-          <div class="col-md-6">
-            <label>From Date</label>
-            <input type="date" id="leaveFromDate" class="form-control">
-          </div>
+      <div id="projectsList" class="list-group list-group-pro">
+        <div class="list-group-item text-muted py-4 text-center">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          Loading your assigned projects...
+        </div>
+      </div>
 
-          <div class="col-md-6">
-            <label>To Date</label>
-            <input type="date" id="leaveToDate" class="form-control">
-          </div>
+      <div id="roadmapSection" class="bg-light border-top p-4" style="display:none;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="fw-bold text-dark m-0" style="font-size:14px;">Project Roadmap Visualization</h5>
+          <span class="status-tag border text-primary">Active View</span>
         </div>
 
-        <div class="mt-3">
-          <label>Reason</label>
-          <textarea id="leaveReason" class="form-control" rows="3"></textarea>
+        <div class="progress mb-4 bg-white shadow-sm rounded-0 border" style="height: 10px;">
+          <div id="progressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%;"></div>
         </div>
 
-        <button class="btn btn-primary mt-3" onclick="applyLeave()">
-          Submit Leave
-        </button>
-
-        <div id="leaveMessage" class="mt-2"></div>
-
+        <ul id="roadmapSteps" class="roadmap-list bg-white border rounded shadow-sm"></ul>
       </div>
     </div>
 
-    <!-- ===== LEAVE BALANCE ===== -->
-    <div class="card-pro mt-4 mb-3" id="leaveBalanceCard">
-      <div class="card-header-pro">
-        <i class="bi bi-calendar-check text-success"></i> My Leave Balance <span id="leaveBalanceYear"
-          class="text-muted small fw-normal"></span>
-      </div>
-      <div class="card-body-pro">
-        <div class="d-flex gap-3 flex-wrap mb-3">
-          <div class="text-center px-3 py-2 rounded border flex-fill">
-            <div class="fw-bold fs-4 text-secondary" id="lbQuota">—</div>
-            <div class="small text-muted">Total Quota</div>
-          </div>
-          <div class="text-center px-3 py-2 rounded border flex-fill">
-            <div class="fw-bold fs-4 text-danger" id="lbUsed">—</div>
-            <div class="small text-muted">Used</div>
-          </div>
-          <div class="text-center px-3 py-2 rounded border flex-fill">
-            <div class="fw-bold fs-4 text-success" id="lbRemaining">—</div>
-            <div class="small text-muted">Remaining</div>
-          </div>
-          <div class="text-center px-3 py-2 rounded border flex-fill">
-            <div class="fw-bold fs-4 text-warning" id="lbPending">—</div>
-            <div class="small text-muted">Pending</div>
-          </div>
+    <div class="grid-2-col mt-4">
+      <div class="panel mb-0">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="bi bi-bezier2"></i> Define Project Roadmap</h2>
         </div>
-        <div class="progress rounded-pill" style="height:10px;">
-          <div id="lbProgressBar" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
-          <div id="lbPendingBar" class="progress-bar bg-warning" role="progressbar" style="width:0%"></div>
-          <div id="lbUsedBar" class="progress-bar bg-danger" role="progressbar" style="width:0%"></div>
-        </div>
-        <div class="small text-muted mt-1">🟢 Remaining &nbsp;🟡 Pending &nbsp;🔴 Used</div>
-      </div>
-    </div>
-    <!-- ===== END LEAVE BALANCE ===== -->
-
-    <!-- ===== MY LEAVE REQUESTS ===== -->
-    <div class="card-pro mb-5">
-      <div class="card-header-pro">
-        <i class="bi bi-clock-history text-secondary"></i> My Leave Requests
-      </div>
-      <div class="p-0">
-        <div class="table-responsive" style="max-height:250px; overflow-y:auto;">
-          <table class="table table-sm mb-0" style="font-size:0.85rem;">
-            <thead class="table-light sticky-top">
-              <tr>
-                <th>Applied On</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Reason</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="myLeaveRequestsBody">
-              <tr>
-                <td colspan="5" class="text-center text-muted py-3">Loading...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <!-- ===== END MY LEAVE REQUESTS ===== -->
-
-    <!-- ===== MY ATTENDANCE HISTORY ===== -->
-    <div class="card-pro mb-5">
-      <div class="card-header-pro justify-content-between">
-        <span><i class="bi bi-calendar3 text-primary"></i> My Attendance History</span>
-        <input type="month" id="attendanceMonthPicker" class="form-control form-control-sm w-auto"
-          onchange="loadMyAttendanceHistory()" style="border-radius:6px; font-size:0.85rem;">
-      </div>
-      <div class="p-0">
-        <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
-          <table class="table table-sm mb-0" style="font-size:0.85rem;">
-            <thead class="table-light sticky-top">
-              <tr>
-                <th>Date</th>
-                <th>Day</th>
-                <th>Check-In</th>
-                <th>Check-Out</th>
-                <th>Status</th>
-                <th>Shift</th>
-              </tr>
-            </thead>
-            <tbody id="attendanceHistoryBody">
-              <tr>
-                <td colspan="6" class="text-center text-muted py-3">Select a month to view records</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div id="attendanceSummaryBar" class="d-flex gap-3 flex-wrap px-3 py-2 border-top bg-light small text-muted">
-        </div>
-      </div>
-    </div>
-    <!-- ===== END MY ATTENDANCE HISTORY ===== -->
-
-    <!-- ===== MY WORK REPORTS ===== -->
-    <div class="card-pro mt-4 mb-4">
-      <div class="card-header-pro">
-        <i class="bi bi-journal-text text-primary"></i> My Work Report History
-        <span id="workReportCount" class="badge bg-secondary ms-2 fw-normal"></span>
-      </div>
-      <div class="p-0">
-        <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
-          <table class="table table-sm mb-0" style="font-size:0.85rem;">
-            <thead class="table-light sticky-top">
-              <tr>
-                <th>Date</th>
-                <th style="width:25%;">Title</th>
-                <th>Work Done</th>
-              </tr>
-            </thead>
-            <tbody id="myWorkReportsBody">
-              <tr>
-                <td colspan="3" class="text-center text-muted py-3">Loading...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <!-- ===== END MY WORK REPORTS ===== -->
-
-    <div class="section-title">Project Management</div>
-    <div class="row g-4 mb-4">
-
-      <div class="col-12">
-        <div class="card-pro">
-          <div class="card-header-pro">
-            <i class="bi bi-kanban text-primary"></i> Active Projects
+        <div class="panel-body">
+          <div class="mb-3">
+            <label class="form-label">MILESTONES (Line separated)</label>
+            <textarea id="roadmapStepsInput" class="form-control" rows="5"
+              placeholder="1. Requirement Gathering&#10;2. UI/UX Design&#10;3. Backend Architecture"
+              style="font-family: monospace;"></textarea>
           </div>
-          <div id="projectsList" class="list-group list-group-flush">
-            <div class="list-group-item text-muted py-4 text-center">
-              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-              Loading your assigned projects...
-            </div>
-          </div>
-
-          <div id="roadmapSection" class="bg-light border-top p-4" style="display:none;">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-              <h5 class="fw-bold text-dark m-0 fs-6">Project Roadmap Visualization</h5>
-              <span class="badge bg-primary">Active View</span>
-            </div>
-
-            <div class="progress mb-4 bg-white shadow-sm" style="height: 12px; border-radius: 10px;">
-              <div id="progressBar" class="progress-bar bg-gradient bg-primary" role="progressbar"
-                style="width: 0%; border-radius: 10px;"></div>
-            </div>
-
-            <ul id="roadmapSteps" class="list-group bg-white border rounded shadow-sm"></ul>
-          </div>
+          <button class="btn-sys btn-sys-default border w-100" onclick="createRoadmap()">Generate Roadmap</button>
+          <div id="roadmapMessage" class="mt-2 text-center small fw-bold text-primary"></div>
         </div>
       </div>
 
-      <div class="col-md-6">
-        <div class="card-pro h-100">
-          <div class="card-header-pro bg-white">
-            <span><i class="bi bi-bezier2 text-primary"></i> Define Roadmap</span>
-          </div>
-          <div class="card-body-pro">
-
-
-            <div class="mb-3">
-              <label class="form-label small text-muted fw-bold">MILESTONES (Line separated)</label>
-              <textarea id="roadmapStepsInput" class="form-control" rows="5"
-                placeholder="1. Requirement Gathering&#10;2. UI/UX Design&#10;3. Backend Architecture"
-                style="font-family: monospace; font-size: 0.85rem;"></textarea>
-            </div>
-
-            <button class="btn btn-dark w-100" onclick="createRoadmap()">
-              <i class="bi bi-plus-lg me-1"></i> Generate Roadmap
-            </button>
-            <div id="roadmapMessage" class="mt-2 text-center small"></div>
-          </div>
+      <div class="panel mb-0">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="bi bi-people-fill"></i> Team Allocation</h2>
         </div>
-      </div>
-
-      <div class="col-md-6">
-        <div class="card-pro h-100">
-          <div class="card-header-pro bg-white">
-            <span><i class="bi bi-people-fill text-primary"></i> Team Allocation</span>
+        <div class="panel-body">
+          <div class="mb-3">
+            <label class="form-label">PROJECT</label>
+            <select id="assignProjectSelect" class="form-select form-select-sm">
+              <option value="">Select Project</option>
+            </select>
           </div>
-          <div class="card-body-pro">
-            <div class="mb-3">
-              <label class="form-label small text-muted fw-bold">PROJECT</label>
-              <select id="assignProjectSelect" class="form-select">
-                <option value="">Select Project</option>
-              </select>
-            </div>
 
-            <label class="form-label small text-muted fw-bold">AVAILABLE RESOURCES</label>
-            <div class="border rounded bg-body p-2 mb-3" style="min-height: 155px;">
-              <div id="membersList" style="max-height: 150px; overflow-y: auto;">
-                <div class="text-center text-muted mt-4 small">
-                  <i class="bi bi-person-slash fs-4 d-block mb-1"></i>
-                  Waiting for project selection...
-                </div>
+          <label class="form-label">AVAILABLE RESOURCES</label>
+          <div class="border rounded bg-light p-2 mb-3" style="min-height: 155px;">
+            <div id="membersList" style="max-height: 150px; overflow-y: auto;">
+              <div class="text-center text-muted mt-4 small">
+                <i class="bi bi-person-slash fs-4 d-block mb-1"></i>
+                Waiting for project selection...
               </div>
             </div>
-
-            <button class="btn btn-primary w-100" onclick="assignMembers()">
-              <i class="bi bi-person-check-fill me-1"></i> Confirm Assignment
-            </button>
-            <div id="assignMessage" class="mt-2 text-center small"></div>
           </div>
+
+          <button class="btn-sys btn-sys-primary w-100" onclick="assignMembers()">Confirm Assignment</button>
+          <div id="assignMessage" class="mt-2 text-center small fw-bold"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2-col mt-4">
+      <!-- ===== APPLY LEAVE ===== -->
+      <div class="panel mb-0">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="bi bi-file-earmark-plus"></i> Apply Leave</h2>
+        </div>
+        <div class="panel-body">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">From Date</label>
+              <input type="date" id="leaveFromDate" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label class="form-label">To Date</label>
+              <input type="date" id="leaveToDate" class="form-control form-control-sm">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Reason</label>
+            <textarea id="leaveReason" class="form-control form-control-sm" rows="3"></textarea>
+          </div>
+          <button class="btn-sys btn-sys-primary w-100" onclick="applyLeave()">Submit Request</button>
+          <div id="leaveMessage" class="mt-2 text-center small fw-bold"></div>
         </div>
       </div>
 
+      <!-- ===== LEAVE BALANCE ===== -->
+      <div class="panel mb-0" id="leaveBalanceCard">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="bi bi-calendar-check text-success"></i> My Leave Balance <span
+              id="leaveBalanceYear" class="ms-1 fw-normal text-muted"></span></h2>
+        </div>
+        <div class="panel-body" id="leaveBalanceStats">
+          <div class="d-flex gap-2 flex-wrap mb-3">
+            <div class="text-center p-2 rounded border flex-fill bg-light">
+              <div class="fw-bold fs-4 text-secondary" id="lbQuota">—</div>
+              <div class="small fw-semibold text-muted text-uppercase">Quota</div>
+            </div>
+            <div class="text-center p-2 rounded border flex-fill bg-light">
+              <div class="fw-bold fs-4 text-danger" id="lbUsed">—</div>
+              <div class="small fw-semibold text-muted text-uppercase">Used</div>
+            </div>
+            <div class="text-center p-2 rounded border flex-fill bg-light">
+              <div class="fw-bold fs-4 text-success" id="lbRemaining">—</div>
+              <div class="small fw-semibold text-muted text-uppercase">Remaining</div>
+            </div>
+            <div class="text-center p-2 rounded border flex-fill bg-light">
+              <div class="fw-bold fs-4 text-warning" id="lbPending">—</div>
+              <div class="small fw-semibold text-muted text-uppercase">Pending</div>
+            </div>
+          </div>
+          <div class="progress rounded-0 mt-3" style="height:10px;">
+            <div id="lbProgressBar" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
+            <div id="lbPendingBar" class="progress-bar bg-warning" role="progressbar" style="width:0%"></div>
+            <div id="lbUsedBar" class="progress-bar bg-danger" role="progressbar" style="width:0%"></div>
+          </div>
+          <div class="d-flex justify-content-between small fw-bold text-muted mt-2">
+            <span>🟢 Rem &nbsp;🟡 Pen &nbsp;🔴 Usd</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MY LEAVE REQUESTS ===== -->
+    <div class="panel mt-4">
+      <div class="panel-header">
+        <h2 class="panel-title"><i class="bi bi-clock-history"></i> My Leave Requests</h2>
+      </div>
+      <div class="panel-body-flush table-responsive" style="max-height: 250px;">
+        <table class="table-enterprise">
+          <thead class="sticky-top bg-light">
+            <tr>
+              <th>Applied On</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Reason</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="myLeaveRequestsBody">
+            <tr>
+              <td colspan="5" class="text-center text-muted py-3">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== MY ATTENDANCE HISTORY ===== -->
+    <div class="panel mt-4">
+      <div class="panel-header">
+        <h2 class="panel-title"><i class="bi bi-calendar3"></i> My Attendance Analytics</h2>
+        <input type="month" id="attendanceMonthPicker" class="form-control form-control-sm w-auto"
+          onchange="loadMyAttendanceHistory()">
+      </div>
+      <div class="panel-body-flush table-responsive" style="max-height:350px;">
+        <table class="table-enterprise">
+          <thead class="sticky-top bg-light">
+            <tr>
+              <th>Date</th>
+              <th>Day</th>
+              <th>Check-In</th>
+              <th>Check-Out</th>
+              <th>Status</th>
+              <th>Shift</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceHistoryBody">
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">Select a month to view records</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="attendanceSummaryBar" class="bg-light border-top p-2 small fw-bold text-muted d-flex gap-3 flex-wrap">
+      </div>
+    </div>
+
+    <!-- ===== MY WORK REPORTS ===== -->
+    <div class="panel mt-4">
+      <div class="panel-header">
+        <h2 class="panel-title"><i class="bi bi-journal-text"></i> Archive: My Work Reports <span id="workReportCount"
+            class="badge bg-secondary ms-2 fw-normal"></span></h2>
+      </div>
+      <div class="panel-body-flush table-responsive" style="max-height:350px;">
+        <table class="table-enterprise">
+          <thead class="sticky-top bg-light">
+            <tr>
+              <th>Date</th>
+              <th style="width:25%;">Context/Title</th>
+              <th>Execution Log</th>
+            </tr>
+          </thead>
+          <tbody id="myWorkReportsBody">
+            <tr>
+              <td colspan="3" class="text-center text-muted py-4">Loading report data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ===== CHANGE PASSWORD ===== -->
-    <div class="card-pro mt-4 mb-5">
-      <div class="card-header-pro">
-        <i class="bi bi-shield-lock text-danger"></i> Change Password
+    <div class="panel mt-4">
+      <div class="panel-header">
+        <h2 class="panel-title"><i class="bi bi-shield-lock text-danger"></i> Credentials Update</h2>
       </div>
-      <div class="card-body-pro">
-        <div style="max-width:420px;">
-          <div class="mb-3">
-            <label class="form-label fw-semibold" style="font-size:0.83rem;">Current Password</label>
-            <input type="password" id="cpCurrent" class="form-control form-control-sm"
-              placeholder="Enter current password">
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold" style="font-size:0.83rem;">New Password</label>
-            <input type="password" id="cpNew" class="form-control form-control-sm" placeholder="Min 6 characters">
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold" style="font-size:0.83rem;">Confirm New Password</label>
-            <input type="password" id="cpConfirm" class="form-control form-control-sm"
-              placeholder="Re-enter new password">
-          </div>
-          <button class="btn btn-danger btn-sm px-4" onclick="changePassword()">Update Password</button>
-          <div id="cpMessage" class="mt-3 small fw-bold"></div>
+      <div class="panel-body" style="max-width:420px;">
+        <div class="mb-3">
+          <label class="form-label">Current Password</label>
+          <input type="password" id="cpCurrent" class="form-control form-control-sm"
+            placeholder="Enter current password">
         </div>
+        <div class="mb-3">
+          <label class="form-label">New Password</label>
+          <input type="password" id="cpNew" class="form-control form-control-sm" placeholder="Min 6 characters">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Confirm New Password</label>
+          <input type="password" id="cpConfirm" class="form-control form-control-sm"
+            placeholder="Re-enter new password">
+        </div>
+        <button class="btn-sys btn-sys-primary bg-danger text-white border-0" onclick="changePassword()">Enforce New
+          Policy</button>
+        <div id="cpMessage" class="mt-3 small fw-bold"></div>
       </div>
     </div>
-    <!-- ===== END CHANGE PASSWORD ===== -->
 
-  </div>
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="dashboard.js"></script>
