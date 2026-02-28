@@ -536,7 +536,7 @@ exports.reviewLeaveRequest = async (req, res) => {
       await pool.query(
         `INSERT INTO notifications (user_id, message, is_read, created_at)
          VALUES ($1, $2, false, NOW())
-         ON CONFLICT ON CONSTRAINT uniq_notification_per_user_per_day DO NOTHING`,
+         ON CONFLICT (user_id, message, date(created_at)) DO NOTHING`,
         [user_id, notifMessage]
       );
 
@@ -588,7 +588,7 @@ exports.broadcastAnnouncement = async (req, res) => {
       await pool.query(
         `INSERT INTO notifications (user_id, message, is_read, created_at)
          VALUES ($1, $2, $3, NOW())
-         ON CONFLICT ON CONSTRAINT uniq_notification_per_user_per_day DO NOTHING`,
+         ON CONFLICT (user_id, message, date(created_at)) DO NOTHING`,
         [user.id, text, false]
       );
     }
