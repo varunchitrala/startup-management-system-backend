@@ -1,7 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-
+// Initialize email scheduler
+require('./src/scheduler/emailScheduler');
 const app = express();
 
 /* ================= MIDDLEWARE ================= */
@@ -20,7 +21,9 @@ const attendanceRoutes = require("./src/routes/attendanceRoutes");
 const workReportRoutes = require("./src/routes/workReportRoutes");
 const leaveRoutes = require("./src/routes/leaveRoutes");
 const notificationRoutes = require("./src/routes/notificationRoutes");
-
+// Add with other routes
+const testRoutes = require('./src/routes/testRoutes');
+app.use('/api/test', testRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/attendance", attendanceRoutes);

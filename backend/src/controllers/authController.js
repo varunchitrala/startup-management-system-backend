@@ -1,5 +1,5 @@
 const pool = require("../config/db");
-
+const emailService = require('../services/emailService');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
@@ -95,4 +95,35 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+exports.register = async (req, res) => {
+  try {
+    const { user_id, name, email, role } = req.body;
 
+    // ... existing validation ...
+
+    // Generate temporary password
+    const temporaryPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (user_id, name, email, password, role)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [user_id, name, email, hashedPassword, role]
+    );
+
+    const newUserId = result.rows[0].id;
+
+    // ✅ SEND WELCOME EMAIL WITH CREDENTIALS
+    await emailService.sendWelcomeEmail(newUserId, temporaryPassword);
+
+    res.json({
+      message: "User registered successfully. Welcome email sent.",
+      temporary_password: temporaryPassword // Only show in development
+    });
+
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

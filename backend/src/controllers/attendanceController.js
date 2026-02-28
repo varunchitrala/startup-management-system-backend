@@ -1,5 +1,7 @@
 const pool = require("../config/db");
 
+const emailService = require('../services/emailService');
+
 function getDistanceInMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000; // Earth radius in meters
   const toRad = value => (value * Math.PI) / 180;
@@ -82,6 +84,7 @@ exports.checkIn = async (req, res) => {
       const officeLon = office.rows[0].longitude;
       const allowedRadius = office.rows[0].allowed_radius;
 
+      // Ensure getDistanceInMeters is correctly imported/defined in your file
       const distance = getDistanceInMeters(latitude, longitude, officeLat, officeLon);
 
       console.log(`📏 Distance from office: ${distance}m | Allowed: ${allowedRadius}m | GeoEnabled: ${geoEnabled}`);
@@ -169,6 +172,20 @@ exports.checkIn = async (req, res) => {
       [userId, today, selectedShift.id]
     );
 
+    // 🔹 Late Arrival Email Check
+    // Ensure emailService is properly imported at the top of your controller
+    const shiftStart = buildTimeIST(selectedShift.check_in_time);
+    
+    if (nowIST > shiftStart) {
+      const checkInTime = nowIST.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      console.log(`📧 User is late. Sending email for check-in at ${checkInTime}`);
+      await emailService.sendLateArrivalEmail(userId, checkInTime);
+    }
+
     res.json({ message: `Checked in under ${selectedShift.name}` });
 
   } catch (err) {
@@ -176,7 +193,6 @@ exports.checkIn = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 // User check-out
 exports.checkOut = async (req, res) => {
   try {
@@ -549,13 +565,14 @@ exports.applyLeave = async (req, res) => {
     }
 
     await pool.query(
-      `
-      INSERT INTO leave_requests
-      (user_id, from_date, to_date, reason, status, applied_at)
-      VALUES ($1, $2, $3, $4, 'PENDING', NOW())
-      `,
+      `INSERT INTO leave_requests
+       (user_id, from_date, to_date, reason, status, applied_at)
+       VALUES ($1, $2, $3, $4, 'PENDING', NOW())`,
       [userId, from_date, to_date, reason]
     );
+
+    // ✅ SEND EMAIL NOTIFICATION
+    await emailService.sendLeaveAppliedEmail(userId);
 
     res.json({ message: "Leave request submitted successfully" });
 
@@ -564,7 +581,6 @@ exports.applyLeave = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 /* ================= MY ATTENDANCE HISTORY ================= */
 exports.getMyAttendanceHistory = async (req, res) => {
   try {
@@ -634,7 +650,7 @@ exports.getMyLeaveBalance = async (req, res) => {
     const year = new Date().getFullYear();
     const QUOTA = 18; // Annual leave quota
 
-    // Approved leave days this year
+    // 1. Count approved leave requests
     const approvedResult = await pool.query(
       `SELECT COALESCE(SUM((to_date::date - from_date::date) + 1), 0) AS used_days
        FROM leave_requests
@@ -644,7 +660,17 @@ exports.getMyLeaveBalance = async (req, res) => {
       [userId, year]
     );
 
-    // Pending leave days this year
+    // 2. Count admin-applied ON_LEAVE days from attendance table
+    const adminLeaveResult = await pool.query(
+      `SELECT COUNT(*) AS admin_leave_days
+       FROM attendance
+       WHERE user_id = $1
+         AND status = 'ON_LEAVE'
+         AND EXTRACT(YEAR FROM date) = $2`,
+      [userId, year]
+    );
+
+    // 3. Count pending leave requests
     const pendingResult = await pool.query(
       `SELECT COALESCE(SUM((to_date::date - from_date::date) + 1), 0) AS pending_days
        FROM leave_requests
@@ -654,11 +680,25 @@ exports.getMyLeaveBalance = async (req, res) => {
       [userId, year]
     );
 
-    const used = parseInt(approvedResult.rows[0].used_days, 10);
+    // Calculate totals
+    const approvedLeaves = parseInt(approvedResult.rows[0].used_days, 10);
+    const adminLeaves = parseInt(adminLeaveResult.rows[0].admin_leave_days, 10);
+    const used = approvedLeaves + adminLeaves; // ✅ FIXED: Now includes admin leaves
     const pending = parseInt(pendingResult.rows[0].pending_days, 10);
     const remaining = Math.max(0, QUOTA - used);
 
-    res.json({ quota: QUOTA, used, remaining, pending, year });
+    res.json({ 
+      quota: QUOTA, 
+      used, 
+      remaining, 
+      pending, 
+      year,
+      // Optional: Include breakdown for transparency/debugging
+      breakdown: {
+        from_leave_requests: approvedLeaves,
+        from_admin_leaves: adminLeaves
+      }
+    });
 
   } catch (err) {
     console.error("Leave balance error:", err);

@@ -1058,14 +1058,12 @@ async function loadLeaveRequests() {
         <td>
           ${l.status === "PENDING"
         ? `
-                <button class="btn btn-sm btn-success"
-                  onclick="reviewLeave(${l.id}, 'APPROVED')">
-                  Approve
-                </button>
-                <button class="btn btn-sm btn-danger"
-                  onclick="reviewLeave(${l.id}, 'REJECTED')">
-                  Reject
-                </button>
+                <button class="btn btn-sm btn-success" onclick="approveLeave(${leave.id})">
+    <i class="bi bi-check-circle"></i> Approve
+  </button>
+  <button class="btn btn-sm btn-danger" onclick="showRejectModal(${leave.id})">
+    <i class="bi bi-x-circle"></i> Reject
+  </button>
               `
         : "-"
       }
@@ -1268,5 +1266,120 @@ async function changePassword() {
   } catch (err) {
     console.error("Change password error:", err);
     msgDiv.innerHTML = `<span class="text-danger">Failed to update password</span>`;
+  }
+}
+let currentLeaveId = null;
+
+// Show rejection modal
+function showRejectModal(leaveId) {
+  currentLeaveId = leaveId;
+  document.getElementById('rejectionReason').value = '';
+  document.getElementById('rejectMessage').innerHTML = '';
+  const modal = new bootstrap.Modal(document.getElementById('rejectLeaveModal'));
+  modal.show();
+}
+
+// Confirm rejection with reason
+async function confirmRejectLeave() {
+  const reason = document.getElementById('rejectionReason').value.trim();
+  const messageDiv = document.getElementById('rejectMessage');
+
+  if (!reason) {
+    messageDiv.innerHTML = '<div class="alert alert-danger">Please provide a reason</div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/leave/${currentLeaveId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        status: 'REJECTED',
+        rejection_reason: reason
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      messageDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+      return;
+    }
+
+    messageDiv.innerHTML = '<div class="alert alert-success">Leave rejected successfully</div>';
+    
+    // Close modal and reload
+    setTimeout(() => {
+      bootstrap.Modal.getInstance(document.getElementById('rejectLeaveModal')).hide();
+      loadPendingLeaves(); // Reload your leave list
+    }, 1500);
+
+  } catch (err) {
+    console.error(err);
+    messageDiv.innerHTML = '<div class="alert alert-danger">Failed to reject leave</div>';
+  }
+}
+
+// Approve leave
+async function approveLeave(leaveId) {
+  if (!confirm('Are you sure you want to approve this leave?')) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/leave/${leaveId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ status: 'APPROVED' })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert('Leave approved successfully!');
+      loadPendingLeaves(); // Reload your leave list
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Failed to approve leave');
+  }
+}
+async function sendTestEmail() {
+  const email = document.getElementById('testEmailAddress').value.trim();
+  const messageDiv = document.getElementById('testEmailMessage');
+
+  if (!email) {
+    messageDiv.innerHTML = '<div class="alert alert-danger">Please enter an email address</div>';
+    return;
+  }
+
+  messageDiv.innerHTML = '<div class="alert alert-info">Sending test email...</div>';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/test/send-test-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ email })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      messageDiv.innerHTML = `<div class="alert alert-success">✅ ${data.message}</div>`;
+    } else {
+      messageDiv.innerHTML = `<div class="alert alert-danger">❌ ${data.message}</div>`;
+    }
+  } catch (err) {
+    console.error(err);
+    messageDiv.innerHTML = '<div class="alert alert-danger">Failed to send test email</div>';
   }
 }
