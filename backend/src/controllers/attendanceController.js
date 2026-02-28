@@ -613,10 +613,10 @@ exports.getMyLeaveRequests = async (req, res) => {
          to_date,
          reason,
          status,
-         created_at
+         applied_at
        FROM leave_requests
        WHERE user_id = $1
-       ORDER BY created_at DESC`,
+       ORDER BY applied_at DESC`,
       [userId]
     );
 
