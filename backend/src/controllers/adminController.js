@@ -98,6 +98,7 @@ exports.getTeamMembers = async (req, res) => {
         u.name,
         u.email,
         u.role,
+        u.shift_id,
 
         CASE
           WHEN u.role = 'TEAM_LEAD' AND EXISTS (

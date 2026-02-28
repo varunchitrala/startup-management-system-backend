@@ -3,7 +3,7 @@ const token = localStorage.getItem("token");
 
 if (!token) {
   alert("Unauthorized");
-  window.location.href = "../login.html";
+  window.location.href = "../index.html";
 }
 
 const tableBody = document.getElementById("employeesTable");
@@ -152,11 +152,12 @@ async function deleteUser(userId, role) {
 /* ================= LOGOUT ================= */
 function logout() {
   localStorage.removeItem("token");
-  window.location.href = "../login.html";
+  localStorage.removeItem("role");
+  window.location.href = "../index.html";
 }
 
 /* ================= INIT ================= */
 (async function init() {
-  //await loadShifts();
+  await loadShifts();
   loadEmployees();
 })();
