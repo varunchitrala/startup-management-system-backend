@@ -28,6 +28,32 @@ const createAttendanceTables = async () => {
       )
     `);
 
+    // Leave requests table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS leave_requests (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        from_date DATE NOT NULL,
+        to_date DATE NOT NULL,
+        reason TEXT,
+        status VARCHAR(20) DEFAULT 'PENDING',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Leave balances table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS leave_balances (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL UNIQUE,
+        total_quota INTEGER DEFAULT 20,
+        used INTEGER DEFAULT 0,
+        pending INTEGER DEFAULT 0,
+        remaining INTEGER DEFAULT 20,
+        year INTEGER NOT NULL
+      )
+    `);
+
     console.log("✅ Attendance tables created successfully");
   } catch (err) {
     console.error("❌ Error creating attendance tables:", err.message);
