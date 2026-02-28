@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,21 +14,27 @@
   <style>
     :root {
       /* Tech Club Colors based on your logo */
-      --primary: #9c75df;       /* Logo Purple */
+      --primary: #9c75df;
+      /* Logo Purple */
       --primary-hover: #8b62cf;
-      --accent: #ffb100;        /* Logo Orange */
-      
+      --accent: #ffb100;
+      /* Logo Orange */
+
       /* Clean Dark Theme */
-      --bg-black: #000000;      /* Matches the JPEG logo background perfectly */
-      --bg-surface: #0f1115;    /* Slightly lighter for the form area */
+      --bg-black: #000000;
+      /* Matches the JPEG logo background perfectly */
+      --bg-surface: #0f1115;
+      /* Slightly lighter for the form area */
       --border-color: #27272a;
       --text-main: #f8fafc;
       --text-muted: #a1a1aa;
-      
+
       --font-main: 'Inter', sans-serif;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -215,49 +222,96 @@
     }
 
     /* Stagger Delays so they load in sequence */
-    .delay-1 { animation-delay: 0.2s; }
-    .delay-2 { animation-delay: 0.3s; }
-    .delay-3 { animation-delay: 0.4s; }
-    .delay-4 { animation-delay: 0.5s; }
-    .delay-5 { animation-delay: 0.6s; }
+    .delay-1 {
+      animation-delay: 0.2s;
+    }
+
+    .delay-2 {
+      animation-delay: 0.3s;
+    }
+
+    .delay-3 {
+      animation-delay: 0.4s;
+    }
+
+    .delay-4 {
+      animation-delay: 0.5s;
+    }
+
+    .delay-5 {
+      animation-delay: 0.6s;
+    }
 
     @keyframes slideRight {
-      from { opacity: 0; transform: translateX(-40px); }
-      to { opacity: 1; transform: translateX(0); }
+      from {
+        opacity: 0;
+        transform: translateX(-40px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* --- RESPONSIVE --- */
     @media (max-width: 992px) {
-      .split-layout { flex-direction: column; overflow-y: auto; }
-      .brand-side { flex: none; padding: 3rem 2rem; border-right: none; border-bottom: 1px solid var(--border-color); text-align: center; align-items: center; }
-      .club-title { font-size: 2.5rem; }
-      .form-side { padding: 3rem 2rem; }
+      .split-layout {
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .brand-side {
+        flex: none;
+        padding: 3rem 2rem;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        text-align: center;
+        align-items: center;
+      }
+
+      .club-title {
+        font-size: 2.5rem;
+      }
+
+      .form-side {
+        padding: 3rem 2rem;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <div class="split-layout">
-    
+
     <div class="brand-side">
       <div class="brand-content anim-slide-right">
         <img src="WhatsApp Image 2026-02-25 at 3.37.21 PM.jpeg" alt="SUN Nexus Solutions" class="club-logo">
-        
+
         <h1 class="club-title">Build the future with <span>Nexus.</span></h1>
         <p class="club-description">
-          Welcome to the official SUN Nexus tech club portal. Sign in to access project dashboards, employee rosters, and team management tools.
+          Welcome to the official SUN Nexus tech club portal. Sign in to access project dashboards, employee rosters,
+          and team management tools.
         </p>
       </div>
     </div>
 
     <div class="form-side">
       <div class="form-container">
-        
+
         <div class="form-header anim-slide-up delay-1">
           <h2>Sign In</h2>
           <p>Enter your account details to continue.</p>
@@ -269,18 +323,17 @@
         </div>
 
         <div class="input-group-custom anim-slide-up delay-3">
-          <div class="flex-between">
-            <label class="label-custom" for="password" style="margin-bottom: 0;">Password</label>
-            <a href="#" class="forgot-password">Forgot password?</a>
-          </div>
-          <input type="password" id="password" class="input-custom" placeholder="••••••••" style="margin-top: 0.5rem;" />
+
+          <input type="password" id="password" class="input-custom" placeholder="••••••••"
+            style="margin-top: 0.5rem;" />
         </div>
 
         <button class="btn-login anim-slide-up delay-4" onclick="login()">
           Sign In
         </button>
 
-        <div id="error" class="text-danger mt-3 text-center small fw-bold anim-slide-up delay-5" style="min-height: 20px;"></div>
+        <div id="error" class="text-danger mt-3 text-center small fw-bold anim-slide-up delay-5"
+          style="min-height: 20px;"></div>
 
       </div>
     </div>
@@ -289,4 +342,5 @@
 
   <script src="js/auth.js"></script>
 </body>
+
 </html>
