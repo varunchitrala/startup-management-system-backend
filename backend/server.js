@@ -10,6 +10,8 @@ app.use(express.json());
 
 /* ================= DB INIT ================= */
 require("./src/config/db");
+require("./src/models/initDb");
+require("./src/models/createAttendanceTables");
 
 /* ================= ROUTES ================= */
 const authRoutes = require("./src/routes/authRoutes");

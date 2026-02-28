@@ -494,7 +494,9 @@ async function loadMyWorkReports() {
     });
 
     if (!res.ok) {
-      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-3">Failed to load reports</td></tr>`;
+      const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
+      console.error(`Error loading work reports (${res.status}):`, errorData);
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-3">Failed to load reports: ${errorData.message || res.statusText}</td></tr>`;
       return;
     }
 
@@ -523,7 +525,7 @@ async function loadMyWorkReports() {
 
   } catch (err) {
     console.error("Work reports error:", err);
-    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-3">Error loading reports</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-3">Error loading reports: ${err.message}</td></tr>`;
   }
 }
 
@@ -623,7 +625,9 @@ async function loadMyLeaveRequests() {
     });
 
     if (!res.ok) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Failed to load requests</td></tr>`;
+      const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
+      console.error(`Error loading leave requests (${res.status}):`, errorData);
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Failed to load requests: ${errorData.message || res.statusText}</td></tr>`;
       return;
     }
 
@@ -662,7 +666,7 @@ async function loadMyLeaveRequests() {
 
   } catch (err) {
     console.error("Leave requests error:", err);
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Error loading requests</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Error loading requests: ${err.message}</td></tr>`;
   }
 }
 

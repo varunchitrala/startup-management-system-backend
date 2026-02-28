@@ -602,6 +602,10 @@ exports.getMyLeaveRequests = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    if (!userId) {
+      return res.status(400).json({ message: "User ID not found in token" });
+    }
+
     const result = await pool.query(
       `SELECT
          id,
@@ -618,8 +622,8 @@ exports.getMyLeaveRequests = async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    console.error("My leave requests error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("My leave requests error:", err.message, err.stack);
+    res.status(500).json({ message: "Failed to fetch leave requests", error: err.message });
   }
 };
 
