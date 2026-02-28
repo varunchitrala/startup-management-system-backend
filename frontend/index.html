@@ -4,260 +4,162 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In | SUN Nexus Tech Club</title>
+  <title>System Gateway | SUN Nexus Solution</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
   <style>
     :root {
-      /* Tech Club Colors based on your logo */
-      --primary: #9c75df;
-      /* Logo Purple */
-      --primary-hover: #8b62cf;
-      --accent: #ffb100;
-      /* Logo Orange */
-
-      /* Clean Dark Theme */
-      --bg-black: #000000;
-      /* Matches the JPEG logo background perfectly */
-      --bg-surface: #0f1115;
-      /* Slightly lighter for the form area */
-      --border-color: #27272a;
-      --text-main: #f8fafc;
-      --text-muted: #a1a1aa;
-
-      --font-main: 'Inter', sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
+      --bg-app: #f4f5f7;
+      --bg-panel: #ffffff;
+      --nav-bg: #172b4d;
+      --text-main: #172b4d;
+      --text-muted: #5e6c84;
+      --border-color: #dfe1e6;
+      --primary: #0052cc;
+      --primary-hover: #0047b3;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-      margin: 0;
-      padding: 0;
-      font-family: var(--font-main);
-      background-color: var(--bg-black);
+      background-color: var(--bg-app);
+      font-family: var(--font-family);
       color: var(--text-main);
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* --- LAYOUT --- */
-    .split-layout {
-      display: flex;
-      height: 100vh;
-      width: 100vw;
-    }
-
-    /* --- LEFT: BRANDING (Tech Club Vibe) --- */
-    .brand-side {
-      flex: 1.2;
-      background-color: var(--bg-black);
-      padding: 4rem;
+      font-size: 14px;
+      margin: 0;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      position: relative;
-      border-right: 1px solid var(--border-color);
-      /* Subtle dot grid for a "tech/dev" feel */
-      background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
-      background-size: 32px 32px;
     }
 
-    .brand-content {
-      max-width: 500px;
+    .topnav {
+      height: 56px;
+      background-color: var(--nav-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px;
+      z-index: 1030;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    .topnav-brand {
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .auth-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    /* Enterprise panel login */
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 3px;
+      box-shadow: 0 4px 12px rgba(9, 30, 66, 0.08);
+      /* slight shadow for depth */
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      padding: 24px 24px 16px;
+      text-align: center;
+    }
+
+    .panel-body {
+      padding: 0 32px 32px;
     }
 
     .club-logo {
-      width: 220px;
-      margin-bottom: 2rem;
-      /* The black background of the JPEG will disappear into the --bg-black of the page */
+      width: 160px;
+      margin-bottom: 24px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .club-title {
-      font-size: 3.5rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-      margin-bottom: 1.5rem;
-      color: #ffffff;
-    }
-
-    .club-title span {
-      color: var(--primary);
-    }
-
-    .club-description {
-      font-size: 1.1rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* --- RIGHT: FORM AREA --- */
-    .form-side {
-      flex: 1;
-      background-color: var(--bg-surface);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-
-    .form-container {
-      width: 100%;
-      max-width: 400px;
-    }
-
-    .form-header {
-      margin-bottom: 2.5rem;
-    }
-
-    .form-header h2 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
+    .panel-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 8px;
       color: var(--text-main);
     }
 
-    .form-header p {
+    .panel-subtitle {
       color: var(--text-muted);
-      font-size: 0.95rem;
+      font-size: 14px;
+      margin-bottom: 24px;
     }
 
-    /* --- STANDARD CLEAN INPUTS --- */
-    .input-group-custom {
-      margin-bottom: 1.5rem;
-    }
-
-    .label-custom {
-      display: block;
-      font-size: 0.85rem;
+    .form-label {
+      font-size: 12px;
       font-weight: 600;
-      color: #e2e8f0;
-      margin-bottom: 0.5rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
     }
 
-    .input-custom {
-      width: 100%;
-      background-color: #18181b;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 0.85rem 1rem;
-      color: #ffffff;
-      font-size: 1rem;
-      font-family: var(--font-main);
-      transition: all 0.2s ease;
+    .form-control {
+      border-radius: 3px;
+      border: 2px solid #dfe1e6;
+      padding: 10px 14px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      background-color: #fafbfc;
+      margin-bottom: 20px;
     }
 
-    .input-custom::placeholder {
-      color: #52525b;
-    }
-
-    .input-custom:focus {
-      outline: none;
+    .form-control:focus {
       border-color: var(--primary);
-      background-color: #000000;
-      box-shadow: 0 0 0 3px rgba(156, 117, 223, 0.15);
+      background-color: #fff;
+      box-shadow: none;
+      outline: none;
     }
 
-    .flex-between {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .forgot-password {
-      color: var(--accent);
-      font-size: 0.85rem;
-      font-weight: 500;
-      text-decoration: none;
-      transition: opacity 0.2s;
-    }
-
-    .forgot-password:hover {
-      opacity: 0.8;
-      text-decoration: underline;
-    }
-
-    /* --- BUTTON --- */
-    .btn-login {
-      width: 100%;
-      background-color: var(--primary);
-      color: #ffffff;
-      border: none;
-      border-radius: 8px;
-      padding: 0.9rem;
-      font-size: 1rem;
+    .btn-sys {
+      border-radius: 3px;
       font-weight: 600;
+      font-size: 14px;
+      padding: 10px 16px;
+      border: none;
+      transition: 0.2s;
       cursor: pointer;
-      margin-top: 1rem;
-      transition: all 0.2s ease;
+      width: 100%;
     }
 
-    .btn-login:hover {
-      background-color: var(--primary-hover);
-      transform: translateY(-1px);
+    .btn-sys-primary {
+      background: var(--primary);
+      color: white;
     }
 
-    .btn-login:active {
-      transform: translateY(0);
+    .btn-sys-primary:hover {
+      background: var(--primary-hover);
+      color: white;
     }
 
-    /* --- VISIBLE ANIMATIONS --- */
-    /* 1. Slide in from left for the branding */
-    .anim-slide-right {
-      opacity: 0;
-      animation: slideRight 0.8s ease-out forwards;
+    /* Animation */
+    .fade-in-up {
+      animation: fadeInUp 0.5s ease-out;
     }
 
-    /* 2. Slide up with stagger for the form elements */
-    .anim-slide-up {
-      opacity: 0;
-      transform: translateY(20px);
-      animation: slideUp 0.6s ease-out forwards;
-    }
-
-    /* Stagger Delays so they load in sequence */
-    .delay-1 {
-      animation-delay: 0.2s;
-    }
-
-    .delay-2 {
-      animation-delay: 0.3s;
-    }
-
-    .delay-3 {
-      animation-delay: 0.4s;
-    }
-
-    .delay-4 {
-      animation-delay: 0.5s;
-    }
-
-    .delay-5 {
-      animation-delay: 0.6s;
-    }
-
-    @keyframes slideRight {
+    @keyframes fadeInUp {
       from {
         opacity: 0;
-        transform: translateX(-40px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
+        transform: translateY(15px);
       }
 
       to {
@@ -265,79 +167,45 @@
         transform: translateY(0);
       }
     }
-
-    /* --- RESPONSIVE --- */
-    @media (max-width: 992px) {
-      .split-layout {
-        flex-direction: column;
-        overflow-y: auto;
-      }
-
-      .brand-side {
-        flex: none;
-        padding: 3rem 2rem;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        text-align: center;
-        align-items: center;
-      }
-
-      .club-title {
-        font-size: 2.5rem;
-      }
-
-      .form-side {
-        padding: 3rem 2rem;
-      }
-    }
   </style>
 </head>
 
 <body>
 
-  <div class="split-layout">
-
-    <div class="brand-side">
-      <div class="brand-content anim-slide-right">
-        <img src="WhatsApp Image 2026-02-25 at 3.37.21 PM.jpeg" alt="SUN Nexus Solutions" class="club-logo">
-
-        <h1 class="club-title">Build the future with <span>Nexus.</span></h1>
-        <p class="club-description">
-          Welcome to the official SUN Nexus tech club portal. Sign in to access project dashboards, employee rosters,
-          and team management tools.
-        </p>
-      </div>
+  <header class="topnav">
+    <div class="topnav-brand">
+      <i class="bi bi-hdd-network"></i> SUN Nexus | System Authentication
     </div>
+  </header>
 
-    <div class="form-side">
-      <div class="form-container">
+  <div class="auth-wrapper">
+    <div class="panel fade-in-up">
+      <div class="panel-header">
+        <img src="WhatsApp Image 2026-02-25 at 3.37.21 PM.jpeg" alt="SUN Nexus Solutions" class="club-logo">
+        <h1 class="panel-title">System Gateway</h1>
+        <p class="panel-subtitle">Sign in to access secure dashboard services.</p>
+      </div>
 
-        <div class="form-header anim-slide-up delay-1">
-          <h2>Sign In</h2>
-          <p>Enter your account details to continue.</p>
+      <div class="panel-body">
+
+        <div>
+          <label class="form-label" for="email">User Designation Email</label>
+          <input type="email" id="email" class="form-control" placeholder="name@sunnexus.com" autocomplete="email" />
         </div>
 
-        <div class="input-group-custom anim-slide-up delay-2">
-          <label class="label-custom" for="email">Email Address</label>
-          <input type="email" id="email" class="input-custom" placeholder="name@sunnexus.com" autocomplete="email" />
+        <div>
+          <label class="form-label" for="password">Security Credential</label>
+          <input type="password" id="password" class="form-control" placeholder="••••••••" />
         </div>
 
-        <div class="input-group-custom anim-slide-up delay-3">
-
-          <input type="password" id="password" class="input-custom" placeholder="••••••••"
-            style="margin-top: 0.5rem;" />
-        </div>
-
-        <button class="btn-login anim-slide-up delay-4" onclick="login()">
-          Sign In
+        <button class="btn-sys btn-sys-primary mt-2" onclick="login()">
+          Authenticate <i class="bi bi-arrow-right-short ms-1"></i>
         </button>
 
-        <div id="error" class="text-danger mt-3 text-center small fw-bold anim-slide-up delay-5"
-          style="min-height: 20px;"></div>
+        <div id="error" class="text-danger mt-3 text-center small fw-bold" style="min-height: 20px;"></div>
 
       </div>
     </div>
-
   </div>
 
   <script src="js/auth.js"></script>
