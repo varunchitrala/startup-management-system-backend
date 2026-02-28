@@ -1270,13 +1270,19 @@ async function changePassword() {
 }
 let currentLeaveId = null;
 
+let rejectModalInstance = null;
+
 // Show rejection modal
 function showRejectModal(leaveId) {
   currentLeaveId = leaveId;
   document.getElementById('rejectionReason').value = '';
   document.getElementById('rejectMessage').innerHTML = '';
-  const modal = new bootstrap.Modal(document.getElementById('rejectLeaveModal'));
-  modal.show();
+
+  const modalEl = document.getElementById('rejectLeaveModal');
+  if (!rejectModalInstance) {
+    rejectModalInstance = new bootstrap.Modal(modalEl);
+  }
+  rejectModalInstance.show();
 }
 
 // Confirm rejection with reason
@@ -1313,9 +1319,12 @@ async function confirmRejectLeave() {
 
     // Close modal and reload
     setTimeout(() => {
-      bootstrap.Modal.getInstance(document.getElementById('rejectLeaveModal')).hide();
+      if (rejectModalInstance) {
+        rejectModalInstance.hide();
+      }
+      alert('Leave rejected successfully!');
       loadPendingLeaves(); // Reload your leave list
-    }, 1500);
+    }, 1000);
 
   } catch (err) {
     console.error(err);
@@ -1340,14 +1349,14 @@ async function approveLeave(leaveId) {
     const data = await res.json();
 
     if (res.ok) {
-      alert('Leave approved successfully!');
-      loadPendingLeaves(); // Reload your leave list
+      alert("✅ Leave approved successfully!");
+      loadPendingLeaves();
     } else {
-      alert(data.message);
+      alert("❌ " + data.message);
     }
   } catch (err) {
     console.error(err);
-    alert('Failed to approve leave');
+    alert('❌ Failed to approve leave');
   }
 }
 async function sendTestEmail() {
