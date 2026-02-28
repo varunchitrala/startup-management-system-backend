@@ -120,6 +120,7 @@
       margin-bottom: 1.5rem;
       background: linear-gradient(to right, #ffffff, #a5b4fc);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
@@ -299,22 +300,69 @@
 
       .hero-section {
         flex: none;
-        padding: 3rem 2rem;
+        padding: 3rem 2rem 2rem;
         align-items: center;
         text-align: center;
       }
 
+      .brand-logo {
+        width: 140px;
+        margin-bottom: 1.5rem;
+      }
+
       .hero-title {
-        font-size: 2.5rem;
+        font-size: 2.25rem;
+        margin-bottom: 1rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.1rem;
       }
 
       .badges-container {
         display: none;
-        /* Hide on mobile to save space */
       }
 
       .form-section {
-        padding: 3rem 2rem;
+        padding: 2rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .hero-section {
+        padding: 2.5rem 1.5rem 1.5rem;
+      }
+
+      .brand-logo {
+        width: 120px;
+        margin-bottom: 1rem;
+      }
+
+      .hero-title {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+
+        br {
+          display: none;
+        }
+      }
+
+      .hero-title br {
+        display: none;
+        /* Make title inline on very small screens */
+      }
+
+      .hero-subtitle {
+        display: none;
+        /* Hide subtitle on very small screens to keep form high */
+      }
+
+      .form-section {
+        padding: 1.5rem;
+      }
+
+      .form-header h2 {
+        font-size: 1.75rem;
       }
     }
   </style>
