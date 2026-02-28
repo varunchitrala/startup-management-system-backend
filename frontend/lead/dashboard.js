@@ -5,7 +5,7 @@ if (!token) {
   window.location.href = "../login.html";
 }
 
-console.log("🔥 loadProjects() called");
+console.log("🔥 Lead Dashboard Loaded");
 
 /* ================= DOM ================= */
 const projectsList = document.getElementById("projectsList");
@@ -17,59 +17,6 @@ const statusText = document.getElementById("statusText");
 const checkInBtn = document.getElementById("checkInBtn");
 const checkOutBtn = document.getElementById("checkOutBtn");
 const messageDiv = document.getElementById("message");
-
-/* ================= LOAD PROJECTS ================= */
-
-async function loadMembers() {
-  try {
-    const res = await fetch(
-      `${API_BASE}/api/admin/lead/members`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
-
-    if (!res.ok) {
-      throw new Error("Failed to load members");
-    }
-
-    const members = await res.json();
-
-    const container = document.getElementById("membersList");
-    container.innerHTML = "";
-
-    if (members.length === 0) {
-      container.innerHTML =
-        `<div class="text-muted">No members found</div>`;
-      return;
-    }
-
-    members.forEach(m => {
-      const div = document.createElement("div");
-      div.className = "form-check";
-
-      div.innerHTML = `
-        <input
-          class="form-check-input"
-          type="checkbox"
-          value="${m.id}"
-          id="member_${m.id}"
-        >
-        <label class="form-check-label" for="member_${m.id}">
-          ${m.name} (${m.user_id})
-        </label>
-      `;
-
-      container.appendChild(div);
-    });
-
-  } catch (err) {
-    console.error("loadMembers error:", err);
-    alert("Failed to load members");
-  }
-}
 
 
 /***********************
@@ -614,12 +561,18 @@ async function loadMyLeaveBalance() {
 async function applyLeave() {
   const fromDate = document.getElementById("leaveFromDate").value;
   const toDate = document.getElementById("leaveToDate").value;
-  const reason = document.getElementById("leaveReason").value;
+  const reason = document.getElementById("leaveReason").value.trim();
   const messageDiv = document.getElementById("leaveMessage");
 
   if (!fromDate || !toDate || !reason) {
     messageDiv.innerHTML =
       `<div class="alert alert-danger">All fields are required</div>`;
+    return;
+  }
+
+  if (fromDate > toDate) {
+    messageDiv.innerHTML =
+      `<div class="alert alert-danger">From date cannot be after To date</div>`;
     return;
   }
 
@@ -773,59 +726,6 @@ async function loadMyAttendanceHistory() {
   } catch (err) {
     console.error("Attendance history error:", err);
     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Failed to load</td></tr>`;
-  }
-}
-async function applyLeave() {
-  const fromDate = document.getElementById("leaveFromDate").value;
-  const toDate = document.getElementById("leaveToDate").value;
-  const reason = document.getElementById("leaveReason").value.trim();
-  const messageDiv = document.getElementById("leaveMessage");
-
-  if (!fromDate || !toDate || !reason) {
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">All fields are required</div>`;
-    return;
-  }
-
-  if (fromDate > toDate) {
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">From date cannot be after To date</div>`;
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/api/attendance/apply-leave`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        from_date: fromDate,
-        to_date: toDate,
-        reason
-      })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      messageDiv.innerHTML =
-        `<div class="alert alert-danger">${data.message}</div>`;
-      return;
-    }
-
-    messageDiv.innerHTML =
-      `<div class="alert alert-success">${data.message}</div>`;
-
-    document.getElementById("leaveFromDate").value = "";
-    document.getElementById("leaveToDate").value = "";
-    document.getElementById("leaveReason").value = "";
-
-  } catch (err) {
-    console.error(err);
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Leave submission failed</div>`;
   }
 }
 

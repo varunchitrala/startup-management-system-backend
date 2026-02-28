@@ -29,3 +29,10 @@ exports.isAdmin = (req, res, next) => {
   }
   next();
 };
+
+exports.isTeamLead = (req, res, next) => {
+  if (req.user.role !== "TEAM_LEAD") {
+    return res.status(403).json({ message: "Team Lead access required" });
+  }
+  next();
+};

@@ -6,16 +6,15 @@ const {
   getTeamLeadProjects,
   getLeadRoadmap
 } = require("../controllers/projectController");
-const { getTeamLeadProjects } = require("../controllers/projectController");
 
 
 /* ================= TEAM LEAD ROUTES ================= */
 
 // Get projects assigned to logged-in team lead
-router.get("/projects", verifyToken, getTeamLeadProjects);
+router.get("/my-projects", verifyToken, getTeamLeadProjects);
 
 // Get roadmap for a project (team lead view)
-router.get("/roadmap/:projectId", verifyToken,isTeamLead ,getLeadRoadmap);
+router.get("/roadmap/:projectId", verifyToken, getLeadRoadmap);
 // GET roadmap for team lead's project
 
 
