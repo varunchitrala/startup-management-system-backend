@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/authMiddleware');
+const { verifyToken, isAdmin } = require('../middleware/authMiddleware');
 const testController = require('../controllers/testController');
 
-router.post('/send-test-email', auth, testController.testEmail);
+router.post('/send-test-email', verifyToken, isAdmin, testController.testEmail);
 
 module.exports = router;
