@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 
 const bcrypt = require("bcrypt");
+const emailService = require("../services/emailService");
 
 /* ================== CREATE TEAM LEAD ================== */
 exports.createTeamLead = async (req, res) => {
@@ -21,13 +22,16 @@ exports.createTeamLead = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await pool.query(
+    const insertResult = await pool.query(
       `
       INSERT INTO users (user_id, name, email, password, role, domain)
       VALUES ($1, $2, $3, $4, 'TEAM_LEAD', $5)
+      RETURNING id
       `,
       [user_id, name, email, hashedPassword, domain || null]
     );
+
+    await emailService.sendWelcomeEmail(insertResult.rows[0].id, password);
 
     res.json({
       message: "Team Lead created successfully",
@@ -64,13 +68,16 @@ exports.createTeamMember = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await pool.query(
+    const insertResult = await pool.query(
       `
       INSERT INTO users (user_id, name, email, password, role, domain)
       VALUES ($1, $2, $3, $4, 'MEMBER', $5)
+      RETURNING id
       `,
       [user_id, name, email, hashedPassword, domain || null]
     );
+
+    await emailService.sendWelcomeEmail(insertResult.rows[0].id, password);
 
     res.json({
       message: "Team Member created successfully",
@@ -543,6 +550,10 @@ exports.reviewLeaveRequest = async (req, res) => {
             WHERE a.user_id = $1 AND a.date = d::date
           )
         `, [user_id, from_date, to_date]);
+
+        await emailService.sendLeaveApprovedEmail(user_id, leave.rows[0]);
+      } else {
+        await emailService.sendLeaveRejectedEmail(user_id, leave.rows[0], req.body.rejection_reason);
       }
     }
 

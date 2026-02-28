@@ -44,7 +44,7 @@ async function apiRequest(url, options = {}) {
 async function loadDashboardSummary() {
   try {
     const data = await apiRequest(
-      `${API_BASE}/api/admin/attendance/today`
+      `${API_BASE}/api/admin/dashboard/summary`
     );
 
     document.getElementById("totalUsers").innerText =
@@ -1058,10 +1058,10 @@ async function loadLeaveRequests() {
         <td>
           ${l.status === "PENDING"
         ? `
-                <button class="btn btn-sm btn-success" onclick="approveLeave(${leave.id})">
+                <button class="btn btn-sm btn-success" onclick="approveLeave(${l.id})">
     <i class="bi bi-check-circle"></i> Approve
   </button>
-  <button class="btn btn-sm btn-danger" onclick="showRejectModal(${leave.id})">
+  <button class="btn btn-sm btn-danger" onclick="showRejectModal(${l.id})">
     <i class="bi bi-x-circle"></i> Reject
   </button>
               `
@@ -1290,8 +1290,8 @@ async function confirmRejectLeave() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/leave/${currentLeaveId}/status`, {
-      method: 'PATCH',
+    const res = await fetch(`${API_BASE}/api/admin/leave-requests/${currentLeaveId}`, {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
@@ -1310,7 +1310,7 @@ async function confirmRejectLeave() {
     }
 
     messageDiv.innerHTML = '<div class="alert alert-success">Leave rejected successfully</div>';
-    
+
     // Close modal and reload
     setTimeout(() => {
       bootstrap.Modal.getInstance(document.getElementById('rejectLeaveModal')).hide();
@@ -1328,8 +1328,8 @@ async function approveLeave(leaveId) {
   if (!confirm('Are you sure you want to approve this leave?')) return;
 
   try {
-    const res = await fetch(`${API_BASE}/api/leave/${leaveId}/status`, {
-      method: 'PATCH',
+    const res = await fetch(`${API_BASE}/api/admin/leave-requests/${leaveId}`, {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
