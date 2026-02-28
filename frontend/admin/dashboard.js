@@ -5,11 +5,18 @@
 const API_BASE = "https://startup-management-system-backend.onrender.com";
 const token = localStorage.getItem("token");
 
-
 if (!token) {
   alert("Session expired. Please login again.");
-  window.location.href = "login.html";
+  window.location.href = "../index.html";
 }
+
+/* ================= LOGOUT ================= */
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  window.location.href = "../index.html";
+}
+
 
 /***********************
  * COMMON FETCH

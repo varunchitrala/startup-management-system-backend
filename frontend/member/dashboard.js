@@ -5,10 +5,18 @@ const token = localStorage.getItem("token");
 
 if (!token) {
   alert("Login again");
-  window.location.href = "../login.html";
+  window.location.href = "../index.html";
+}
+
+/* ================= LOGOUT ================= */
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  window.location.href = "../index.html";
 }
 
 const statusText = document.getElementById("statusText");
+
 const messageDiv = document.getElementById("message");
 const checkInBtn = document.getElementById("checkInBtn");
 const checkOutBtn = document.getElementById("checkOutBtn");
