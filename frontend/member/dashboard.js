@@ -432,6 +432,8 @@ async function loadMyLeaveRequests() {
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
       console.error(`Error loading leave requests (${res.status}):`, errorData);
+      // Also log serialized body so DevTools shows exact contents
+      try { console.error('LeaveRequests response body (raw):', JSON.stringify(errorData)); } catch (e) { /* ignore */ }
       tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Failed to load requests: ${errorData.message || res.statusText}</td></tr>`;
       return;
     }
