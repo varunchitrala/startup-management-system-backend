@@ -1323,7 +1323,7 @@ async function confirmRejectLeave() {
         rejectModalInstance.hide();
       }
       alert('Leave rejected successfully!');
-      loadPendingLeaves(); // Reload your leave list
+      loadLeaveRequests(); // Reload your leave list
     }, 1000);
 
   } catch (err) {
@@ -1350,7 +1350,7 @@ async function approveLeave(leaveId) {
 
     if (res.ok) {
       alert("✅ Leave approved successfully!");
-      loadPendingLeaves();
+      loadLeaveRequests();
     } else {
       alert("❌ " + data.message);
     }
