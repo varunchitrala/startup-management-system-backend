@@ -4,198 +4,237 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Employees | Admin</title>
+  <title>System Console | Workforce Roster</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
   <style>
     :root {
-      --font-main: 'Inter', sans-serif;
-      --primary: #2563eb;
-      --primary-subtle: #eff6ff;
-      --text-dark: #1e293b;
-      --text-gray: #64748b;
-      --bg-body: #f8fafc;
-      --bg-card: #ffffff;
-      --border-color: #e2e8f0;
-      --radius: 12px;
-      --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      --bg-app: #f4f5f7;
+      --bg-panel: #ffffff;
+      --nav-bg: #172b4d;
+      --text-main: #172b4d;
+      --text-muted: #5e6c84;
+      --border-color: #dfe1e6;
+      --primary: #0052cc;
+      --primary-hover: #0047b3;
+      --danger: #de350b;
+      --success: #00875a;
+      --warning: #ffab00;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-      font-family: var(--font-main);
-      background-color: var(--bg-body);
-      color: var(--text-dark);
-      overflow-x: hidden;
+      background-color: var(--bg-app);
+      font-family: var(--font-family);
+      color: var(--text-main);
+      font-size: 14px;
+      margin: 0;
+      padding-top: 56px;
+      /* Space for fixed topnav */
     }
 
-    /* --- SIDEBAR --- */
-    .sidebar {
-      width: 260px;
-      background: var(--bg-card);
-      border-right: 1px solid var(--border-color);
+    /* --- TOP NAVIGATION (Global Context) --- */
+    .topnav {
       position: fixed;
-      height: 100vh;
-      z-index: 1000;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background-color: var(--nav-bg);
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 1030;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     }
 
-    .brand-box {
-      padding: 1.5rem;
+    .topnav-brand {
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topnav-tools {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: #ffffff;
+    }
+
+    /* --- SUB NAVIGATION (Module Routing) --- */
+    .subnav {
+      background: var(--bg-panel);
       border-bottom: 1px solid var(--border-color);
+      padding: 0 24px;
       display: flex;
-      align-items: center;
-      gap: 12px;
+      gap: 24px;
     }
 
-    .nav-box {
-      padding: 1.5rem 1rem;
-      flex-grow: 1;
-    }
-
-    .nav-link {
-      color: var(--text-gray);
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
+    .subnav a {
+      color: var(--text-muted);
+      text-decoration: none;
       font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      padding: 14px 0;
+      border-bottom: 2px solid transparent;
       transition: all 0.2s;
     }
 
-    .nav-link:hover,
-    .nav-link.active {
-      background-color: var(--primary-subtle);
+    .subnav a:hover {
+      color: var(--text-main);
+    }
+
+    .subnav a.active {
       color: var(--primary);
+      border-bottom-color: var(--primary);
     }
 
-    .user-box {
-      padding: 1rem;
-      border-top: 1px solid var(--border-color);
-      background: #fcfcfc;
+    /* --- LAYOUT GRID --- */
+    .container-app {
+      padding: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
     }
 
-    /* --- MAIN CONTENT --- */
-    .main-content {
-      margin-left: 260px;
-      padding: 2rem;
-      min-height: 100vh;
-    }
-
-    /* --- CARDS & TABLES --- */
-    .card-clean {
-      background: var(--bg-card);
+    /* --- ENTERPRISE PANELS --- */
+    .panel {
+      background: var(--bg-panel);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-sm);
-      overflow: hidden;
+      border-radius: 3px;
+      box-shadow: 0 1px 1px rgba(9, 30, 66, 0.05);
+      margin-bottom: 24px;
       display: flex;
       flex-direction: column;
-      height: 100%;
     }
 
-    .card-header-clean {
-      padding: 1.25rem 1.5rem;
+    .panel-header {
+      padding: 12px 20px;
       border-bottom: 1px solid var(--border-color);
-      background: #fff;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background-color: #fafbfc;
     }
 
-    .table-custom th {
-      background: #f8fafc;
+    .panel-title {
+      font-size: 14px;
       font-weight: 600;
-      font-size: 0.75rem;
+      margin: 0;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-body {
+      padding: 20px;
+      flex-grow: 1;
+    }
+
+    .panel-body-flush {
+      padding: 0;
+    }
+
+    /* --- TABLES (Data Dense) --- */
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    .table-enterprise {
+      width: 100%;
+      margin: 0;
+      border-collapse: collapse;
+    }
+
+    .table-enterprise th {
+      background: #fafbfc;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
       text-transform: uppercase;
-      color: var(--text-gray);
-      padding: 1rem 1.5rem;
+      padding: 10px 16px;
+      border-bottom: 2px solid var(--border-color);
+      text-align: left;
+    }
+
+    .table-enterprise td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-color);
       vertical-align: middle;
+      color: var(--text-main);
+      font-size: 13px;
     }
 
-    .table-custom td {
-      padding: 1rem 1.5rem;
-      vertical-align: middle;
-      font-size: 0.9rem;
+    .table-enterprise tbody tr:hover {
+      background-color: #ebecf0;
     }
 
-    /* Custom Scrollbar for the table container if needed */
-    .table-responsive::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-
-    .table-responsive::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
+    /* --- FORMS & BUTTONS --- */
+    .form-control,
+    .form-select {
       border-radius: 3px;
+      border: 2px solid #dfe1e6;
+      padding: 6px 12px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      background-color: #fafbfc;
     }
 
-    @media (max-width: 992px) {
-      .sidebar {
-        display: none;
-      }
+    .form-control:focus,
+    .form-select:focus {
+      border-color: var(--primary);
+      background-color: #fff;
+      box-shadow: none;
+    }
 
-      .main-content {
-        margin-left: 0;
-        padding: 1rem;
-      }
+    .btn-sys {
+      border-radius: 3px;
+      font-weight: 500;
+      font-size: 13px;
+      padding: 6px 16px;
+      border: none;
+      transition: 0.2s;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
 
-  <nav class="sidebar">
-    <div class="brand-box">
-      <div class="bg-primary text-white rounded p-1 d-flex justify-content-center align-items-center"
-        style="width: 32px; height: 32px;">
-        <i class="bi bi-layers-fill"></i>
+  <header class="topnav">
+    <div class="topnav-brand">
+      <i class="bi bi-hdd-network"></i> SUN Nexus | System Administration
+    </div>
+    <div class="topnav-tools">
+      <div class="d-flex align-items-center gap-2 border-start border-secondary ps-3 ms-2">
+        <i class="bi bi-person-circle fs-5"></i>
+        <span style="font-size: 13px; font-weight: 500;">Admin User</span>
+        <button class="btn btn-sm btn-link text-white ms-2" onclick="logout()" title="Logout"><i
+            class="bi bi-box-arrow-right"></i></button>
       </div>
-      <span class="fw-bold tracking-tight">AdminPanel</span>
     </div>
+  </header>
 
-    <div class="nav-box">
-      <a href="dashboard.html" class="nav-link mb-1"><i class="bi bi-grid"></i> Dashboard</a>
-      <a href="employees.html" class="nav-link active mb-1"><i class="bi bi-people"></i> Employees</a>
-      <a href="projects.html" class="nav-link mb-1"><i class="bi bi-kanban"></i> Projects</a>
-      <a href="#" class="nav-link"><i class="bi bi-gear"></i> Settings</a>
-    </div>
-
-    <div class="user-box">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center"
-          style="width: 32px; height: 32px;">
-          <span class="fw-bold text-secondary" style="font-size: 12px;">AD</span>
-        </div>
-        <div class="lh-1">
-          <div class="fw-semibold" style="font-size: 13px;">Admin User</div>
-          <div class="text-muted" style="font-size: 11px;">admin@system.com</div>
-        </div>
-      </div>
-      <button class="btn btn-outline-secondary btn-sm w-100" onclick="logout()">Sign out</button>
-    </div>
+  <nav class="subnav">
+    <a href="dashboard.html">Operations Dashboard</a>
+    <a href="employees.html" class="active">Workforce Roster</a>
+    <a href="projects.html">Project Sandbox</a>
   </nav>
 
-  <main class="main-content">
+  <main class="container-app">
 
-    <header class="d-flex justify-content-between align-items-center mb-5">
-      <div>
-        <h2 class="fw-bold mb-1">Employees Management</h2>
-        <p class="text-gray mb-0">View and manage staff details and shifts.</p>
-      </div>
-
-    </header>
-
-    <div class="card-clean">
-      <div class="card-header-clean py-3">
+    <div class="panel">
+      <div class="panel-header py-3">
         <div class="d-flex align-items-center gap-3 w-100">
-          <div class="input-group" style="max-width: 300px;">
+          <h2 class="panel-title me-auto"><i class="bi bi-people"></i> Employees Management</h2>
+          <div class="input-group input-group-sm" style="max-width: 300px;">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
             <input type="text" class="form-control border-start-0 ps-0 bg-light" placeholder="Search by name or ID...">
           </div>
@@ -208,8 +247,8 @@
         </div>
       </div>
 
-      <div class="table-responsive">
-        <table class="table table-custom table-hover mb-0 align-middle">
+      <div class="panel-body-flush table-responsive">
+        <table class="table-enterprise align-middle">
           <thead>
             <tr>
               <th>User ID</th>
@@ -218,22 +257,10 @@
               <th>Role</th>
               <th>Status</th>
               <th>Shift</th>
-              <th class="text-end" width="120">Action</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="employeesTable">
-            <tr>
-              <td><span class="font-monospace text-muted small">EMP001</span></td>
-              <td class="fw-medium text-dark">Sarah Jenkins</td>
-              <td class="text-muted">sarah@example.com</td>
-              <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">TEAM_LEAD</span></td>
-              <td>Morning Shift</td>
-              <td><span class="badge bg-success-subtle text-success">Active</span></td>
-              <td class="text-end">
-                <button class="btn btn-sm btn-light border me-1"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-light border text-danger"><i class="bi bi-trash"></i></button>
-              </td>
-            </tr>
             <tr>
               <td colspan="7" class="text-center py-5 text-muted">
                 <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
@@ -244,7 +271,8 @@
         </table>
       </div>
 
-      <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
+      <div class="panel-body bg-light border-top p-3 d-flex justify-content-between align-items-center"
+        style="flex-grow: 0;">
         <small class="text-muted">Showing results</small>
         <nav>
           <ul class="pagination pagination-sm mb-0">
