@@ -313,6 +313,8 @@ async function applyLeave() {
     document.getElementById("leaveFromDate").value = "";
     document.getElementById("leaveToDate").value = "";
     document.getElementById("leaveReason").value = "";
+    loadMyLeaveBalance();
+    loadMyLeaveRequests();
 
   } catch (err) {
     console.error(err);
@@ -329,6 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadNotifications();
   setInterval(loadNotifications, 60000);
   loadMyLeaveBalance();
+  loadMyLeaveRequests();
   loadMyWorkReports();
 
   // Set month picker to current month and auto-load
@@ -416,6 +419,57 @@ async function loadMyLeaveBalance() {
   }
 }
 
+/* ================= MY LEAVE REQUESTS ================= */
+async function loadMyLeaveRequests() {
+  const tbody = document.getElementById("myLeaveRequestsBody");
+  try {
+    const res = await fetch(`${API_BASE}/api/attendance/my-leave-requests`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Failed to load requests</td></tr>`;
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">No leave requests found</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(l => {
+      const appliedOn = new Date(l.created_at).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"
+      });
+      const fromD = new Date(l.from_date).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"
+      });
+      const toD = new Date(l.to_date).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"
+      });
+
+      let statusBadge = "";
+      if (l.status === 'PENDING') statusBadge = '<span class="badge bg-warning text-dark">PENDING</span>';
+      else if (l.status === 'APPROVED') statusBadge = '<span class="badge bg-success">APPROVED</span>';
+      else statusBadge = '<span class="badge bg-danger">REJECTED</span>';
+
+      return `
+        <tr>
+          <td class="text-nowrap">${appliedOn}</td>
+          <td class="text-nowrap">${fromD}</td>
+          <td class="text-nowrap">${toD}</td>
+          <td>${l.reason}</td>
+          <td>${statusBadge}</td>
+        </tr>`;
+    }).join("");
+
+  } catch (err) {
+    console.error("Leave requests error:", err);
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Error loading requests</td></tr>`;
+  }
+}
 
 /* ================= ATTENDANCE HISTORY ================= */
 const STATUS_STYLE = {

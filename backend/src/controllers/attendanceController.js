@@ -597,6 +597,32 @@ exports.getMyAttendanceHistory = async (req, res) => {
   }
 };
 
+/* ================= MY LEAVE REQUESTS HISTORY ================= */
+exports.getMyLeaveRequests = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      `SELECT
+         id,
+         from_date,
+         to_date,
+         reason,
+         status,
+         created_at
+       FROM leave_requests
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("My leave requests error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 /* ================= MY LEAVE BALANCE ================= */
 exports.getMyLeaveBalance = async (req, res) => {
   try {

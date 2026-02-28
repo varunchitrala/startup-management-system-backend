@@ -525,6 +525,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadNotifications();
   setInterval(loadNotifications, 60000);
   loadMyLeaveBalance();
+  loadMyLeaveRequests();
   loadMyWorkReports();
 
   // Set month picker and auto-load attendance history
@@ -606,6 +607,109 @@ async function loadMyLeaveBalance() {
 
   } catch (err) {
     console.error("Leave balance error:", err);
+  }
+}
+
+/* ================= APPLY LEAVE ================= */
+async function applyLeave() {
+  const fromDate = document.getElementById("leaveFromDate").value;
+  const toDate = document.getElementById("leaveToDate").value;
+  const reason = document.getElementById("leaveReason").value;
+  const messageDiv = document.getElementById("leaveMessage");
+
+  if (!fromDate || !toDate || !reason) {
+    messageDiv.innerHTML =
+      `<div class="alert alert-danger">All fields are required</div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/attendance/apply-leave`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        from_date: fromDate,
+        to_date: toDate,
+        reason
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      messageDiv.innerHTML =
+        `<div class="alert alert-danger">${data.message}</div>`;
+      return;
+    }
+
+    messageDiv.innerHTML =
+      `<div class="alert alert-success">${data.message}</div>`;
+
+    document.getElementById("leaveFromDate").value = "";
+    document.getElementById("leaveToDate").value = "";
+    document.getElementById("leaveReason").value = "";
+    loadMyLeaveBalance();
+    loadMyLeaveRequests();
+
+  } catch (err) {
+    console.error(err);
+    messageDiv.innerHTML =
+      `<div class="alert alert-danger">Leave submission failed</div>`;
+  }
+}
+
+/* ================= MY LEAVE REQUESTS ================= */
+async function loadMyLeaveRequests() {
+  const tbody = document.getElementById("myLeaveRequestsBody");
+  try {
+    const res = await fetch(`${API_BASE}/api/attendance/my-leave-requests`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Failed to load requests</td></tr>`;
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">No leave requests found</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(l => {
+      const appliedOn = new Date(l.created_at).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"
+      });
+      const fromD = new Date(l.from_date).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"
+      });
+      const toD = new Date(l.to_date).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"
+      });
+
+      let statusBadge = "";
+      if (l.status === 'PENDING') statusBadge = '<span class="badge bg-warning text-dark">PENDING</span>';
+      else if (l.status === 'APPROVED') statusBadge = '<span class="badge bg-success">APPROVED</span>';
+      else statusBadge = '<span class="badge bg-danger">REJECTED</span>';
+
+      return `
+        <tr>
+          <td class="text-nowrap">${appliedOn}</td>
+          <td class="text-nowrap">${fromD}</td>
+          <td class="text-nowrap">${toD}</td>
+          <td>${l.reason}</td>
+          <td>${statusBadge}</td>
+        </tr>`;
+    }).join("");
+
+  } catch (err) {
+    console.error("Leave requests error:", err);
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Error loading requests</td></tr>`;
   }
 }
 

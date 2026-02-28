@@ -11,5 +11,6 @@ router.get("/my-status", verifyToken, getMyTodayStatus);
 router.post("/apply-leave", verifyToken, attendanceController.applyLeave);
 router.get("/my-history", verifyToken, attendanceController.getMyAttendanceHistory);
 router.get("/my-leave-balance", verifyToken, attendanceController.getMyLeaveBalance);
+router.get("/my-leave-requests", verifyToken, attendanceController.getMyLeaveRequests);
 
 module.exports = router;
