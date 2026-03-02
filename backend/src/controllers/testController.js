@@ -24,11 +24,18 @@ exports.emailHealth = async (req, res) => {
 
     let smtpVerified = false;
     let verifyError = null;
+    let verifyDetails = null;
 
     if (envConfigured) {
-      smtpVerified = await emailService.verifyEmailConnection();
+      const verify = await emailService.verifyEmailConnection();
+      smtpVerified = verify === true || verify?.ok === true;
       if (!smtpVerified) {
-        verifyError = 'SMTP verify failed. Check server logs for exact provider error.';
+        verifyError = verify?.message || 'SMTP verify failed.';
+        verifyDetails = {
+          code: verify?.code || null,
+          response: verify?.response || null,
+          command: verify?.command || null
+        };
       }
     } else {
       verifyError = 'Missing one or more required env vars: EMAIL_HOST, EMAIL_USER, EMAIL_PASSWORD';
@@ -44,7 +51,8 @@ exports.emailHealth = async (req, res) => {
         user: maskEmail(user),
         hasPassword
       },
-      verifyError
+      verifyError,
+      verifyDetails
     });
   } catch (err) {
     console.error('Email health error:', err);
@@ -72,11 +80,18 @@ exports.testEmail = async (req, res) => {
       <p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
     `;
 
-    const verified = await emailService.verifyEmailConnection();
+    const verify = await emailService.verifyEmailConnection();
+    const verified = verify === true || verify?.ok === true;
+
     if (!verified) {
       return res.status(500).json({
         message: 'SMTP verify failed before send',
-        error: 'Check email env config and provider authentication settings'
+        error: verify?.message || 'Check email env config and provider authentication settings',
+        details: {
+          code: verify?.code || null,
+          response: verify?.response || null,
+          command: verify?.command || null
+        }
       });
     }
 

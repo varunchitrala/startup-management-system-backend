@@ -1576,6 +1576,9 @@ async function checkEmailHealth() {
         <div class="small mb-1">User: <code>${data.transport?.user || '-'}</code></div>
         <div class="small mb-0">Password Present: <code>${data.transport?.hasPassword ? 'true' : 'false'}</code></div>
         ${data.verifyError ? `<hr class="my-2"><div class="small text-danger fw-bold">${data.verifyError}</div>` : ''}
+        ${data.verifyDetails?.code ? `<div class="small mt-1">Code: <code>${data.verifyDetails.code}</code></div>` : ''}
+        ${data.verifyDetails?.command ? `<div class="small">Command: <code>${data.verifyDetails.command}</code></div>` : ''}
+        ${data.verifyDetails?.response ? `<div class="small">Provider: <code>${String(data.verifyDetails.response).replace(/</g, "&lt;")}</code></div>` : ''}
       </div>
     `;
   } catch (err) {

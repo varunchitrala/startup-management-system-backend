@@ -33,10 +33,16 @@ const verifyEmailConnection = async () => {
   try {
     await transporter.verify();
     console.log(`Email service ready (${emailHost}:${emailPort}, secure=${emailSecure})`);
-    return true;
+    return { ok: true };
   } catch (error) {
-    console.error("Email service verify failed:", error?.message || error);
-    return false;
+    console.error("Email service verify failed:", error?.code || error?.name, error?.message || error);
+    return {
+      ok: false,
+      code: error?.code || null,
+      message: error?.message || "Unknown verify error",
+      response: error?.response || null,
+      command: error?.command || null
+    };
   }
 };
 
