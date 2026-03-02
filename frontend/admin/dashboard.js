@@ -496,7 +496,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAdminProjects();
   loadTeamLeads();
   loadHolidays();
-  checkEmailHealth();
   loadTodayAttendance();
   loadAdminWorkReports();
   loadShifts();
@@ -1487,111 +1486,6 @@ async function approveLeave(leaveId) {
   } catch (err) {
     console.error(err);
     alert('❌ Failed to approve leave');
-  }
-}
-async function sendTestEmail() {
-  const email = document.getElementById('testEmailAddress').value.trim();
-  const messageDiv = document.getElementById('testEmailMessage');
-
-  if (!email) {
-    messageDiv.innerHTML = '<div class="alert alert-danger">Please enter an email address</div>';
-    return;
-  }
-
-  messageDiv.innerHTML = '<div class="alert alert-info">Sending test email...</div>';
-
-  try {
-    const res = await fetch(`${API_BASE}/api/test/send-test-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ email })
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      messageDiv.innerHTML = `<div class="alert alert-success">✅ ${data.message}</div>`;
-    } else {
-      messageDiv.innerHTML = `<div class="alert alert-danger">❌ ${data.message}</div>`;
-    }
-  } catch (err) {
-    console.error(err);
-    messageDiv.innerHTML = '<div class="alert alert-danger">Failed to send test email</div>';
-  }
-}
-
-async function checkEmailHealth() {
-  const healthDiv = document.getElementById('emailHealthMessage');
-  if (!healthDiv) return;
-
-  healthDiv.innerHTML = '<div class="alert alert-info">Checking email health...</div>';
-
-  try {
-    const res = await fetch(`${API_BASE}/api/test/email-health`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-
-    const contentType = res.headers.get("content-type") || "";
-    let data = null;
-
-    if (contentType.includes("application/json")) {
-      data = await res.json();
-    } else {
-      const raw = await res.text();
-      data = {
-        message: raw?.startsWith("<!DOCTYPE")
-          ? "Endpoint returned HTML instead of JSON (usually 404/hosting route mismatch)."
-          : raw
-      };
-    }
-
-    if (!res.ok) {
-      const hint = res.status === 404
-        ? "<div class='small mt-2'>Backend route <code>/api/test/email-health</code> is not available on the deployed server. Redeploy backend with latest code.</div>"
-        : "";
-      healthDiv.innerHTML = `<div class="alert alert-danger">Failed to check email health (${res.status}): ${data.message || 'Unknown error'}${hint}</div>`;
-      return;
-    }
-
-    const envBadge = data.envConfigured
-      ? '<span class="badge bg-success">Configured</span>'
-      : '<span class="badge bg-danger">Missing</span>';
-    const smtpBadge = data.smtpVerified
-      ? '<span class="badge bg-success">Verified</span>'
-      : '<span class="badge bg-danger">Failed</span>';
-
-    healthDiv.innerHTML = `
-      <div class="alert ${data.smtpVerified ? 'alert-success' : 'alert-warning'} mb-2">
-        <div class="fw-bold mb-2">Email Health Status</div>
-        <div class="small mb-1">Environment: ${envBadge}</div>
-        <div class="small mb-1">SMTP Verify: ${smtpBadge}</div>
-        <div class="small mb-1">Host: <code>${data.transport?.host || '-'}</code></div>
-        <div class="small mb-1">Port: <code>${data.transport?.port ?? '-'}</code></div>
-        <div class="small mb-1">Secure: <code>${data.transport?.secure ? 'true' : 'false'}</code></div>
-        <div class="small mb-1">User: <code>${data.transport?.user || '-'}</code></div>
-        <div class="small mb-0">Password Present: <code>${data.transport?.hasPassword ? 'true' : 'false'}</code></div>
-        ${data.verifyError ? `<hr class="my-2"><div class="small text-danger fw-bold">${data.verifyError}</div>` : ''}
-        ${data.verifyDetails?.code ? `<div class="small mt-1">Code: <code>${data.verifyDetails.code}</code></div>` : ''}
-        ${data.verifyDetails?.command ? `<div class="small">Command: <code>${data.verifyDetails.command}</code></div>` : ''}
-        ${data.verifyDetails?.response ? `<div class="small">Provider: <code>${String(data.verifyDetails.response).replace(/</g, "&lt;")}</code></div>` : ''}
-      </div>
-    `;
-  } catch (err) {
-    console.error('Email health check failed:', err);
-    healthDiv.innerHTML = `
-      <div class="alert alert-danger">
-        Email health check failed.
-        <div class="small mt-2">
-          This is usually a backend timeout/network issue (often shown by browser as a CORS error).
-          Check Render backend logs and retry.
-        </div>
-      </div>
-    `;
   }
 }
 
