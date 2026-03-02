@@ -38,6 +38,20 @@ async function apiRequest(url, options = {}) {
   return res.json();
 }
 
+/**
+ * Format a UTC timestamp (ISO string or Date) as IST time: "09:45 AM"
+ * Used wherever the backend returns raw UTC timestamps.
+ */
+function fmtIST(raw) {
+  if (!raw) return "—";
+  return new Date(raw).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata"
+  });
+}
+
 /***********************
  * DASHBOARD SUMMARY
  ***********************/
@@ -301,8 +315,8 @@ async function loadTodayAttendance() {
       <td>${row.user_id}</td>
       <td>${row.name}</td>
       <td>${row.role}</td>
-      <td>${row.check_in ?? "-"}</td>
-      <td>${row.check_out ?? "-"}</td>
+      <td>${fmtIST(row.check_in)}</td>
+      <td>${fmtIST(row.check_out)}</td>
       <td><strong>${row.status}</strong></td>
       
     `;
