@@ -57,9 +57,23 @@ async function getHolidayByDate(date) {
   return result.rows[0] || null;
 }
 
-async function seedDayAttendance(date) {
+function isSundayDate(date) {
+  return new Date(`${date}T00:00:00.000Z`).getUTCDay() === 0;
+}
+
+async function getNonWorkingMetaByDate(date) {
   const holiday = await getHolidayByDate(date);
-  const fallbackStatus = holiday ? "HOLIDAY" : "ABSENT";
+  const isSunday = isSundayDate(date);
+  return {
+    holiday,
+    isSunday,
+    isNonWorking: Boolean(holiday) || isSunday
+  };
+}
+
+async function seedDayAttendance(date) {
+  const { isNonWorking } = await getNonWorkingMetaByDate(date);
+  const fallbackStatus = isNonWorking ? "HOLIDAY" : "ABSENT";
 
   await pool.query(
     `
@@ -89,11 +103,13 @@ exports.checkIn = async (req, res) => {
     const isAdmin = userRole === "ADMIN";
 
     const today = new Date().toISOString().split("T")[0];
-    const holiday = await getHolidayByDate(today);
+    const { holiday, isSunday, isNonWorking } = await getNonWorkingMetaByDate(today);
 
-    if (holiday) {
+    if (isNonWorking) {
       return res.status(400).json({
-        message: `Today is marked as a holiday${holiday.name ? ` (${holiday.name})` : ""}. Check-in is disabled.`
+        message: holiday
+          ? `Today is marked as a holiday${holiday.name ? ` (${holiday.name})` : ""}. Check-in is disabled.`
+          : (isSunday ? "Sunday is a non-working day. Check-in is disabled." : "This is a non-working day. Check-in is disabled.")
       });
     }
 
@@ -356,7 +372,7 @@ exports.getMyTodayStatus = async (req, res) => {
   try {
     const userId = req.user.id;
     const today = new Date().toISOString().split("T")[0];
-    const holiday = await getHolidayByDate(today);
+    const { isNonWorking } = await getNonWorkingMetaByDate(today);
 
     const result = await pool.query(`
       SELECT
@@ -373,7 +389,7 @@ exports.getMyTodayStatus = async (req, res) => {
     `, [userId, today]);
 
     if (result.rows.length === 0) {
-      return res.json({ status: holiday ? "HOLIDAY" : "ABSENT" });
+      return res.json({ status: isNonWorking ? "HOLIDAY" : "ABSENT" });
     }
 
     res.json(result.rows[0]);
@@ -440,8 +456,16 @@ exports.getMonthlyAttendanceSummary = async (req, res) => {
     ).getDate();
     const holidayDaysResult = await pool.query(
       `SELECT COUNT(*)::int AS holiday_days
-       FROM holidays
-       WHERE holiday_date BETWEEN $1::date AND $2::date`,
+       FROM (
+         SELECT d::date AS day
+         FROM generate_series($1::date, $2::date, interval '1 day') d
+         WHERE EXTRACT(DOW FROM d::date) = 0
+            OR EXISTS (
+              SELECT 1
+              FROM holidays h
+              WHERE h.holiday_date = d::date
+            )
+       ) non_working`,
       [startDate, endDate]
     );
     const holidayDays = Number(holidayDaysResult.rows[0]?.holiday_days || 0);
@@ -597,7 +621,7 @@ exports.getTodayAttendanceList = async (req, res) => {
       WITH day_meta AS (
         SELECT EXISTS (
           SELECT 1 FROM holidays WHERE holiday_date = CURRENT_DATE
-        ) AS is_holiday
+        ) OR EXTRACT(DOW FROM CURRENT_DATE) = 0 AS is_holiday
       )
       SELECT
         u.id AS user_db_id,
@@ -883,6 +907,14 @@ exports.addHoliday = async (req, res) => {
       [holiday_date]
     );
 
+    const announcementText = `📢 Admin Announcement: Holiday declared on ${holiday_date}${name ? ` (${name})` : ""}. This day will not be marked absent.`;
+    await pool.query(
+      `INSERT INTO notifications (user_id, message, is_read, created_at)
+       SELECT id, $1, false, NOW()
+       FROM users`,
+      [announcementText]
+    );
+
     res.json({
       message: "Holiday saved successfully",
       holiday: insertResult.rows[0]
@@ -912,12 +944,15 @@ exports.deleteHoliday = async (req, res) => {
 
     await pool.query(
       `UPDATE attendance
-       SET status = 'ABSENT'
+       SET status = CASE
+         WHEN EXTRACT(DOW FROM $2::date) = 0 THEN 'HOLIDAY'
+         ELSE 'ABSENT'
+       END
        WHERE date = $1
          AND status = 'HOLIDAY'
          AND check_in IS NULL
          AND check_out IS NULL`,
-      [holidayDate]
+      [holidayDate, holidayDate]
     );
 
     res.json({ message: "Holiday removed successfully" });

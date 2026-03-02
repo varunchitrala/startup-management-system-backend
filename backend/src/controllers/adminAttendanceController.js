@@ -39,7 +39,7 @@ exports.getTodayAttendance = async (req, res) => {
       WITH day_meta AS (
         SELECT EXISTS (
           SELECT 1 FROM holidays WHERE holiday_date = CURRENT_DATE
-        ) AS is_holiday
+        ) OR EXTRACT(DOW FROM CURRENT_DATE) = 0 AS is_holiday
       )
       SELECT 
         u.user_id,
@@ -152,7 +152,7 @@ exports.getDailyAttendanceReport = async (req, res) => {
       WITH day_meta AS (
         SELECT EXISTS (
           SELECT 1 FROM holidays WHERE holiday_date = $1::date
-        ) AS is_holiday
+        ) OR EXTRACT(DOW FROM $1::date) = 0 AS is_holiday
       )
       SELECT 
         u.user_id,
@@ -213,7 +213,7 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
       WITH day_meta AS (
         SELECT EXISTS (
           SELECT 1 FROM holidays WHERE holiday_date = $1::date
-        ) AS is_holiday
+        ) OR EXTRACT(DOW FROM $1::date) = 0 AS is_holiday
       )
       SELECT
         u.user_id,
@@ -266,7 +266,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
       WITH day_meta AS (
         SELECT EXISTS (
           SELECT 1 FROM holidays WHERE holiday_date = $1::date
-        ) AS is_holiday
+        ) OR EXTRACT(DOW FROM $1::date) = 0 AS is_holiday
       )
       SELECT
         u.user_id,
@@ -381,8 +381,16 @@ exports.getMonthlyAttendanceSummary = async (req, res) => {
     ).getDate();
     const holidayDaysResult = await pool.query(
       `SELECT COUNT(*)::int AS holiday_days
-       FROM holidays
-       WHERE holiday_date BETWEEN $1::date AND $2::date`,
+       FROM (
+         SELECT d::date AS day
+         FROM generate_series($1::date, $2::date, interval '1 day') d
+         WHERE EXTRACT(DOW FROM d::date) = 0
+            OR EXISTS (
+              SELECT 1
+              FROM holidays h
+              WHERE h.holiday_date = d::date
+            )
+       ) non_working`,
       [startDate, endDate]
     );
     const holidayDays = Number(holidayDaysResult.rows[0]?.holiday_days || 0);
@@ -473,8 +481,16 @@ exports.exportMonthlyAttendanceCSV = async (req, res) => {
     ).getDate();
     const holidayDaysResult = await pool.query(
       `SELECT COUNT(*)::int AS holiday_days
-       FROM holidays
-       WHERE holiday_date BETWEEN $1::date AND $2::date`,
+       FROM (
+         SELECT d::date AS day
+         FROM generate_series($1::date, $2::date, interval '1 day') d
+         WHERE EXTRACT(DOW FROM d::date) = 0
+            OR EXISTS (
+              SELECT 1
+              FROM holidays h
+              WHERE h.holiday_date = d::date
+            )
+       ) non_working`,
       [startDate, endDate]
     );
     const holidayDays = Number(holidayDaysResult.rows[0]?.holiday_days || 0);
@@ -561,8 +577,16 @@ exports.exportMonthlyAttendanceExcel = async (req, res) => {
     ).getDate();
     const holidayDaysResult = await pool.query(
       `SELECT COUNT(*)::int AS holiday_days
-       FROM holidays
-       WHERE holiday_date BETWEEN $1::date AND $2::date`,
+       FROM (
+         SELECT d::date AS day
+         FROM generate_series($1::date, $2::date, interval '1 day') d
+         WHERE EXTRACT(DOW FROM d::date) = 0
+            OR EXISTS (
+              SELECT 1
+              FROM holidays h
+              WHERE h.holiday_date = d::date
+            )
+       ) non_working`,
       [startDate, endDate]
     );
     const holidayDays = Number(holidayDaysResult.rows[0]?.holiday_days || 0);
@@ -660,7 +684,11 @@ exports.autoProcessAttendance = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
     const holidayRes = await pool.query(
-      `SELECT 1 FROM holidays WHERE holiday_date = $1 LIMIT 1`,
+      `SELECT 1
+       FROM holidays
+       WHERE holiday_date = $1
+          OR EXTRACT(DOW FROM $1::date) = 0
+       LIMIT 1`,
       [today]
     );
     const fallbackStatus = holidayRes.rows.length > 0 ? "HOLIDAY" : "ABSENT";

@@ -10,7 +10,11 @@ const runAttendanceAutomation = () => {
     try {
       const today = new Date().toISOString().split("T")[0];
       const holidayRes = await pool.query(
-        `SELECT 1 FROM holidays WHERE holiday_date = $1 LIMIT 1`,
+        `SELECT 1
+         FROM holidays
+         WHERE holiday_date = $1
+            OR EXTRACT(DOW FROM $1::date) = 0
+         LIMIT 1`,
         [today]
       );
       const fallbackStatus = holidayRes.rows.length > 0 ? "HOLIDAY" : "ABSENT";
