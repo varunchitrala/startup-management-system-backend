@@ -863,9 +863,15 @@
           <label class="form-label">Test Email Address</label>
           <input type="email" class="form-control" id="testEmailAddress" placeholder="Enter email">
         </div>
-        <button class="btn btn-primary" onclick="sendTestEmail()">
-          <i class="bi bi-envelope"></i> Send Test Email
-        </button>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline-secondary" onclick="checkEmailHealth()">
+            <i class="bi bi-heart-pulse"></i> Check Email Health
+          </button>
+          <button class="btn btn-primary" onclick="sendTestEmail()">
+            <i class="bi bi-envelope"></i> Send Test Email
+          </button>
+        </div>
+        <div id="emailHealthMessage" class="mt-3"></div>
         <div id="testEmailMessage" class="mt-3"></div>
       </div>
     </div>

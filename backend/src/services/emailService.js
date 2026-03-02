@@ -1,44 +1,66 @@
 const nodemailer = require('nodemailer');
 const pool = require('../config/db');
 
+const emailHost = process.env.EMAIL_HOST;
+const emailPort = Number(process.env.EMAIL_PORT || 587);
+const emailUser = process.env.EMAIL_USER;
+const emailPassword = process.env.EMAIL_PASSWORD;
+const emailSecure = emailPort === 465;
+
+if (!emailHost || !emailUser || !emailPassword) {
+  console.error("Email config missing. Required: EMAIL_HOST, EMAIL_USER, EMAIL_PASSWORD");
+}
+
 // Create transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT || 587,
-  secure: false, // true for 465, false for other ports
+  host: emailHost,
+  port: emailPort,
+  secure: emailSecure,
+  requireTLS: !emailSecure,
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 20000,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+    user: emailUser,
+    pass: emailPassword
+  },
+  tls: {
+    minVersion: "TLSv1.2"
   }
 });
 
-// Verify connection configuration
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('❌ Email service error:', error);
-  } else {
-    console.log('✅ Email service ready');
+const verifyEmailConnection = async () => {
+  try {
+    await transporter.verify();
+    console.log(`Email service ready (${emailHost}:${emailPort}, secure=${emailSecure})`);
+    return true;
+  } catch (error) {
+    console.error("Email service verify failed:", error?.message || error);
+    return false;
   }
-});
+};
 
 // Base email sender
 const sendEmail = async (to, subject, html) => {
   try {
+    if (!emailHost || !emailUser || !emailPassword) {
+      return { success: false, error: "Email configuration missing in environment variables" };
+    }
+
     const info = await transporter.sendMail({
-      from: `"${process.env.COMPANY_NAME || 'Company'}" <${process.env.EMAIL_USER}>`,
+      from: `"${process.env.COMPANY_NAME || 'Company'}" <${emailUser}>`,
       to,
       subject,
       html
     });
-    
-    console.log(`✅ Email sent to ${to}: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+
+    console.log(`Email sent to ${to}: ${info.messageId} | ${info.response || "no-response"}`);
+    return { success: true, messageId: info.messageId, response: info.response };
   } catch (error) {
-    console.error(`❌ Failed to send email to ${to}:`, error);
+    console.error(`Failed to send email to ${to}:`, error?.message || error);
     return { success: false, error: error.message };
   }
 };
-
 // ==================== LEAVE NOTIFICATIONS ====================
 
 const sendLeaveAppliedEmail = async (userId) => {
@@ -512,6 +534,7 @@ const sendWelcomeEmail = async (userId, temporaryPassword) => {
 // Export all functions
 module.exports = {
   sendEmail,
+  verifyEmailConnection,
   sendLeaveAppliedEmail,
   sendLeaveApprovedEmail,
   sendLeaveRejectedEmail,

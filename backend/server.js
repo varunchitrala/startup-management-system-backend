@@ -34,13 +34,15 @@ app.use("/api/notifications", notificationRoutes);
 
 const { autoCreateTodayAttendance } = require("./src/controllers/attendanceController");
 const runAttendanceAutomation = require("./src/jobs/attendanceCron");
+const { verifyEmailConnection } = require("./src/services/emailService");
 
 /* ================= SERVER ================= */
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, async () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
+  await verifyEmailConnection();
 
   // Run once on startup
   await autoCreateTodayAttendance();

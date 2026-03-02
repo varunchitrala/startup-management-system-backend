@@ -305,6 +305,41 @@ exports.checkOut = async (req, res) => {
       });
     }
 
+    // Daily report rule for all users:
+    // checkout is blocked until today's daily report is submitted.
+    const dailyReportResult = await pool.query(
+      `SELECT 1
+       FROM work_reports
+       WHERE user_id = $1
+         AND report_type = 'DAILY'
+         AND report_date = $2
+       LIMIT 1`,
+      [userId, today]
+    );
+
+    if (dailyReportResult.rows.length === 0) {
+      const notificationMessage = "Checkout blocked: Submit today's daily work report before checkout.";
+
+      await pool.query(
+        `
+        INSERT INTO notifications (user_id, message, is_read, created_at)
+        SELECT $1, $2, FALSE, NOW()
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM notifications
+          WHERE user_id = $1
+            AND message = $2
+            AND created_at >= NOW() - INTERVAL '12 hours'
+        )
+        `,
+        [userId, notificationMessage]
+      );
+
+      return res.status(400).json({
+        message: "Please submit today's daily work report before checkout."
+      });
+    }
+
     // Saturday rule for LEAD and MEMBER:
     // weekly report must be submitted before checkout.
     const istNow = getIstNowShifted();

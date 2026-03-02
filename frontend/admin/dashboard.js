@@ -496,6 +496,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAdminProjects();
   loadTeamLeads();
   loadHolidays();
+  checkEmailHealth();
   loadTodayAttendance();
   loadAdminWorkReports();
   loadShifts();
@@ -1519,6 +1520,52 @@ async function sendTestEmail() {
   } catch (err) {
     console.error(err);
     messageDiv.innerHTML = '<div class="alert alert-danger">Failed to send test email</div>';
+  }
+}
+
+async function checkEmailHealth() {
+  const healthDiv = document.getElementById('emailHealthMessage');
+  if (!healthDiv) return;
+
+  healthDiv.innerHTML = '<div class="alert alert-info">Checking email health...</div>';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/test/email-health`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      healthDiv.innerHTML = `<div class="alert alert-danger">Failed to check email health: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    const envBadge = data.envConfigured
+      ? '<span class="badge bg-success">Configured</span>'
+      : '<span class="badge bg-danger">Missing</span>';
+    const smtpBadge = data.smtpVerified
+      ? '<span class="badge bg-success">Verified</span>'
+      : '<span class="badge bg-danger">Failed</span>';
+
+    healthDiv.innerHTML = `
+      <div class="alert ${data.smtpVerified ? 'alert-success' : 'alert-warning'} mb-2">
+        <div class="fw-bold mb-2">Email Health Status</div>
+        <div class="small mb-1">Environment: ${envBadge}</div>
+        <div class="small mb-1">SMTP Verify: ${smtpBadge}</div>
+        <div class="small mb-1">Host: <code>${data.transport?.host || '-'}</code></div>
+        <div class="small mb-1">Port: <code>${data.transport?.port ?? '-'}</code></div>
+        <div class="small mb-1">Secure: <code>${data.transport?.secure ? 'true' : 'false'}</code></div>
+        <div class="small mb-1">User: <code>${data.transport?.user || '-'}</code></div>
+        <div class="small mb-0">Password Present: <code>${data.transport?.hasPassword ? 'true' : 'false'}</code></div>
+        ${data.verifyError ? `<hr class="my-2"><div class="small text-danger fw-bold">${data.verifyError}</div>` : ''}
+      </div>
+    `;
+  } catch (err) {
+    console.error('Email health check failed:', err);
+    healthDiv.innerHTML = '<div class="alert alert-danger">Email health check failed</div>';
   }
 }
 

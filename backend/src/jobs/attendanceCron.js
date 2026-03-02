@@ -20,13 +20,28 @@ const runAttendanceAutomation = () => {
       const fallbackStatus = holidayRes.rows.length > 0 ? "HOLIDAY" : "ABSENT";
 
       // 1️⃣ Auto force checkout users still checked in
-      await pool.query(`
-        UPDATE attendance
-        SET check_out = NOW(),
-            force_checked_out = true
-        WHERE date = $1
-          AND check_in IS NOT NULL
-          AND check_out IS NULL
+      // Also normalize status to PRESENT and notify affected users.
+      const forcedCheckoutResult = await pool.query(`
+        WITH forced AS (
+          UPDATE attendance
+          SET check_out = NOW(),
+              force_checked_out = true,
+              status = CASE
+                WHEN status IN ('CHECKED_IN', 'LATE') THEN 'PRESENT'
+                ELSE status
+              END
+          WHERE date = $1
+            AND check_in IS NOT NULL
+            AND check_out IS NULL
+          RETURNING user_id
+        )
+        INSERT INTO notifications (user_id, message, is_read, created_at)
+        SELECT f.user_id,
+               'Auto checkout applied: You were checked out by system at end of day.',
+               FALSE,
+               NOW()
+        FROM forced f
+        RETURNING user_id
       `, [today]);
 
       // 2️⃣ Ensure all users have attendance record
@@ -41,7 +56,7 @@ const runAttendanceAutomation = () => {
         )
       `, [today, fallbackStatus]);
 
-      console.log("✅ Attendance automation completed");
+      console.log(`✅ Attendance automation completed (forced checkouts: ${forcedCheckoutResult.rowCount})`);
 
     } catch (err) {
       console.error("❌ Cron automation error:", err);

@@ -2,6 +2,20 @@ const cron = require('node-cron');
 const pool = require('../config/db');
 const emailService = require('../services/emailService');
 
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+function getWeekStartIST() {
+  const now = new Date(Date.now() + IST_OFFSET_MS);
+  const day = now.getUTCDay(); // shifted UTC day behaves like IST day
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() + diffToMonday);
+  monday.setUTCHours(0, 0, 0, 0);
+
+  return monday.toISOString().split("T")[0];
+}
+
 // 📧 Daily Summary Email to Admin (Every day at 6 PM)
 cron.schedule('0 18 * * *', async () => {
   console.log('⏰ Running: Daily summary email to admin');
@@ -37,6 +51,115 @@ cron.schedule('0 21 * * *', async () => {
     console.log(`✅ Sent ${result.rows.length} missing checkout emails`);
   } catch (error) {
     console.error('Missing checkout email failed:', error);
+  }
+}, {
+  timezone: "Asia/Kolkata"
+});
+
+// 🔔 Manual checkout reminder (5:50 PM IST, Mon-Sat) for users still checked in
+cron.schedule('50 17 * * 1-6', async () => {
+  console.log('⏰ Running: Manual checkout reminder notifications');
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    const result = await pool.query(`
+      INSERT INTO notifications (user_id, message, is_read, created_at)
+      SELECT a.user_id,
+             'Reminder: Please do manual checkout now.',
+             FALSE,
+             NOW()
+      FROM attendance a
+      WHERE a.date = $1
+        AND a.check_in IS NOT NULL
+        AND a.check_out IS NULL
+        AND a.status = 'CHECKED_IN'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM notifications n
+          WHERE n.user_id = a.user_id
+            AND n.message = 'Reminder: Please do manual checkout now.'
+            AND n.created_at >= NOW() - INTERVAL '4 hours'
+        )
+      RETURNING user_id
+    `, [today]);
+
+    console.log(`✅ Manual checkout reminders sent: ${result.rowCount}`);
+  } catch (error) {
+    console.error('Manual checkout reminder notifications failed:', error);
+  }
+}, {
+  timezone: "Asia/Kolkata"
+});
+
+// 🔔 Daily report reminder (4:30 PM and 5:30 PM IST)
+cron.schedule('30 16,17 * * 1-6', async () => {
+  console.log('⏰ Running: Daily report reminder notifications');
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    await pool.query(`
+      INSERT INTO notifications (user_id, message, is_read, created_at)
+      SELECT a.user_id,
+             'Reminder: Submit today''s daily work report before checkout.',
+             FALSE,
+             NOW()
+      FROM attendance a
+      LEFT JOIN work_reports wr
+        ON wr.user_id = a.user_id
+       AND wr.report_type = 'DAILY'
+       AND wr.report_date = $1
+      WHERE a.date = $1
+        AND a.status = 'CHECKED_IN'
+        AND a.check_in IS NOT NULL
+        AND a.check_out IS NULL
+        AND wr.id IS NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM notifications n
+          WHERE n.user_id = a.user_id
+            AND n.message = 'Reminder: Submit today''s daily work report before checkout.'
+            AND n.created_at >= NOW() - INTERVAL '90 minutes'
+        )
+    `, [today]);
+
+    // Saturday-only weekly reminder for LEAD and MEMBER
+    const nowIST = new Date(Date.now() + IST_OFFSET_MS);
+    const isSaturdayIST = nowIST.getUTCDay() === 6;
+
+    if (isSaturdayIST) {
+      const weekStart = getWeekStartIST();
+
+      await pool.query(`
+        INSERT INTO notifications (user_id, message, is_read, created_at)
+        SELECT a.user_id,
+               'Reminder: Saturday checkout requires weekly report submission.',
+               FALSE,
+               NOW()
+        FROM attendance a
+        JOIN users u ON u.id = a.user_id
+        LEFT JOIN work_reports wr
+          ON wr.user_id = a.user_id
+         AND wr.report_type = 'WEEKLY'
+         AND wr.week_start = $2
+        WHERE a.date = $1
+          AND a.status = 'CHECKED_IN'
+          AND a.check_in IS NOT NULL
+          AND a.check_out IS NULL
+          AND u.role IN ('LEAD', 'MEMBER')
+          AND wr.id IS NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM notifications n
+            WHERE n.user_id = a.user_id
+              AND n.message = 'Reminder: Saturday checkout requires weekly report submission.'
+              AND n.created_at >= NOW() - INTERVAL '90 minutes'
+          )
+      `, [today, weekStart]);
+    }
+
+    console.log('✅ Daily report reminder notifications completed');
+  } catch (error) {
+    console.error('Daily report reminder notifications failed:', error);
   }
 }, {
   timezone: "Asia/Kolkata"
