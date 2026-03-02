@@ -287,6 +287,160 @@ exports.exportWorkReportsExcel = async (req, res) => {
     res.status(500).json({ message: "Excel export failed" });
   }
 };
+exports.getAllWeeklyReports = async (req, res) => {
+  try {
+    const { week_start, user_id, role } = req.query;
+
+    let conditions = [`wr.report_type = 'WEEKLY'`];
+    let values = [];
+
+    if (week_start) {
+      values.push(week_start);
+      conditions.push(`wr.week_start = $${values.length}`);
+    }
+
+    if (user_id) {
+      values.push(user_id);
+      conditions.push(`u.id = $${values.length}`);
+    }
+
+    if (role) {
+      values.push(role);
+      conditions.push(`u.role = $${values.length}`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
+    const query = `
+      SELECT
+        wr.id,
+        wr.week_start,
+        wr.week_end,
+        wr.title,
+        wr.work_done,
+        wr.skills_learned,
+        wr.project_update,
+        wr.created_at,
+        u.user_id,
+        u.name,
+        u.role
+      FROM work_reports wr
+      JOIN users u ON u.id = wr.user_id
+      ${whereClause}
+      ORDER BY wr.created_at DESC
+    `;
+
+    const result = await pool.query(query, values);
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error('Admin weekly reports error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.exportWeeklyReportsExcel = async (req, res) => {
+  try {
+    const { week_start, week_end } = req.query;
+
+    let conditions = [`wr.report_type = 'WEEKLY'`];
+    let values = [];
+
+    if (week_start && week_end) {
+      values.push(week_start);
+      conditions.push(`wr.week_start >= $${values.length}`);
+      values.push(week_end);
+      conditions.push(`wr.week_start <= $${values.length}`);
+    } else if (week_start) {
+      values.push(week_start);
+      conditions.push(`wr.week_start = $${values.length}`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
+    const result = await pool.query(`
+      SELECT
+        u.user_id,
+        u.name,
+        u.role,
+        wr.week_start,
+        wr.week_end,
+        wr.title,
+        wr.work_done,
+        wr.skills_learned,
+        wr.project_update,
+        wr.created_at
+      FROM work_reports wr
+      JOIN users u ON u.id = wr.user_id
+      ${whereClause}
+      ORDER BY wr.week_start DESC, u.role, u.name
+    `, values);
+
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Weekly Reports');
+
+    // Style header row
+    worksheet.columns = [
+      { header: 'User ID', key: 'user_id', width: 12 },
+      { header: 'Name', key: 'name', width: 20 },
+      { header: 'Role', key: 'role', width: 14 },
+      { header: 'Week Start', key: 'week_start', width: 14 },
+      { header: 'Week End', key: 'week_end', width: 14 },
+      { header: 'Title', key: 'title', width: 25 },
+      { header: 'Work Done', key: 'work_done', width: 45 },
+      { header: 'Skills Learned', key: 'skills_learned', width: 45 },
+      { header: 'Project Update', key: 'project_update', width: 45 },
+      { header: 'Submitted At', key: 'created_at', width: 25 },
+    ];
+
+    // Bold header
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern', pattern: 'solid',
+      fgColor: { argb: 'FF172B4D' }
+    };
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+    result.rows.forEach(row => {
+      worksheet.addRow({
+        user_id: row.user_id,
+        name: row.name,
+        role: row.role,
+        week_start: row.week_start,
+        week_end: row.week_end,
+        title: row.title || '',
+        work_done: row.work_done || '',
+        skills_learned: row.skills_learned || '',
+        project_update: row.project_update || '',
+        created_at: row.created_at,
+      });
+    });
+
+    // Wrap text for long fields
+    ['work_done', 'skills_learned', 'project_update'].forEach(key => {
+      const col = worksheet.getColumn(key);
+      col.alignment = { vertical: 'top', wrapText: true };
+    });
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=weekly_reports.xlsx'
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (err) {
+    console.error('Weekly Excel export error:', err);
+    res.status(500).json({ message: 'Weekly Excel export failed' });
+  }
+};
+
 exports.getTodayWorkReportDashboard = async (req, res) => {
   try {
     const result = await pool.query(`

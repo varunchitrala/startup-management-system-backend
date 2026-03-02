@@ -1392,3 +1392,147 @@ async function sendTestEmail() {
     messageDiv.innerHTML = '<div class="alert alert-danger">Failed to send test email</div>';
   }
 }
+
+/* ================= WEEKLY REPORTS (ADMIN VIEW) ================= */
+
+/**
+ * Load all weekly reports from members & team leads.
+ * Supports optional date-range (filter by week_start) and role filter.
+ */
+async function loadWeeklyReports() {
+  const tbody = document.getElementById('weeklyReportsTableBody');
+  const countEl = document.getElementById('weeklyReportCount');
+
+  tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">
+    <div class="spinner-border spinner-border-sm me-2"></div>Loading…</td></tr>`;
+
+  try {
+    const weeklyFrom = document.getElementById('weeklyFromDate').value;
+    const weeklyTo = document.getElementById('weeklyToDate').value;
+    const role = document.getElementById('weeklyRoleFilter').value;
+
+    const params = new URLSearchParams();
+    if (weeklyFrom) params.append('week_start', weeklyFrom);
+    if (role) params.append('role', role);
+
+    // Use GET /api/admin/weekly-reports with filters
+    const url = `${API_BASE}/api/admin/weekly-reports?${params.toString()}`;
+    const reports = await apiRequest(url);
+
+    // Client-side filter by "to" date if provided
+    let filtered = reports;
+    if (weeklyTo) {
+      filtered = reports.filter(r => r.week_start <= weeklyTo);
+    }
+
+    tbody.innerHTML = '';
+
+    if (!filtered || filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">
+        No weekly reports found for selected filters.</td></tr>`;
+      countEl.textContent = '0 reports';
+      return;
+    }
+
+    countEl.textContent = `${filtered.length} report${filtered.length !== 1 ? 's' : ''}`;
+
+    const roleColors = {
+      TEAM_LEAD: 'bg-primary text-white',
+      MEMBER: 'bg-secondary text-white',
+      ADMIN: 'bg-dark text-white',
+    };
+
+    filtered.forEach(r => {
+      const tr = document.createElement('tr');
+      const weekLabel = r.week_start
+        ? `${r.week_start}<br><span class="text-muted" style="font-size:11px;">to ${r.week_end || '—'}</span>`
+        : '—';
+      const roleClass = roleColors[r.role] || 'bg-secondary text-white';
+      const submitted = r.created_at
+        ? new Date(r.created_at).toLocaleString()
+        : '—';
+
+      // Truncate long text for display; full text visible on hover
+      const truncate = (text, limit = 150) => {
+        if (!text) return '<span class="text-muted">—</span>';
+        const safe = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        if (safe.length <= limit) return `<span style="white-space:pre-wrap;">${safe}</span>`;
+        return `<span title="${safe}" style="white-space:pre-wrap;cursor:help;">
+          ${safe.substring(0, limit)}<span class="text-muted">… (hover)</span></span>`;
+      };
+
+      tr.innerHTML = `
+        <td style="white-space:nowrap;min-width:110px;">${weekLabel}</td>
+        <td>
+          <div style="font-weight:600;">${r.name}</div>
+          <div class="text-muted" style="font-size:11px;">${r.user_id}</div>
+        </td>
+        <td><span class="status-tag ${roleClass}" style="font-size:10px;">${r.role.replace('_', ' ')}</span></td>
+        <td style="font-size:12px;">${truncate(r.work_done)}</td>
+        <td style="font-size:12px;">${truncate(r.skills_learned)}</td>
+        <td style="font-size:12px;">${truncate(r.project_update)}</td>
+        <td style="white-space:nowrap;font-size:12px;">${submitted}</td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error('Weekly reports load error:', err);
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">
+      Failed to load weekly reports.</td></tr>`;
+  }
+}
+
+/**
+ * Export all filtered weekly reports as an Excel (.xlsx) file.
+ */
+async function exportWeeklyExcel() {
+  try {
+    const weeklyFrom = document.getElementById('weeklyFromDate').value;
+    const weeklyTo = document.getElementById('weeklyToDate').value;
+    const role = document.getElementById('weeklyRoleFilter').value;
+
+    const params = new URLSearchParams();
+    if (weeklyFrom) params.append('week_start', weeklyFrom);
+    if (weeklyTo) params.append('week_end', weeklyTo);
+    if (role) params.append('role', role);
+
+    const url = `${API_BASE}/api/admin/weekly-reports/export/excel?${params.toString()}`;
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert('❌ Export failed: ' + (err.message || res.statusText));
+      return;
+    }
+
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    const suffix = weeklyFrom ? `_${weeklyFrom}` : '';
+    link.href = window.URL.createObjectURL(blob);
+    link.download = `weekly_reports${suffix}.xlsx`;
+    link.click();
+
+  } catch (err) {
+    console.error('Weekly Excel export error:', err);
+    alert('❌ Weekly Excel export failed');
+  }
+}
+
+// Auto-load weekly reports when the tab is first shown
+document.addEventListener('DOMContentLoaded', () => {
+  const weeklyTabBtn = document.querySelector('[data-bs-target="#tab-weekly"]');
+  if (weeklyTabBtn) {
+    let weeklyLoaded = false;
+    weeklyTabBtn.addEventListener('shown.bs.tab', () => {
+      if (!weeklyLoaded) {
+        weeklyLoaded = true;
+        loadWeeklyReports(); // load all on first open
+      }
+    });
+  }
+});

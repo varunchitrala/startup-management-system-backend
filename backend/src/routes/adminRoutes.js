@@ -311,6 +311,21 @@ router.get(
   adminWorkController.exportWorkReportsExcel
 );
 
+// ===== WEEKLY REPORTS =====
+router.get(
+  "/weekly-reports",
+  verifyToken,
+  isAdmin,
+  adminWorkController.getAllWeeklyReports
+);
+
+router.get(
+  "/weekly-reports/export/excel",
+  verifyToken,
+  isAdmin,
+  adminWorkController.exportWeeklyReportsExcel
+);
+
 router.get(
   "/member/roadmap",
   verifyToken,

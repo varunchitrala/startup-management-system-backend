@@ -646,6 +646,10 @@
           </li>
           <li class="nav-item" role="presentation">
             <button class="nav-link rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab"
+              data-bs-target="#tab-weekly">Weekly Reports</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab"
               data-bs-target="#tab-history">EOD Report Archives</button>
           </li>
           <li class="nav-item" role="presentation">
@@ -671,6 +675,56 @@
               <tbody id="workReportTable"></tbody>
             </table>
           </div>
+
+          <!-- ===== WEEKLY REPORTS TAB ===== -->
+          <div class="tab-pane fade p-0" id="tab-weekly">
+            <div class="bg-light p-2 border-bottom d-flex flex-wrap gap-2 align-items-center">
+              <span class="small fw-bold text-muted ms-2">FILTER BY WEEK:</span>
+              <div class="d-flex align-items-center gap-1">
+                <label class="small text-muted mb-0">From (week start)</label>
+                <input type="date" id="weeklyFromDate" class="form-control form-control-sm" style="width:145px;">
+              </div>
+              <div class="d-flex align-items-center gap-1">
+                <label class="small text-muted mb-0">To (week start)</label>
+                <input type="date" id="weeklyToDate" class="form-control form-control-sm" style="width:145px;">
+              </div>
+              <select id="weeklyRoleFilter" class="form-select form-select-sm" style="width:135px;">
+                <option value="">All Roles</option>
+                <option value="TEAM_LEAD">Team Lead</option>
+                <option value="MEMBER">Member</option>
+              </select>
+              <button class="btn-sys btn-sys-default border" onclick="loadWeeklyReports()">
+                <i class="bi bi-search"></i> Search
+              </button>
+              <button class="btn-sys btn-sys-primary" onclick="exportWeeklyExcel()"
+                title="Export all filtered weekly reports to Excel">
+                <i class="bi bi-file-earmark-excel-fill"></i> Export Excel
+              </button>
+              <span id="weeklyReportCount" class="small text-muted ms-auto pe-2"></span>
+            </div>
+            <div class="table-responsive" style="max-height:380px;overflow-y:auto;">
+              <table class="table-enterprise">
+                <thead class="bg-light sticky-top">
+                  <tr>
+                    <th>Week</th>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th style="width:20%">Work Done</th>
+                    <th style="width:20%">Skills Learned</th>
+                    <th style="width:20%">Project Update</th>
+                    <th>Submitted At</th>
+                  </tr>
+                </thead>
+                <tbody id="weeklyReportsTableBody">
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-4">Select a date range and click Search, or leave
+                      blank to load all.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- ===== END WEEKLY REPORTS TAB ===== -->
 
           <div class="tab-pane fade p-0" id="tab-history">
             <div class="bg-light p-2 border-bottom d-flex gap-2 align-items-center">
@@ -714,31 +768,28 @@
       </div>
     </div>
     <!-- Add this modal before the closing </body> tag -->
-<div class="modal fade" id="rejectLeaveModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Reject Leave Request</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label">Reason for Rejection</label>
-          <textarea 
-            class="form-control" 
-            id="rejectionReason" 
-            rows="3" 
-            placeholder="Please provide a reason..."></textarea>
+    <div class="modal fade" id="rejectLeaveModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Reject Leave Request</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Reason for Rejection</label>
+              <textarea class="form-control" id="rejectionReason" rows="3"
+                placeholder="Please provide a reason..."></textarea>
+            </div>
+            <div id="rejectMessage"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" onclick="confirmRejectLeave()">Reject Leave</button>
+          </div>
         </div>
-        <div id="rejectMessage"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" onclick="confirmRejectLeave()">Reject Leave</button>
       </div>
     </div>
-  </div>
-</div>
 
     <!-- ===== CHANGE PASSWORD ===== -->
     <div class="panel mt-4">
@@ -765,22 +816,22 @@
       </div>
     </div>
     <!-- ===== END CHANGE PASSWORD ===== -->
-     <!-- Add in your admin settings or tools section -->
-<div class="card">
-  <div class="card-header">
-    <h5>Email System Test</h5>
-  </div>
-  <div class="card-body">
-    <div class="mb-3">
-      <label class="form-label">Test Email Address</label>
-      <input type="email" class="form-control" id="testEmailAddress" placeholder="Enter email">
+    <!-- Add in your admin settings or tools section -->
+    <div class="card">
+      <div class="card-header">
+        <h5>Email System Test</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label">Test Email Address</label>
+          <input type="email" class="form-control" id="testEmailAddress" placeholder="Enter email">
+        </div>
+        <button class="btn btn-primary" onclick="sendTestEmail()">
+          <i class="bi bi-envelope"></i> Send Test Email
+        </button>
+        <div id="testEmailMessage" class="mt-3"></div>
+      </div>
     </div>
-    <button class="btn btn-primary" onclick="sendTestEmail()">
-      <i class="bi bi-envelope"></i> Send Test Email
-    </button>
-    <div id="testEmailMessage" class="mt-3"></div>
-  </div>
-</div>
 
   </main>
 
