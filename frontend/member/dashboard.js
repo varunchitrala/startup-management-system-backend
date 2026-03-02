@@ -77,6 +77,7 @@ checkInBtn.onclick = () => {
           `<div class="alert alert-success">${data.message}</div>`;
 
         loadStatus();
+        loadMyAttendanceHistory(); // refresh attendance table instantly
 
       } catch (err) {
         console.error("Check-in error:", err);
@@ -127,6 +128,7 @@ checkOutBtn.onclick = async () => {
       `<div class="alert alert-success">${data.message}</div>`;
 
     loadStatus();
+    loadMyAttendanceHistory(); // refresh attendance table instantly
 
   } catch (err) {
     console.error("Check-out error:", err);
@@ -172,6 +174,8 @@ async function submitMemberDailyReport() {
       `<div class="alert alert-success">${data.message}</div>`;
 
     document.getElementById("memberWorkDone").value = "";
+    loadMyWorkReports(); // refresh archive instantly
+
 
   } catch (err) {
     console.error(err);

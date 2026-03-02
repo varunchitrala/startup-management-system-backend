@@ -470,6 +470,9 @@ async function submitAdminDailyReport() {
       `<div class="alert alert-success">${data.message}</div>`;
 
     document.getElementById("adminWorkDone").value = "";
+    loadAdminWorkReports();      // refresh EOD archive
+    loadWorkReportDashboard();   // refresh daily status matrix
+
 
   } catch (err) {
     console.error(err);
@@ -848,6 +851,8 @@ adminCheckInBtn.onclick = () => {
           `<div class="alert alert-success">${data.message}</div>`;
 
         loadAdminStatus();
+        loadTodayAttendance();    // refresh live ops log
+        loadDashboardSummary();   // refresh metric cards
 
       } catch (err) {
         console.error("Check-in error:", err);
@@ -900,6 +905,8 @@ adminCheckOutBtn.onclick = async () => {
       `<div class="alert alert-success">${data.message}</div>`;
 
     loadAdminStatus();
+    loadTodayAttendance();    // refresh live ops log
+    loadDashboardSummary();   // refresh metric cards
 
   } catch (err) {
     console.error("Check-out error:", err);
