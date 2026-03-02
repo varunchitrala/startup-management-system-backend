@@ -1,5 +1,12 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 const pool = require('../config/db');
+
+// Render environments can fail outbound IPv6 to Gmail SMTP (ENETUNREACH).
+// Force DNS resolution preference to IPv4 for SMTP connections.
+if (typeof dns.setDefaultResultOrder === "function") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 const emailHost = process.env.EMAIL_HOST;
 const emailPort = Number(process.env.EMAIL_PORT || 587);
