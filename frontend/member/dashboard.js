@@ -109,6 +109,23 @@ checkOutBtn.onclick = async () => {
       return;
     }
 
+    const istWeekday = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Kolkata",
+      weekday: "short"
+    });
+    if (istWeekday === "Sat") {
+      const weeklyCheck = await fetch(`${API_BASE}/api/work/check-weekly`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const weeklyData = await weeklyCheck.json();
+
+      if (!weeklyData.submitted) {
+        messageDiv.innerHTML =
+          `<div class="alert alert-warning">Saturday checkout is blocked until you submit this week's weekly report.</div>`;
+        return;
+      }
+    }
+
     const res = await fetch(`${API_BASE}/api/attendance/check-out`, {
       method: "POST",
       headers: {
@@ -349,6 +366,31 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+const MEMBER_LIVE_REFRESH_MS = 15000;
+
+function refreshMemberLiveData() {
+  loadStatus();
+  loadNotifications();
+  checkWeeklyReportStatus();
+
+  const picker = document.getElementById("attendanceMonthPicker");
+  if (picker && picker.value) {
+    loadMyAttendanceHistory();
+  }
+}
+
+setInterval(() => {
+  if (document.visibilityState === "visible") {
+    refreshMemberLiveData();
+  }
+}, MEMBER_LIVE_REFRESH_MS);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    refreshMemberLiveData();
+  }
+});
+
 /* ================= WEEK RANGE HELPER ================= */
 function getWeekRange() {
   const now = new Date();
@@ -376,8 +418,8 @@ async function submitWeeklyReport() {
   const workDone = document.getElementById("weeklyWorkDone").value.trim();
   const msgDiv = document.getElementById("weeklyReportMessage");
 
-  if (!skills && !projectUpdate && !workDone) {
-    msgDiv.innerHTML = `<div class="alert alert-danger">Please fill in at least one field</div>`;
+  if (!skills || !projectUpdate || !workDone) {
+    msgDiv.innerHTML = `<div class="alert alert-danger">All weekly report fields are required</div>`;
     return;
   }
 

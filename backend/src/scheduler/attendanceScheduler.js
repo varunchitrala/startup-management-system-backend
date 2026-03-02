@@ -1,12 +1,23 @@
 const cron = require("node-cron");
 const pool = require("../config/db");
 
-console.log("⏰ Attendance scheduler loaded");
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+function getWeekStartIST() {
+  const now = new Date(Date.now() + IST_OFFSET_MS);
+  const day = now.getUTCDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() + diffToMonday);
+  monday.setUTCHours(0, 0, 0, 0);
+  return monday.toISOString().split("T")[0];
+}
+
+console.log("Attendance scheduler loaded");
 
 // Runs every minute
 cron.schedule("* * * * *", async () => {
   try {
-    // 1️⃣ Get latest office timing
     const timingResult = await pool.query(`
       SELECT check_in_time, check_out_time
       FROM office_timings
@@ -19,7 +30,6 @@ cron.schedule("* * * * *", async () => {
     const { check_in_time, check_out_time } = timingResult.rows[0];
     const now = new Date();
 
-    // Helper: convert "HH:MM:SS" → Date today
     const toTodayTime = (timeStr) => {
       const [h, m, s] = timeStr.split(":").map(Number);
       const d = new Date();
@@ -40,18 +50,18 @@ cron.schedule("* * * * *", async () => {
     if (diffCheckIn <= 10 && diffCheckIn > 9) {
       await pool.query(`
         INSERT INTO notifications (user_id, message)
-        SELECT u.id, '⏰ Check-in starts in 10 minutes'
+        SELECT u.id, 'Check-in starts in 10 minutes'
         FROM users u
         WHERE NOT EXISTS (
           SELECT 1
           FROM notifications n
           WHERE n.user_id = u.id
-            AND n.message = '⏰ Check-in starts in 10 minutes'
+            AND n.message = 'Check-in starts in 10 minutes'
             AND n.created_at >= NOW() - INTERVAL '2 minutes'
         )
       `);
 
-      console.log("🔔 Check-in reminder sent");
+      console.log("Check-in reminder sent");
     }
 
     /* ================= DAILY WORK REPORT REMINDER ================= */
@@ -59,7 +69,7 @@ cron.schedule("* * * * *", async () => {
       await pool.query(`
         INSERT INTO notifications (user_id, message)
         SELECT a.user_id,
-               'Reminder: Please submit today’s work report before checkout'
+               'Reminder: Please submit today''s work report before checkout'
         FROM attendance a
         LEFT JOIN work_reports wr
           ON wr.user_id = a.user_id
@@ -73,33 +83,68 @@ cron.schedule("* * * * *", async () => {
             SELECT 1
             FROM notifications n
             WHERE n.user_id = a.user_id
-              AND n.message = 'Reminder: Please submit today’s work report before checkout'
+              AND n.message = 'Reminder: Please submit today''s work report before checkout'
               AND n.created_at >= NOW() - INTERVAL '2 minutes'
           )
       `);
 
-      console.log("🔔 Daily work report reminders sent");
+      console.log("Daily work report reminders sent");
+
+      const nowIST = new Date(Date.now() + IST_OFFSET_MS);
+      const isSaturdayIST = nowIST.getUTCDay() === 6;
+
+      if (isSaturdayIST) {
+        const weekStart = getWeekStartIST();
+
+        await pool.query(
+          `
+          INSERT INTO notifications (user_id, message)
+          SELECT a.user_id,
+                 'Reminder: Saturday checkout requires weekly report submission.'
+          FROM attendance a
+          JOIN users u ON u.id = a.user_id
+          LEFT JOIN work_reports wr
+            ON wr.user_id = a.user_id
+            AND wr.report_type = 'WEEKLY'
+            AND wr.week_start = $1
+          WHERE a.date = CURRENT_DATE
+            AND a.check_in IS NOT NULL
+            AND a.check_out IS NULL
+            AND u.role IN ('LEAD', 'MEMBER')
+            AND wr.id IS NULL
+            AND NOT EXISTS (
+              SELECT 1
+              FROM notifications n
+              WHERE n.user_id = a.user_id
+                AND n.message = 'Reminder: Saturday checkout requires weekly report submission.'
+                AND n.created_at >= NOW() - INTERVAL '2 minutes'
+            )
+          `,
+          [weekStart]
+        );
+
+        console.log("Saturday weekly report reminders sent");
+      }
     }
 
     /* ================= CHECK-OUT REMINDER ================= */
     if (diffCheckOut <= 10 && diffCheckOut > 9) {
       await pool.query(`
         INSERT INTO notifications (user_id, message)
-        SELECT u.id, '⏰ Check-out starts in 10 minutes'
+        SELECT u.id, 'Check-out starts in 10 minutes'
         FROM users u
         WHERE NOT EXISTS (
           SELECT 1
           FROM notifications n
           WHERE n.user_id = u.id
-            AND n.message = '⏰ Check-out starts in 10 minutes'
+            AND n.message = 'Check-out starts in 10 minutes'
             AND n.created_at >= NOW() - INTERVAL '2 minutes'
         )
       `);
 
-      console.log("🔔 Check-out reminder sent");
+      console.log("Check-out reminder sent");
     }
-
   } catch (err) {
-    console.error("❌ Attendance scheduler error:", err.message);
+    console.error("Attendance scheduler error:", err.message);
   }
 });

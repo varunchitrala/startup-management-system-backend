@@ -2,6 +2,31 @@ const pool = require("../config/db");
 
 const emailService = require('../services/emailService');
 
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+function getIstNowShifted() {
+  return new Date(Date.now() + IST_OFFSET_MS);
+}
+
+function getWeekRangeIST() {
+  const now = getIstNowShifted();
+  const day = now.getUTCDay(); // shifted UTC day behaves like IST day
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() + diffToMonday);
+  monday.setUTCHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  sunday.setUTCHours(23, 59, 59, 999);
+
+  return {
+    weekStart: monday.toISOString().split("T")[0],
+    weekEnd: sunday.toISOString().split("T")[0]
+  };
+}
+
 function getDistanceInMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000; // Earth radius in meters
   const toRad = value => (value * Math.PI) / 180;
@@ -201,6 +226,7 @@ exports.checkIn = async (req, res) => {
 exports.checkOut = async (req, res) => {
   try {
     const userId = req.user.id;
+    const userRole = req.user.role;
     const today = new Date().toISOString().split("T")[0];
 
     const result = await pool.query(
@@ -221,6 +247,49 @@ exports.checkOut = async (req, res) => {
       return res.status(400).json({
         message: "Already checked out"
       });
+    }
+
+    // Saturday rule for LEAD and MEMBER:
+    // weekly report must be submitted before checkout.
+    const istNow = getIstNowShifted();
+    const isSaturdayIST = istNow.getUTCDay() === 6;
+    const isLeadOrMember = userRole === "LEAD" || userRole === "MEMBER";
+
+    if (isLeadOrMember && isSaturdayIST) {
+      const { weekStart } = getWeekRangeIST();
+
+      const weeklyReportResult = await pool.query(
+        `SELECT 1
+         FROM work_reports
+         WHERE user_id = $1
+           AND report_type = 'WEEKLY'
+           AND week_start = $2
+         LIMIT 1`,
+        [userId, weekStart]
+      );
+
+      if (weeklyReportResult.rows.length === 0) {
+        const notificationMessage = "Saturday checkout blocked: Submit this week's weekly report before checkout.";
+
+        await pool.query(
+          `
+          INSERT INTO notifications (user_id, message, is_read, created_at)
+          SELECT $1, $2, FALSE, NOW()
+          WHERE NOT EXISTS (
+            SELECT 1
+            FROM notifications
+            WHERE user_id = $1
+              AND message = $2
+              AND created_at >= NOW() - INTERVAL '12 hours'
+          )
+          `,
+          [userId, notificationMessage]
+        );
+
+        return res.status(400).json({
+          message: "On Saturdays, weekly report submission is mandatory before checkout."
+        });
+      }
     }
 
     await pool.query(

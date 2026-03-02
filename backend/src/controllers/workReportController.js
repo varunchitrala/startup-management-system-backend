@@ -62,8 +62,8 @@ exports.submitWeeklyReport = async (req, res) => {
     const userId = req.user.id;
     const { title, work_done, skills_learned, project_update } = req.body;
 
-    if (!work_done && !skills_learned && !project_update) {
-      return res.status(400).json({ message: "At least one field is required (work done, skills learned, or project update)" });
+    if (!work_done || !skills_learned || !project_update) {
+      return res.status(400).json({ message: "All weekly report fields are required (work done, skills learned, and project update)" });
     }
 
     const { weekStart, weekEnd } = getWeekRange();
@@ -75,7 +75,7 @@ exports.submitWeeklyReport = async (req, res) => {
       VALUES
         ($1, 'WEEKLY', $2, $3, $4, $5, $6, $7)
       `,
-      [userId, weekStart, weekEnd, title || null, work_done || null, skills_learned || null, project_update || null]
+      [userId, weekStart, weekEnd, title || null, work_done, skills_learned, project_update]
     );
 
     res.json({ message: "Weekly report submitted successfully" });

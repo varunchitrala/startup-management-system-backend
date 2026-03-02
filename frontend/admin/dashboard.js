@@ -447,6 +447,35 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+const ADMIN_LIVE_REFRESH_MS = 15000;
+
+function refreshAdminLiveData() {
+  loadDashboardSummary();
+  loadTodayAttendance();
+  loadWorkReportDashboard();
+  loadAdminStatus();
+  loadLateUsers();
+
+  const projectSelect = document.getElementById("projectSelect");
+  if (projectSelect && projectSelect.value) {
+    loadAdminProjectMembers(projectSelect.value);
+    loadRoadmapProgress(projectSelect.value);
+  }
+}
+
+setInterval(() => {
+  if (document.visibilityState === "visible") {
+    refreshAdminLiveData();
+  }
+}, ADMIN_LIVE_REFRESH_MS);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    refreshAdminLiveData();
+  }
+});
+
 /***********************
  * ADMIN DAILY WORK REPORT
  ***********************/
