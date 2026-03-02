@@ -1536,10 +1536,25 @@ async function checkEmailHealth() {
       }
     });
 
-    const data = await res.json();
+    const contentType = res.headers.get("content-type") || "";
+    let data = null;
+
+    if (contentType.includes("application/json")) {
+      data = await res.json();
+    } else {
+      const raw = await res.text();
+      data = {
+        message: raw?.startsWith("<!DOCTYPE")
+          ? "Endpoint returned HTML instead of JSON (usually 404/hosting route mismatch)."
+          : raw
+      };
+    }
 
     if (!res.ok) {
-      healthDiv.innerHTML = `<div class="alert alert-danger">Failed to check email health: ${data.message || 'Unknown error'}</div>`;
+      const hint = res.status === 404
+        ? "<div class='small mt-2'>Backend route <code>/api/test/email-health</code> is not available on the deployed server. Redeploy backend with latest code.</div>"
+        : "";
+      healthDiv.innerHTML = `<div class="alert alert-danger">Failed to check email health (${res.status}): ${data.message || 'Unknown error'}${hint}</div>`;
       return;
     }
 
