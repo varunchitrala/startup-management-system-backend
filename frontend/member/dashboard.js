@@ -669,6 +669,7 @@ const STATUS_STYLE = {
   ABSENT: { bg: "#fee2e2", color: "#dc2626", label: "Absent" },
   LATE: { bg: "#fef9c3", color: "#a16207", label: "Late" },
   ON_LEAVE: { bg: "#ede9fe", color: "#7c3aed", label: "On Leave" },
+  HOLIDAY: { bg: "#e0f2fe", color: "#0369a1", label: "Holiday" },
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -694,7 +695,7 @@ async function loadMyAttendanceHistory() {
     }
 
     // Summary counts
-    const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, ON_LEAVE: 0, CHECKED_IN: 0 };
+    const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, ON_LEAVE: 0, CHECKED_IN: 0, HOLIDAY: 0 };
     records.forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
 
     tbody.innerHTML = records.map(r => {
@@ -720,6 +721,7 @@ async function loadMyAttendanceHistory() {
       `<span>❌ Absent: <strong>${counts.ABSENT}</strong></span>`,
       `<span>⏰ Late: <strong>${counts.LATE}</strong></span>`,
       `<span>🟣 On Leave: <strong>${counts.ON_LEAVE}</strong></span>`,
+      `<span>🏖️ Holiday: <strong>${counts.HOLIDAY}</strong></span>`,
     ].join("<span class='mx-1'>·</span>");
 
   } catch (err) {

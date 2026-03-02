@@ -9,6 +9,11 @@ const runAttendanceAutomation = () => {
 
     try {
       const today = new Date().toISOString().split("T")[0];
+      const holidayRes = await pool.query(
+        `SELECT 1 FROM holidays WHERE holiday_date = $1 LIMIT 1`,
+        [today]
+      );
+      const fallbackStatus = holidayRes.rows.length > 0 ? "HOLIDAY" : "ABSENT";
 
       // 1️⃣ Auto force checkout users still checked in
       await pool.query(`
@@ -23,14 +28,14 @@ const runAttendanceAutomation = () => {
       // 2️⃣ Ensure all users have attendance record
       await pool.query(`
         INSERT INTO attendance (user_id, date, status)
-        SELECT u.id, $1, 'ABSENT'
+        SELECT u.id, $1, $2
         FROM users u
         WHERE NOT EXISTS (
           SELECT 1 FROM attendance a
           WHERE a.user_id = u.id
             AND a.date = $1
         )
-      `, [today]);
+      `, [today, fallbackStatus]);
 
       console.log("✅ Attendance automation completed");
 

@@ -38,6 +38,81 @@ async function apiRequest(url, options = {}) {
   return res.json();
 }
 
+async function loadHolidays() {
+  const tbody = document.getElementById("holidayTableBody");
+  if (!tbody) return;
+
+  try {
+    const holidays = await apiRequest(`${API_BASE}/api/admin/holidays`);
+
+    if (!Array.isArray(holidays) || holidays.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-3">No holidays added</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = holidays.map(h => `
+      <tr>
+        <td>${h.holiday_date}</td>
+        <td>${h.name || "—"}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-danger" onclick="removeHoliday(${h.id})">Remove</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch (err) {
+    console.error("Failed to load holidays:", err.message);
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-3">Failed to load holidays</td></tr>`;
+  }
+}
+
+async function addHoliday() {
+  const date = document.getElementById("holidayDate")?.value;
+  const name = document.getElementById("holidayName")?.value?.trim();
+  const message = document.getElementById("holidayMessage");
+
+  if (!date) {
+    if (message) message.innerHTML = `<span class="text-danger">Please select a holiday date</span>`;
+    return;
+  }
+
+  try {
+    const data = await apiRequest(`${API_BASE}/api/admin/holidays`, {
+      method: "POST",
+      body: JSON.stringify({
+        holiday_date: date,
+        name: name || null
+      })
+    });
+
+    if (message) message.innerHTML = `<span class="text-success">${data.message || "Holiday saved"}</span>`;
+    document.getElementById("holidayDate").value = "";
+    document.getElementById("holidayName").value = "";
+    loadHolidays();
+    loadDashboardSummary();
+    loadTodayAttendance();
+  } catch (err) {
+    if (message) message.innerHTML = `<span class="text-danger">Failed to save holiday</span>`;
+  }
+}
+
+async function removeHoliday(id) {
+  if (!confirm("Remove this holiday?")) return;
+  const message = document.getElementById("holidayMessage");
+
+  try {
+    const data = await apiRequest(`${API_BASE}/api/admin/holidays/${id}`, {
+      method: "DELETE"
+    });
+
+    if (message) message.innerHTML = `<span class="text-success">${data.message || "Holiday removed"}</span>`;
+    loadHolidays();
+    loadDashboardSummary();
+    loadTodayAttendance();
+  } catch (err) {
+    if (message) message.innerHTML = `<span class="text-danger">Failed to remove holiday</span>`;
+  }
+}
+
 /**
  * Format a UTC timestamp (ISO string or Date) as IST time: "09:45 AM"
  * Used wherever the backend returns raw UTC timestamps.
@@ -332,6 +407,8 @@ window.createTeamLead = createTeamLead;
 window.createTeamMember = createTeamMember;
 window.createProject = createProject;
 window.deleteProject = deleteProject;
+window.addHoliday = addHoliday;
+window.removeHoliday = removeHoliday;
 
 /***********************
  * INIT
@@ -418,6 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDashboardSummary();
   loadAdminProjects();
   loadTeamLeads();
+  loadHolidays();
   loadTodayAttendance();
   loadAdminWorkReports();
   loadShifts();
@@ -452,6 +530,7 @@ const ADMIN_LIVE_REFRESH_MS = 15000;
 
 function refreshAdminLiveData() {
   loadDashboardSummary();
+  loadHolidays();
   loadTodayAttendance();
   loadWorkReportDashboard();
   loadAdminStatus();

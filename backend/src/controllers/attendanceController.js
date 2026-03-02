@@ -46,6 +46,39 @@ function getDistanceInMeters(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+async function getHolidayByDate(date) {
+  const result = await pool.query(
+    `SELECT id, holiday_date, name
+     FROM holidays
+     WHERE holiday_date = $1
+     LIMIT 1`,
+    [date]
+  );
+  return result.rows[0] || null;
+}
+
+async function seedDayAttendance(date) {
+  const holiday = await getHolidayByDate(date);
+  const fallbackStatus = holiday ? "HOLIDAY" : "ABSENT";
+
+  await pool.query(
+    `
+    INSERT INTO attendance (user_id, date, status)
+    SELECT u.id, $1, $2
+    FROM users u
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM attendance a
+      WHERE a.user_id = u.id
+        AND a.date = $1
+    )
+    `,
+    [date, fallbackStatus]
+  );
+
+  return fallbackStatus;
+}
+
 // User check-in
 exports.checkIn = async (req, res) => {
   try {
@@ -56,6 +89,13 @@ exports.checkIn = async (req, res) => {
     const isAdmin = userRole === "ADMIN";
 
     const today = new Date().toISOString().split("T")[0];
+    const holiday = await getHolidayByDate(today);
+
+    if (holiday) {
+      return res.status(400).json({
+        message: `Today is marked as a holiday${holiday.name ? ` (${holiday.name})` : ""}. Check-in is disabled.`
+      });
+    }
 
     // Convert current server time (UTC) to IST for shift comparisons
     // Render.com runs in UTC; shift times are entered as IST by the admin
@@ -315,22 +355,25 @@ exports.checkOut = async (req, res) => {
 exports.getMyTodayStatus = async (req, res) => {
   try {
     const userId = req.user.id;
+    const today = new Date().toISOString().split("T")[0];
+    const holiday = await getHolidayByDate(today);
 
     const result = await pool.query(`
       SELECT
         check_in,
         check_out,
         CASE
+          WHEN status = 'HOLIDAY' THEN 'HOLIDAY'
           WHEN check_in IS NOT NULL AND check_out IS NOT NULL THEN 'PRESENT'
           WHEN check_in IS NOT NULL AND check_out IS NULL THEN 'CHECKED_IN'
           ELSE 'ABSENT'
         END AS status
       FROM attendance
-      WHERE user_id = $1 AND date = CURRENT_DATE
-    `, [userId]);
+      WHERE user_id = $1 AND date = $2
+    `, [userId, today]);
 
     if (result.rows.length === 0) {
-      return res.json({ status: "ABSENT" });
+      return res.json({ status: holiday ? "HOLIDAY" : "ABSENT" });
     }
 
     res.json(result.rows[0]);
@@ -395,6 +438,13 @@ exports.getMonthlyAttendanceSummary = async (req, res) => {
       Number(month.split("-")[1]),
       0
     ).getDate();
+    const holidayDaysResult = await pool.query(
+      `SELECT COUNT(*)::int AS holiday_days
+       FROM holidays
+       WHERE holiday_date BETWEEN $1::date AND $2::date`,
+      [startDate, endDate]
+    );
+    const holidayDays = Number(holidayDaysResult.rows[0]?.holiday_days || 0);
 
     const result = rows.map(r => {
       const present = Number(r.present_days);
@@ -402,7 +452,7 @@ exports.getMonthlyAttendanceSummary = async (req, res) => {
       const onLeave = Number(r.leave_days);
 
       const absent =
-        daysInMonth - present - checkedIn - onLeave;
+        daysInMonth - holidayDays - present - checkedIn - onLeave;
 
       return {
         user_id: r.user_id,
@@ -418,6 +468,7 @@ exports.getMonthlyAttendanceSummary = async (req, res) => {
     res.json({
       month,
       days_in_month: daysInMonth,
+      holiday_days: holidayDays,
       summary: result
     });
   } catch (err) {
@@ -466,23 +517,8 @@ exports.allowLateCheckIn = async (req, res) => {
 exports.autoCreateTodayAttendance = async () => {
   try {
     const today = new Date().toISOString().split("T")[0];
-
-    await pool.query(
-      `
-      INSERT INTO attendance (user_id, date, status)
-      SELECT u.id, $1, 'ABSENT'
-      FROM users u
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM attendance a
-        WHERE a.user_id = u.id
-          AND a.date = $1
-      )
-      `,
-      [today]
-    );
-
-    console.log("✅ Today attendance auto-created");
+    const status = await seedDayAttendance(today);
+    console.log(`✅ Today attendance auto-created with fallback status: ${status}`);
 
   } catch (err) {
     console.error("❌ Auto attendance error:", err);
@@ -508,6 +544,10 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
 
         COUNT(lr.id) AS on_leave,
 
+        COUNT(a.id) FILTER (
+          WHERE a.status = 'HOLIDAY'
+        ) AS holiday_count,
+
         COUNT(u.id)
         - COUNT(a.id) FILTER (
             WHERE a.check_in IS NOT NULL
@@ -517,7 +557,10 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
             WHERE a.check_in IS NOT NULL
               AND a.check_out IS NOT NULL
           )
-        - COUNT(lr.id) AS absent
+        - COUNT(lr.id)
+        - COUNT(a.id) FILTER (
+            WHERE a.status = 'HOLIDAY'
+          ) AS absent
 
       FROM users u
 
@@ -538,7 +581,8 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
       checked_in: Number(row.checked_in),
       present: Number(row.present),
       on_leave: Number(row.on_leave),
-      absent: Number(row.absent)
+      holiday: Number(row.holiday_count),
+      absent: Math.max(0, Number(row.absent))
     });
 
   } catch (err) {
@@ -550,20 +594,30 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
 exports.getTodayAttendanceList = async (req, res) => {
   try {
     const result = await pool.query(`
-  SELECT
-    u.id        AS user_db_id,
-    u.user_id   AS user_code,
-    u.name,
-    u.role,
-    a.check_in,
-    a.check_out,
-    a.status
-  FROM attendance a
-  JOIN users u
-    ON u.id = a.user_id
-  WHERE a.date = CURRENT_DATE
-  ORDER BY u.id
-`);
+      WITH day_meta AS (
+        SELECT EXISTS (
+          SELECT 1 FROM holidays WHERE holiday_date = CURRENT_DATE
+        ) AS is_holiday
+      )
+      SELECT
+        u.id AS user_db_id,
+        u.user_id AS user_id,
+        u.name,
+        u.role,
+        a.check_in,
+        a.check_out,
+        CASE
+          WHEN a.status IS NOT NULL THEN a.status
+          WHEN dm.is_holiday THEN 'HOLIDAY'
+          ELSE 'ABSENT'
+        END AS status
+      FROM users u
+      CROSS JOIN day_meta dm
+      LEFT JOIN attendance a
+        ON a.user_id = u.id
+        AND a.date = CURRENT_DATE
+      ORDER BY u.id
+    `);
 
 
     res.json(result.rows);
@@ -763,6 +817,112 @@ exports.getMyLeaveBalance = async (req, res) => {
 
   } catch (err) {
     console.error("Leave balance error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* ================= HOLIDAYS (ADMIN) ================= */
+exports.getHolidays = async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const params = [];
+    let where = "";
+
+    if (from && to) {
+      where = "WHERE holiday_date BETWEEN $1::date AND $2::date";
+      params.push(from, to);
+    } else if (from) {
+      where = "WHERE holiday_date >= $1::date";
+      params.push(from);
+    } else if (to) {
+      where = "WHERE holiday_date <= $1::date";
+      params.push(to);
+    }
+
+    const result = await pool.query(
+      `SELECT id, holiday_date, name, created_at
+       FROM holidays
+       ${where}
+       ORDER BY holiday_date ASC`,
+      params
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Get holidays error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.addHoliday = async (req, res) => {
+  try {
+    const { holiday_date, name } = req.body;
+
+    if (!holiday_date) {
+      return res.status(400).json({ message: "holiday_date is required" });
+    }
+
+    const insertResult = await pool.query(
+      `INSERT INTO holidays (holiday_date, name)
+       VALUES ($1, NULLIF(TRIM($2), ''))
+       ON CONFLICT (holiday_date)
+       DO UPDATE SET name = EXCLUDED.name
+       RETURNING id, holiday_date, name`,
+      [holiday_date, name || null]
+    );
+
+    await seedDayAttendance(holiday_date);
+
+    await pool.query(
+      `UPDATE attendance
+       SET status = 'HOLIDAY',
+           check_in = NULL,
+           check_out = NULL
+       WHERE date = $1
+         AND status = 'ABSENT'`,
+      [holiday_date]
+    );
+
+    res.json({
+      message: "Holiday saved successfully",
+      holiday: insertResult.rows[0]
+    });
+  } catch (err) {
+    console.error("Add holiday error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.deleteHoliday = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `DELETE FROM holidays
+       WHERE id = $1
+       RETURNING holiday_date`,
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Holiday not found" });
+    }
+
+    const holidayDate = result.rows[0].holiday_date;
+
+    await pool.query(
+      `UPDATE attendance
+       SET status = 'ABSENT'
+       WHERE date = $1
+         AND status = 'HOLIDAY'
+         AND check_in IS NULL
+         AND check_out IS NULL`,
+      [holidayDate]
+    );
+
+    res.json({ message: "Holiday removed successfully" });
+  } catch (err) {
+    console.error("Delete holiday error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

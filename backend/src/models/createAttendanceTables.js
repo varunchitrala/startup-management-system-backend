@@ -54,6 +54,16 @@ const createAttendanceTables = async () => {
       )
     `);
 
+    // Admin-managed holidays
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS holidays (
+        id SERIAL PRIMARY KEY,
+        holiday_date DATE NOT NULL UNIQUE,
+        name VARCHAR(120),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Add weekly report columns to work_reports (idempotent)
     try {
       await pool.query(`ALTER TABLE work_reports ADD COLUMN IF NOT EXISTS skills_learned TEXT`);

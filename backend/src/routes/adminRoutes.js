@@ -75,6 +75,11 @@ const {
 const {
   getTodayAttendanceList
 } = require("../controllers/attendanceController");
+const {
+  addHoliday,
+  getHolidays,
+  deleteHoliday
+} = require("../controllers/attendanceController");
 
 router.get(
   "/projects",
@@ -419,6 +424,10 @@ router.put(
   isAdmin,
   adminController.reviewLeaveRequest
 );
+
+router.get("/holidays", verifyToken, isAdmin, getHolidays);
+router.post("/holidays", verifyToken, isAdmin, addHoliday);
+router.delete("/holidays/:id", verifyToken, isAdmin, deleteHoliday);
 
 /* ================= OFFICE SETTINGS ROUTES ================= */
 router.get("/office-settings", verifyToken, isAdmin, getOfficeSettings);

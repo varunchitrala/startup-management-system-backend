@@ -36,13 +36,21 @@ exports.forceCheckoutAll = async (req, res) => {
 exports.getTodayAttendance = async (req, res) => {
   try {
     const query = `
+      WITH day_meta AS (
+        SELECT EXISTS (
+          SELECT 1 FROM holidays WHERE holiday_date = CURRENT_DATE
+        ) AS is_holiday
+      )
       SELECT 
         u.user_id,
         u.name,
         u.role,
         a.check_in,
-        a.check_out
+        a.check_out,
+        a.status,
+        dm.is_holiday
       FROM users u
+      CROSS JOIN day_meta dm
       LEFT JOIN attendance a
         ON u.id = a.user_id
         AND a.date = CURRENT_DATE
@@ -53,6 +61,7 @@ exports.getTodayAttendance = async (req, res) => {
 
     const data = rows.map(r => {
       let status = "ABSENT";
+      if (r.status === "HOLIDAY" || r.is_holiday) status = "HOLIDAY";
       if (r.check_in && !r.check_out) status = "CHECKED_IN";
       if (r.check_in && r.check_out) status = "PRESENT";
 
@@ -104,19 +113,27 @@ exports.getDashboardSummary = async (req, res) => {
         AND $1 BETWEEN from_date AND to_date
     `, [today]);
 
-    // absent = total - present - checkedin - onleave
+    const holiday = await pool.query(`
+      SELECT COUNT(*) FROM attendance
+      WHERE date = $1
+        AND status = 'HOLIDAY'
+    `, [today]);
+
+    // absent = total - present - checkedin - onleave - holiday
     const absent =
       totalUsers.rows[0].count -
       present.rows[0].count -
       checkedIn.rows[0].count -
-      onLeave.rows[0].count;
+      onLeave.rows[0].count -
+      holiday.rows[0].count;
 
     res.json({
       total_users: Number(totalUsers.rows[0].count),
       present: Number(present.rows[0].count),
       checked_in: Number(checkedIn.rows[0].count),
       on_leave: Number(onLeave.rows[0].count),
-      absent: Number(absent)
+      holiday: Number(holiday.rows[0].count),
+      absent: Math.max(0, Number(absent))
     });
   } catch (err) {
     console.error(err);
@@ -132,14 +149,22 @@ exports.getDailyAttendanceReport = async (req, res) => {
     }
 
     const query = `
+      WITH day_meta AS (
+        SELECT EXISTS (
+          SELECT 1 FROM holidays WHERE holiday_date = $1::date
+        ) AS is_holiday
+      )
       SELECT 
         u.user_id,
         u.name,
         u.role,
         a.check_in,
         a.check_out,
-        lr.id AS leave_id
+        lr.id AS leave_id,
+        a.status,
+        dm.is_holiday
       FROM users u
+      CROSS JOIN day_meta dm
       LEFT JOIN attendance a
         ON u.id = a.user_id
         AND a.date = $1
@@ -156,6 +181,7 @@ exports.getDailyAttendanceReport = async (req, res) => {
       let status = "ABSENT";
 
       if (r.leave_id) status = "ON_LEAVE";
+      else if (r.status === "HOLIDAY" || r.is_holiday) status = "HOLIDAY";
       else if (r.check_in && r.check_out) status = "PRESENT";
       else if (r.check_in && !r.check_out) status = "CHECKED_IN";
 
@@ -184,14 +210,21 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
     }
 
     const result = await pool.query(`
+      WITH day_meta AS (
+        SELECT EXISTS (
+          SELECT 1 FROM holidays WHERE holiday_date = $1::date
+        ) AS is_holiday
+      )
       SELECT
         u.user_id,
         u.name,
         u.role,
         a.check_in,
         a.check_out,
-        a.status
+        a.status,
+        dm.is_holiday
       FROM users u
+      CROSS JOIN day_meta dm
       LEFT JOIN attendance a
         ON a.user_id = u.id
         AND a.date = $1
@@ -201,7 +234,8 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
     let csv = "User ID,Name,Role,Check In,Check Out,Status\n";
 
     result.rows.forEach(r => {
-      csv += `${r.user_id},${r.name},${r.role},${r.check_in || ""},${r.check_out || ""},${r.status || "ABSENT"}\n`;
+      const status = r.status || (r.is_holiday ? "HOLIDAY" : "ABSENT");
+      csv += `${r.user_id},${r.name},${r.role},${r.check_in || ""},${r.check_out || ""},${status}\n`;
     });
 
     res.setHeader("Content-Type", "text/csv");
@@ -229,14 +263,21 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
     }
 
     const result = await pool.query(`
+      WITH day_meta AS (
+        SELECT EXISTS (
+          SELECT 1 FROM holidays WHERE holiday_date = $1::date
+        ) AS is_holiday
+      )
       SELECT
         u.user_id,
         u.name,
         u.role,
         a.check_in,
         a.check_out,
-        a.status
+        a.status,
+        dm.is_holiday
       FROM users u
+      CROSS JOIN day_meta dm
       LEFT JOIN attendance a
         ON a.user_id = u.id
         AND a.date = $1
@@ -262,7 +303,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
         role: r.role,
         check_in: r.check_in || "-",
         check_out: r.check_out || "-",
-        status: r.status || "ABSENT"
+        status: r.status || (r.is_holiday ? "HOLIDAY" : "ABSENT")
       });
     });
 
@@ -338,6 +379,13 @@ exports.getMonthlyAttendanceSummary = async (req, res) => {
       Number(month.split("-")[1]),
       0
     ).getDate();
+    const holidayDaysResult = await pool.query(
+      `SELECT COUNT(*)::int AS holiday_days
+       FROM holidays
+       WHERE holiday_date BETWEEN $1::date AND $2::date`,
+      [startDate, endDate]
+    );
+    const holidayDays = Number(holidayDaysResult.rows[0]?.holiday_days || 0);
 
     const summary = rows.map(r => {
       const present = Number(r.present_days);
@@ -345,7 +393,7 @@ exports.getMonthlyAttendanceSummary = async (req, res) => {
       const onLeave = Number(r.leave_days);
 
       const absent =
-        daysInMonth - present - checkedIn - onLeave;
+        daysInMonth - holidayDays - present - checkedIn - onLeave;
 
       return {
         user_id: r.user_id,
@@ -361,6 +409,7 @@ exports.getMonthlyAttendanceSummary = async (req, res) => {
     res.json({
       month,
       days_in_month: daysInMonth,
+      holiday_days: holidayDays,
       summary
     });
   } catch (err) {
@@ -422,6 +471,13 @@ exports.exportMonthlyAttendanceCSV = async (req, res) => {
       Number(month.split("-")[1]),
       0
     ).getDate();
+    const holidayDaysResult = await pool.query(
+      `SELECT COUNT(*)::int AS holiday_days
+       FROM holidays
+       WHERE holiday_date BETWEEN $1::date AND $2::date`,
+      [startDate, endDate]
+    );
+    const holidayDays = Number(holidayDaysResult.rows[0]?.holiday_days || 0);
 
     // CSV header
     let csv = "User ID,Name,Role,Present Days,Checked-in Days,On Leave Days,Absent Days\n";
@@ -430,7 +486,7 @@ exports.exportMonthlyAttendanceCSV = async (req, res) => {
       const present = Number(r.present_days);
       const checkedIn = Number(r.checked_in_days);
       const onLeave = Number(r.leave_days);
-      const absent = Math.max(daysInMonth - present - checkedIn - onLeave, 0);
+      const absent = Math.max(daysInMonth - holidayDays - present - checkedIn - onLeave, 0);
 
       csv += `${r.user_id},${r.name},${r.role},${present},${checkedIn},${onLeave},${absent}\n`;
     });
@@ -503,6 +559,13 @@ exports.exportMonthlyAttendanceExcel = async (req, res) => {
       Number(month.split("-")[1]),
       0
     ).getDate();
+    const holidayDaysResult = await pool.query(
+      `SELECT COUNT(*)::int AS holiday_days
+       FROM holidays
+       WHERE holiday_date BETWEEN $1::date AND $2::date`,
+      [startDate, endDate]
+    );
+    const holidayDays = Number(holidayDaysResult.rows[0]?.holiday_days || 0);
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Attendance");
@@ -521,7 +584,7 @@ exports.exportMonthlyAttendanceExcel = async (req, res) => {
       const present = Number(r.present_days);
       const checkedIn = Number(r.checked_in_days);
       const onLeave = Number(r.leave_days);
-      const absent = Math.max(daysInMonth - present - checkedIn - onLeave, 0);
+      const absent = Math.max(daysInMonth - holidayDays - present - checkedIn - onLeave, 0);
 
       sheet.addRow({
         user_id: r.user_id,
@@ -563,6 +626,7 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
         a.check_out,
 
         CASE
+          WHEN a.status = 'HOLIDAY' THEN 'HOLIDAY'
           WHEN lr.id IS NOT NULL THEN 'ON_LEAVE'
           WHEN a.status = 'LATE' THEN 'LATE'
           WHEN a.check_in IS NOT NULL AND a.check_out IS NOT NULL THEN 'PRESENT'
@@ -595,22 +659,27 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
 exports.autoProcessAttendance = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
+    const holidayRes = await pool.query(
+      `SELECT 1 FROM holidays WHERE holiday_date = $1 LIMIT 1`,
+      [today]
+    );
+    const fallbackStatus = holidayRes.rows.length > 0 ? "HOLIDAY" : "ABSENT";
 
     await pool.query(`
       INSERT INTO attendance (user_id, date, status)
       SELECT
         u.id,
         $1,
-        'ABSENT'
+        $2
       FROM users u
       WHERE NOT EXISTS (
         SELECT 1 FROM attendance a
         WHERE a.user_id = u.id
           AND a.date = $1
       )
-    `, [today]);
+    `, [today, fallbackStatus]);
 
-    res.json({ message: "Attendance auto processed successfully" });
+    res.json({ message: `Attendance auto processed successfully (${fallbackStatus})` });
 
   } catch (err) {
     console.error("Auto attendance error:", err);
