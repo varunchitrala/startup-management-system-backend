@@ -54,6 +54,16 @@ const createAttendanceTables = async () => {
       )
     `);
 
+    // Add weekly report columns to work_reports (idempotent)
+    try {
+      await pool.query(`ALTER TABLE work_reports ADD COLUMN IF NOT EXISTS skills_learned TEXT`);
+      await pool.query(`ALTER TABLE work_reports ADD COLUMN IF NOT EXISTS project_update TEXT`);
+      console.log("✅ Weekly report columns ensured on work_reports");
+    } catch (e) {
+      // Columns may already exist — safe to ignore
+      console.log("ℹ️ work_reports columns check:", e.message);
+    }
+
     console.log("✅ Attendance tables created successfully");
   } catch (err) {
     console.error("❌ Error creating attendance tables:", err.message);

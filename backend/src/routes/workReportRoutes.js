@@ -25,5 +25,10 @@ router.get(
   authMiddleware.verifyToken,
   workReportController.checkTodayReport
 );
+router.get(
+  "/check-weekly",
+  authMiddleware.verifyToken,
+  workReportController.checkWeeklyReport
+);
 
 module.exports = router;

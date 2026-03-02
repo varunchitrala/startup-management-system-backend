@@ -48,6 +48,8 @@ exports.getAllWorkReports = async (req, res) => {
         wr.week_end,
         wr.title,
         wr.work_done,
+        wr.skills_learned,
+        wr.project_update,
         wr.created_at,
         u.user_id,
         u.name,
@@ -192,14 +194,20 @@ exports.exportWorkReportsCSV = async (req, res) => {
     `, values);
 
     let csv =
-      "Name,Role,Report Type,Work Done,Report Date,Submitted At\n";
+      "Name,Role,Report Type,Work Done,Skills Learned,Project Update,Report Date,Submitted At\n";
 
     result.rows.forEach(row => {
       const safeWorkDone = (row.work_done || "")
         .replace(/"/g, '""')
         .replace(/\n/g, " ");
+      const safeSkills = (row.skills_learned || "")
+        .replace(/"/g, '""')
+        .replace(/\n/g, " ");
+      const safeProjectUpdate = (row.project_update || "")
+        .replace(/"/g, '""')
+        .replace(/\n/g, " ");
 
-      csv += `"${row.name}","${row.role}","${row.report_type}","${safeWorkDone}","${row.report_date}","${row.created_at}"\n`;
+      csv += `"${row.name}","${row.role}","${row.report_type}","${safeWorkDone}","${safeSkills}","${safeProjectUpdate}","${row.report_date}","${row.created_at}"\n`;
     });
 
     res.setHeader("Content-Type", "text/csv");
@@ -252,6 +260,8 @@ exports.exportWorkReportsExcel = async (req, res) => {
       { header: "Role", key: "role", width: 15 },
       { header: "Report Type", key: "report_type", width: 15 },
       { header: "Work Done", key: "work_done", width: 40 },
+      { header: "Skills Learned", key: "skills_learned", width: 40 },
+      { header: "Project Update", key: "project_update", width: 40 },
       { header: "Report Date", key: "report_date", width: 15 },
       { header: "Submitted At", key: "created_at", width: 25 }
     ];

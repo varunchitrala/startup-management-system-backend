@@ -474,6 +474,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loadMyLeaveBalance();
   loadMyLeaveRequests();
   loadMyWorkReports();
+  loadMyWeeklyReports();
+  checkWeeklyReportStatus();
+  setWeekRangeLabel();
 
   // Set month picker and auto-load attendance history
   const picker = document.getElementById("attendanceMonthPicker");
@@ -482,6 +485,142 @@ document.addEventListener("DOMContentLoaded", () => {
     loadMyAttendanceHistory();
   }
 });
+
+/* ================= WEEK RANGE HELPER ================= */
+function getWeekRange() {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { monday, sunday };
+}
+
+function setWeekRangeLabel() {
+  const label = document.getElementById("weekRangeLabel");
+  if (!label) return;
+  const { monday, sunday } = getWeekRange();
+  const fmt = (d) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  label.textContent = `${fmt(monday)} – ${fmt(sunday)}`;
+}
+
+/* ================= SUBMIT WEEKLY REPORT ================= */
+async function submitWeeklyReport() {
+  const skills = document.getElementById("weeklySkillsLearned").value.trim();
+  const projectUpdate = document.getElementById("weeklyProjectUpdate").value.trim();
+  const workDone = document.getElementById("weeklyWorkDone").value.trim();
+  const msgDiv = document.getElementById("weeklyReportMessage");
+
+  if (!skills && !projectUpdate && !workDone) {
+    msgDiv.innerHTML = `<div class="alert alert-danger">Please fill in at least one field</div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/work/weekly`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        skills_learned: skills,
+        project_update: projectUpdate,
+        work_done: workDone
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msgDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+      return;
+    }
+
+    msgDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+    document.getElementById("weeklySkillsLearned").value = "";
+    document.getElementById("weeklyProjectUpdate").value = "";
+    document.getElementById("weeklyWorkDone").value = "";
+    loadMyWeeklyReports();
+    checkWeeklyReportStatus();
+
+  } catch (err) {
+    console.error("Weekly report error:", err);
+    msgDiv.innerHTML = `<div class="alert alert-danger">Submission failed</div>`;
+  }
+}
+
+/* ================= CHECK WEEKLY REPORT STATUS ================= */
+async function checkWeeklyReportStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/api/work/check-weekly`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+
+    const alreadyDiv = document.getElementById("weeklyAlreadySubmitted");
+    const formDiv = document.getElementById("weeklyReportForm");
+
+    if (data.submitted) {
+      alreadyDiv.style.display = "block";
+      formDiv.style.display = "none";
+    } else {
+      alreadyDiv.style.display = "none";
+      formDiv.style.display = "block";
+    }
+  } catch (err) {
+    console.error("Check weekly status error:", err);
+  }
+}
+
+/* ================= MY WEEKLY REPORTS ARCHIVE ================= */
+async function loadMyWeeklyReports() {
+  const tbody = document.getElementById("myWeeklyReportsBody");
+  const countBadge = document.getElementById("weeklyReportCount");
+
+  try {
+    const res = await fetch(`${API_BASE}/api/work/my?type=WEEKLY`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-3">Failed to load</td></tr>`;
+      return;
+    }
+
+    const reports = await res.json();
+
+    if (reports.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No weekly reports submitted yet</td></tr>`;
+      countBadge.textContent = "0";
+      return;
+    }
+
+    countBadge.textContent = `${reports.length} report${reports.length !== 1 ? "s" : ""}`;
+
+    tbody.innerHTML = reports.map(r => {
+      const ws = new Date(r.week_start).toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "UTC" });
+      const we = new Date(r.week_end).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+      const truncate = (text) => {
+        if (!text) return "<span class='text-muted'>—</span>";
+        return text.length > 100 ? text.slice(0, 100) + "…" : text;
+      };
+      return `
+        <tr>
+          <td class="text-nowrap">${ws} – ${we}</td>
+          <td title="${(r.skills_learned || '').replace(/"/g, '&quot;')}">${truncate(r.skills_learned)}</td>
+          <td title="${(r.project_update || '').replace(/"/g, '&quot;')}">${truncate(r.project_update)}</td>
+          <td title="${(r.work_done || '').replace(/"/g, '&quot;')}">${truncate(r.work_done)}</td>
+        </tr>`;
+    }).join("");
+
+  } catch (err) {
+    console.error("Weekly reports error:", err);
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-3">Error loading</td></tr>`;
+  }
+}
 
 /* ================= MY WORK REPORTS ================= */
 async function loadMyWorkReports() {

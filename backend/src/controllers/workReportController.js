@@ -60,10 +60,10 @@ exports.submitDailyReport = async (req, res) => {
 exports.submitWeeklyReport = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { title, work_done } = req.body;
+    const { title, work_done, skills_learned, project_update } = req.body;
 
-    if (!work_done) {
-      return res.status(400).json({ message: "Work details are required" });
+    if (!work_done && !skills_learned && !project_update) {
+      return res.status(400).json({ message: "At least one field is required (work done, skills learned, or project update)" });
     }
 
     const { weekStart, weekEnd } = getWeekRange();
@@ -71,19 +71,19 @@ exports.submitWeeklyReport = async (req, res) => {
     await pool.query(
       `
       INSERT INTO work_reports
-        (user_id, report_type, week_start, week_end, title, work_done)
+        (user_id, report_type, week_start, week_end, title, work_done, skills_learned, project_update)
       VALUES
-        ($1, 'WEEKLY', $2, $3, $4, $5)
+        ($1, 'WEEKLY', $2, $3, $4, $5, $6, $7)
       `,
-      [userId, weekStart, weekEnd, title || null, work_done]
+      [userId, weekStart, weekEnd, title || null, work_done || null, skills_learned || null, project_update || null]
     );
 
-    res.json({ message: "Weekly work report submitted" });
+    res.json({ message: "Weekly report submitted successfully" });
 
   } catch (err) {
     if (err.code === "23505") {
       return res.status(400).json({
-        message: "Weekly report already submitted"
+        message: "Weekly report already submitted for this week"
       });
     }
 
@@ -112,6 +112,8 @@ exports.getMyReports = async (req, res) => {
         week_end,
         title,
         work_done,
+        skills_learned,
+        project_update,
         created_at
       FROM work_reports
       WHERE user_id = $1
@@ -147,6 +149,29 @@ exports.checkTodayReport = async (req, res) => {
 
   } catch (err) {
     console.error("Check today report error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* ================= CHECK THIS WEEK'S REPORT ================= */
+exports.checkWeeklyReport = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { weekStart } = getWeekRange();
+
+    const result = await pool.query(
+      `SELECT 1 FROM work_reports
+       WHERE user_id = $1
+         AND report_type = 'WEEKLY'
+         AND week_start = $2
+       LIMIT 1`,
+      [userId, weekStart]
+    );
+
+    res.json({ submitted: result.rows.length > 0 });
+
+  } catch (err) {
+    console.error("Check weekly report error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
