@@ -19,7 +19,7 @@ const authRoutes = require("./src/routes/authRoutes");
 const adminRoutes = require("./src/routes/adminRoutes");
 const attendanceRoutes = require("./src/routes/attendanceRoutes");
 const workReportRoutes = require("./src/routes/workReportRoutes");
-const leaveRoutes = require("./src/routes/leaveRoutes");
+const leadRoutes = require("./src/routes/leadRoutes");
 const notificationRoutes = require("./src/routes/notificationRoutes");
 // Add with other routes
 const testRoutes = require('./src/routes/testRoutes');
@@ -28,7 +28,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/work", workReportRoutes);
-app.use("/api/leave", leaveRoutes);
+app.use("/api/lead", leadRoutes);
 app.use("/api/notifications", notificationRoutes);
 /* ================= AUTOMATION ================= */
 

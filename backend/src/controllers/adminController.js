@@ -354,67 +354,7 @@ exports.removeMemberFromProject = async (req, res) => {
     client.release();
   }
 };
-// ================= DELETE PROJECT (ADMIN) =================
-exports.deleteProject = async (req, res) => {
-  const client = await pool.connect();
 
-  try {
-    const { project_id } = req.params;
-
-    await client.query("BEGIN");
-
-    // Check project exists
-    const projectCheck = await client.query(
-      `SELECT id FROM projects WHERE id = $1`,
-      [project_id]
-    );
-
-    if (projectCheck.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Project not found" });
-    }
-
-    // Remove project members
-    await client.query(
-      `DELETE FROM project_members WHERE project_id = $1`,
-      [project_id]
-    );
-
-    // Remove roadmap steps
-    await client.query(
-      `
-      DELETE FROM roadmap_steps
-      WHERE roadmap_id IN (
-        SELECT id FROM roadmaps WHERE project_id = $1
-      )
-      `,
-      [project_id]
-    );
-
-    // Remove roadmap
-    await client.query(
-      `DELETE FROM roadmaps WHERE project_id = $1`,
-      [project_id]
-    );
-
-    // Delete project
-    await client.query(
-      `DELETE FROM projects WHERE id = $1`,
-      [project_id]
-    );
-
-    await client.query("COMMIT");
-
-    res.json({ message: "Project deleted successfully" });
-
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Delete project error:", err);
-    res.status(500).json({ message: "Server error while deleting project" });
-  } finally {
-    client.release();
-  }
-};
 
 exports.assignShiftToUser = async (req, res) => {
   try {
@@ -453,29 +393,7 @@ exports.getAllTeamLeads = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-exports.autoCreateTodayAttendance = async () => {
-  try {
-    // Get all active users except ADMIN
-    const users = await pool.query(`
-      SELECT id, shift_id
-      FROM users
-      WHERE role != 'ADMIN'
-    `);
 
-    for (const user of users.rows) {
-      await pool.query(`
-        INSERT INTO attendance (user_id, date, status)
-        VALUES ($1, CURRENT_DATE, 'ABSENT')
-        ON CONFLICT (user_id, date) DO NOTHING
-      `, [user.id]);
-    }
-
-    console.log("✅ Today attendance auto-created");
-
-  } catch (err) {
-    console.error("❌ Auto attendance error:", err);
-  }
-};
 exports.getAllLeaveRequests = async (req, res) => {
   try {
     const result = await pool.query(`
@@ -535,8 +453,7 @@ exports.reviewLeaveRequest = async (req, res) => {
 
       await pool.query(
         `INSERT INTO notifications (user_id, message, is_read, created_at)
-         VALUES ($1, $2, false, NOW())
-         ON CONFLICT (user_id, message, date(created_at)) DO NOTHING`,
+         VALUES ($1, $2, false, NOW())`,
         [user_id, notifMessage]
       );
 
@@ -587,8 +504,7 @@ exports.broadcastAnnouncement = async (req, res) => {
     for (const user of users.rows) {
       await pool.query(
         `INSERT INTO notifications (user_id, message, is_read, created_at)
-         VALUES ($1, $2, $3, NOW())
-         ON CONFLICT (user_id, message, date(created_at)) DO NOTHING`,
+         VALUES ($1, $2, $3, NOW())`,
         [user.id, text, false]
       );
     }

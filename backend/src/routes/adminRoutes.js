@@ -1,4 +1,3 @@
-console.log("✅ projectController loaded");
 
 
 const express = require("express");
@@ -53,8 +52,7 @@ const {
   getOfficeSettings,
   updateOfficeSettings
 } = require("../controllers/adminAttendanceController");
-console.log("GEO 👉", getGeoSetting);
-console.log("GEO UPDATE 👉", updateGeoSetting);
+
 
 
 const {
@@ -96,7 +94,8 @@ const adminWorkController = require("../controllers/adminWorkController");
 const { toggleGeoSetting } =
   require("../controllers/adminAttendanceController");
 
-const { getAllLeaveRequests } = require("../controllers/adminController");
+
+
 
 
 /* ================= ADMIN ROUTES ================= */
@@ -391,12 +390,7 @@ router.get(
   isAdmin,
   getGeoSetting
 );
-router.get(
-  "/leave",
-  verifyToken,
-  isAdmin,
-  getAllLeaveRequests
-);
+
 router.get(
   "/leave-requests",
   verifyToken,

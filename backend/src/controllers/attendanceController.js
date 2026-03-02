@@ -175,7 +175,7 @@ exports.checkIn = async (req, res) => {
     // 🔹 Late Arrival Email Check
     // Ensure emailService is properly imported at the top of your controller
     const shiftStart = buildTimeIST(selectedShift.check_in_time);
-    
+
     if (nowIST > shiftStart) {
       const checkInTime = nowIST.toLocaleTimeString('en-IN', {
         hour: '2-digit',
@@ -352,35 +352,7 @@ exports.getMonthlyAttendanceSummary = async (req, res) => {
     res.status(500).json({ message: "Monthly report error" });
   }
 };
-// Get logged-in user's today status
-exports.getMyTodayStatus = async (req, res) => {
-  try {
-    const userId = req.user.id;
 
-    const result = await pool.query(`
-      SELECT
-        check_in,
-        check_out,
-        CASE
-          WHEN check_in IS NOT NULL AND check_out IS NOT NULL THEN 'PRESENT'
-          WHEN check_in IS NOT NULL AND check_out IS NULL THEN 'CHECKED_IN'
-          ELSE 'ABSENT'
-        END AS status
-      FROM attendance
-      WHERE user_id = $1 AND date = CURRENT_DATE
-    `, [userId]);
-
-    if (result.rows.length === 0) {
-      return res.json({ status: "ABSENT" });
-    }
-
-    res.json(result.rows[0]);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to get status" });
-  }
-};
 // ================= ADMIN: ALLOW LATE CHECK-IN =================
 exports.allowLateCheckIn = async (req, res) => {
   try {
@@ -687,11 +659,11 @@ exports.getMyLeaveBalance = async (req, res) => {
     const pending = parseInt(pendingResult.rows[0].pending_days, 10);
     const remaining = Math.max(0, QUOTA - used);
 
-    res.json({ 
-      quota: QUOTA, 
-      used, 
-      remaining, 
-      pending, 
+    res.json({
+      quota: QUOTA,
+      used,
+      remaining,
+      pending,
       year,
       // Optional: Include breakdown for transparency/debugging
       breakdown: {
