@@ -619,7 +619,7 @@ exports.autoProcessAttendance = async (req, res) => {
 };
 exports.toggleGeoSetting = async (req, res) => {
   try {
-    const { geo_enabled } = req.body;
+    const geo_enabled = req.body.geo_enabled ?? req.body.is_enabled;
 
     await pool.query(`
       UPDATE system_settings

@@ -68,29 +68,33 @@ exports.checkIn = async (req, res) => {
       `);
       const geoEnabled = geoSetting.rows[0]?.geo_enabled;
 
-      const office = await pool.query(`
-        SELECT latitude, longitude, allowed_radius FROM office_settings LIMIT 1
-      `);
+      // Only enforce location checks when geo-fencing is enabled
+      if (geoEnabled) {
+        const office = await pool.query(`
+          SELECT latitude, longitude, allowed_radius FROM office_settings LIMIT 1
+        `);
 
-      if (office.rows.length === 0) {
-        return res.status(400).json({ message: "Office location not configured" });
-      }
+        if (office.rows.length === 0) {
+          return res.status(400).json({ message: "Office location not configured" });
+        }
 
-      if (!latitude || !longitude) {
-        return res.status(400).json({ message: "Location required for check-in" });
-      }
+        if (!latitude || !longitude) {
+          return res.status(400).json({ message: "Location required for check-in" });
+        }
 
-      const officeLat = office.rows[0].latitude;
-      const officeLon = office.rows[0].longitude;
-      const allowedRadius = office.rows[0].allowed_radius;
+        const officeLat = office.rows[0].latitude;
+        const officeLon = office.rows[0].longitude;
+        const allowedRadius = office.rows[0].allowed_radius;
 
-      // Ensure getDistanceInMeters is correctly imported/defined in your file
-      const distance = getDistanceInMeters(latitude, longitude, officeLat, officeLon);
+        const distance = getDistanceInMeters(latitude, longitude, officeLat, officeLon);
 
-      console.log(`📏 Distance from office: ${distance}m | Allowed: ${allowedRadius}m | GeoEnabled: ${geoEnabled}`);
+        console.log(`📏 Distance from office: ${distance}m | Allowed: ${allowedRadius}m | GeoEnabled: ${geoEnabled}`);
 
-      if (geoEnabled && distance > allowedRadius) {
-        return res.status(403).json({ message: "You are outside office location" });
+        if (distance > allowedRadius) {
+          return res.status(403).json({ message: "You are outside office location" });
+        }
+      } else {
+        console.log("🌍 Geo-fencing disabled — skipping location check");
       }
     } else {
       console.log("👑 Admin user — skipping geo check");
