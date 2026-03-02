@@ -21,13 +21,23 @@ if (!emailHost || !emailUser || !emailPassword) {
 
 const createTransporter = (port) => {
   const secure = port === 465;
+  const forceIpv4Lookup = (hostname, options, callback) => {
+    // Force A-record resolution so Node never attempts IPv6 (AAAA) sockets.
+    dns.resolve4(hostname, (err, addresses) => {
+      if (err || !addresses || addresses.length === 0) {
+        return callback(err || new Error(`No IPv4 address found for ${hostname}`));
+      }
+      callback(null, addresses[0], 4);
+    });
+  };
+
   return nodemailer.createTransport({
     host: emailHost,
     port,
     secure,
     requireTLS: !secure,
-    // Prefer IPv4 in cloud runtimes where IPv6 SMTP routing can timeout.
-    family: 4,
+    // Hard-force IPv4 DNS lookup to avoid ENETUNREACH IPv6 errors on Render.
+    lookup: forceIpv4Lookup,
     // Keep verify/send failures fast enough to avoid edge-proxy request timeouts.
     connectionTimeout: 8000,
     greetingTimeout: 8000,
