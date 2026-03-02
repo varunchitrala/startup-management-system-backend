@@ -1583,7 +1583,15 @@ async function checkEmailHealth() {
     `;
   } catch (err) {
     console.error('Email health check failed:', err);
-    healthDiv.innerHTML = '<div class="alert alert-danger">Email health check failed</div>';
+    healthDiv.innerHTML = `
+      <div class="alert alert-danger">
+        Email health check failed.
+        <div class="small mt-2">
+          This is usually a backend timeout/network issue (often shown by browser as a CORS error).
+          Check Render backend logs and retry.
+        </div>
+      </div>
+    `;
   }
 }
 

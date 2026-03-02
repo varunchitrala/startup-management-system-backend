@@ -28,9 +28,10 @@ const createTransporter = (port) => {
     requireTLS: !secure,
     // Prefer IPv4 in cloud runtimes where IPv6 SMTP routing can timeout.
     family: 4,
-    connectionTimeout: 25000,
-    greetingTimeout: 25000,
-    socketTimeout: 30000,
+    // Keep verify/send failures fast enough to avoid edge-proxy request timeouts.
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
     auth: {
       user: emailUser,
       pass: emailPassword
