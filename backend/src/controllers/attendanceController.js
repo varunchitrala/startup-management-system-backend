@@ -566,12 +566,8 @@ exports.getMyAttendanceHistory = async (req, res) => {
     const result = await pool.query(
       `SELECT
          a.date,
-         CASE WHEN a.check_in IS NOT NULL
-              THEN TO_CHAR(a.check_in AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM')
-              ELSE NULL END AS check_in,
-         CASE WHEN a.check_out IS NOT NULL
-              THEN TO_CHAR(a.check_out AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM')
-              ELSE NULL END AS check_out,
+         a.check_in,
+         a.check_out,
          a.status,
          s.name AS shift_name
        FROM attendance a
@@ -582,7 +578,27 @@ exports.getMyAttendanceHistory = async (req, res) => {
       [userId, month]
     );
 
-    res.json(result.rows);
+    const formattedRows = result.rows.map(r => {
+      const formatTime = (dateStr) => {
+        if (!dateStr) return null;
+        // The postgres driver parses 'timestamp' as UTC if local timezone is UTC,
+        // or provides a Date object representing the absolute time.
+        return new Date(dateStr).toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Asia/Kolkata'
+        });
+      };
+
+      return {
+        ...r,
+        check_in: formatTime(r.check_in),
+        check_out: formatTime(r.check_out)
+      };
+    });
+
+    res.json(formattedRows);
   } catch (err) {
     console.error("My attendance history error:", err);
     res.status(500).json({ message: "Server error" });
