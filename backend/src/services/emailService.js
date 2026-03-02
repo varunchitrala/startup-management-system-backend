@@ -6,43 +6,69 @@ const emailPort = Number(process.env.EMAIL_PORT || 587);
 const emailUser = process.env.EMAIL_USER;
 const emailPassword = process.env.EMAIL_PASSWORD;
 const emailSecure = emailPort === 465;
+const isGmailHost = (emailHost || "").toLowerCase() === "smtp.gmail.com";
 
 if (!emailHost || !emailUser || !emailPassword) {
   console.error("Email config missing. Required: EMAIL_HOST, EMAIL_USER, EMAIL_PASSWORD");
 }
 
-// Create transporter
-const transporter = nodemailer.createTransport({
-  host: emailHost,
-  port: emailPort,
-  secure: emailSecure,
-  requireTLS: !emailSecure,
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 20000,
-  auth: {
-    user: emailUser,
-    pass: emailPassword
-  },
-  tls: {
-    minVersion: "TLSv1.2"
-  }
+const createTransporter = (port) => {
+  const secure = port === 465;
+  return nodemailer.createTransport({
+    host: emailHost,
+    port,
+    secure,
+    requireTLS: !secure,
+    // Prefer IPv4 in cloud runtimes where IPv6 SMTP routing can timeout.
+    family: 4,
+    connectionTimeout: 25000,
+    greetingTimeout: 25000,
+    socketTimeout: 30000,
+    auth: {
+      user: emailUser,
+      pass: emailPassword
+    },
+    tls: {
+      minVersion: "TLSv1.2"
+    }
+  });
+};
+
+// Primary transport from env port; fallback is only used when needed.
+const transporter = createTransporter(emailPort);
+
+const shouldTryGmailFallback = (error, port) =>
+  isGmailHost && Number(port) === 587 && (error?.code === "ETIMEDOUT" || error?.command === "CONN");
+
+const normalizeVerifyError = (error) => ({
+  ok: false,
+  code: error?.code || null,
+  message: error?.message || "Unknown verify error",
+  response: error?.response || null,
+  command: error?.command || null
 });
 
 const verifyEmailConnection = async () => {
   try {
     await transporter.verify();
     console.log(`Email service ready (${emailHost}:${emailPort}, secure=${emailSecure})`);
-    return { ok: true };
+    return { ok: true, host: emailHost, port: emailPort, secure: emailSecure };
   } catch (error) {
     console.error("Email service verify failed:", error?.code || error?.name, error?.message || error);
-    return {
-      ok: false,
-      code: error?.code || null,
-      message: error?.message || "Unknown verify error",
-      response: error?.response || null,
-      command: error?.command || null
-    };
+
+    if (shouldTryGmailFallback(error, emailPort)) {
+      try {
+        const fallback = createTransporter(465);
+        await fallback.verify();
+        console.log("Email fallback verify succeeded (smtp.gmail.com:465, secure=true)");
+        return { ok: true, host: emailHost, port: 465, secure: true, fallbackUsed: true };
+      } catch (fallbackError) {
+        console.error("Email fallback verify failed:", fallbackError?.code || fallbackError?.name, fallbackError?.message || fallbackError);
+        return normalizeVerifyError(fallbackError);
+      }
+    }
+
+    return normalizeVerifyError(error);
   }
 };
 
@@ -61,9 +87,27 @@ const sendEmail = async (to, subject, html) => {
     });
 
     console.log(`Email sent to ${to}: ${info.messageId} | ${info.response || "no-response"}`);
-    return { success: true, messageId: info.messageId, response: info.response };
+    return { success: true, messageId: info.messageId, response: info.response, port: emailPort };
   } catch (error) {
-    console.error(`Failed to send email to ${to}:`, error?.message || error);
+    console.error(`Failed to send email to ${to}:`, error?.code || error?.name, error?.message || error);
+
+    if (shouldTryGmailFallback(error, emailPort)) {
+      try {
+        const fallback = createTransporter(465);
+        const info = await fallback.sendMail({
+          from: `"${process.env.COMPANY_NAME || 'Company'}" <${emailUser}>`,
+          to,
+          subject,
+          html
+        });
+        console.log(`Email sent via fallback 465 to ${to}: ${info.messageId} | ${info.response || "no-response"}`);
+        return { success: true, messageId: info.messageId, response: info.response, port: 465, fallbackUsed: true };
+      } catch (fallbackError) {
+        console.error(`Fallback send failed to ${to}:`, fallbackError?.code || fallbackError?.name, fallbackError?.message || fallbackError);
+        return { success: false, error: fallbackError?.message || "Email fallback failed" };
+      }
+    }
+
     return { success: false, error: error.message };
   }
 };
