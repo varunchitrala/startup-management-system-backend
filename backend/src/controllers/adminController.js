@@ -424,7 +424,7 @@ exports.getAllLeaveRequests = async (req, res) => {
 exports.reviewLeaveRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, rejection_reason } = req.body;
 
     if (!["APPROVED", "REJECTED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
@@ -437,7 +437,7 @@ exports.reviewLeaveRequest = async (req, res) => {
       [status, req.user.id, id]
     );
 
-    // Fetch leave + user details for notification and attendance
+    // Fetch leave + user details for notification
     const leave = await pool.query(
       `SELECT lr.user_id, lr.from_date, lr.to_date
        FROM leave_requests lr WHERE lr.id = $1`,
@@ -447,9 +447,14 @@ exports.reviewLeaveRequest = async (req, res) => {
     if (leave.rows.length > 0) {
       const { user_id, from_date, to_date } = leave.rows[0];
 
-      // 🔔 Notify the user of the decision
-      const emoji = status === "APPROVED" ? "✅" : "❌";
-      const notifMessage = `${emoji} Your leave request (${from_date} → ${to_date}) has been ${status} by Admin.`;
+      // Build notification — include rejection reason so member knows why
+      const emoji = status === "APPROVED" ? "\u2705" : "\u274c";
+      let notifMessage;
+      if (status === "REJECTED" && rejection_reason && rejection_reason.trim()) {
+        notifMessage = `${emoji} Your leave request (${from_date} \u2192 ${to_date}) has been REJECTED. Reason: ${rejection_reason.trim()}`;
+      } else {
+        notifMessage = `${emoji} Your leave request (${from_date} \u2192 ${to_date}) has been ${status} by Admin.`;
+      }
 
       await pool.query(
         `INSERT INTO notifications (user_id, message, is_read, created_at)
@@ -457,7 +462,7 @@ exports.reviewLeaveRequest = async (req, res) => {
         [user_id, notifMessage]
       );
 
-      // If APPROVED — mark attendance as ON_LEAVE for those days
+      // If APPROVED mark attendance as ON_LEAVE for those days
       if (status === "APPROVED") {
         await pool.query(`
           INSERT INTO attendance (user_id, date, status)
@@ -468,14 +473,21 @@ exports.reviewLeaveRequest = async (req, res) => {
             WHERE a.user_id = $1 AND a.date = d::date
           )
         `, [user_id, from_date, to_date]);
+      }
 
-        await emailService.sendLeaveApprovedEmail(user_id, leave.rows[0]);
-      } else {
-        await emailService.sendLeaveRejectedEmail(user_id, leave.rows[0], req.body.rejection_reason);
+      // Try email but NEVER crash the endpoint if it fails (Render email issues)
+      try {
+        if (status === "APPROVED") {
+          await emailService.sendLeaveApprovedEmail(user_id, leave.rows[0]);
+        } else {
+          await emailService.sendLeaveRejectedEmail(user_id, leave.rows[0], rejection_reason);
+        }
+      } catch (emailErr) {
+        console.warn("Email notification failed (non-fatal):", emailErr.message);
       }
     }
 
-    res.json({ message: `Leave ${status}` });
+    res.json({ message: `Leave ${status.toLowerCase()} successfully` });
 
   } catch (err) {
     console.error("Review leave error:", err);

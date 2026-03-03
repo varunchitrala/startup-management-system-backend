@@ -14,13 +14,12 @@ exports.updateLeaveStatus = async (req, res) => {
     }
 
     const { leaveId } = req.params;
-    const { status, rejection_reason } = req.body; // Add rejection_reason
+    const { status, rejection_reason } = req.body;
 
     if (!["APPROVED", "REJECTED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    // ✅ GET LEAVE DETAILS BEFORE UPDATING
     const leaveResult = await pool.query(
       'SELECT * FROM leave_requests WHERE id = $1',
       [leaveId]
@@ -32,39 +31,36 @@ exports.updateLeaveStatus = async (req, res) => {
 
     const leaveRequest = leaveResult.rows[0];
 
-    // Update status
+    // Update status (only columns that exist in the table)
     await pool.query(
-      `UPDATE leave_requests
-       SET status = $1,
-           reviewed_by = $2,
-           reviewed_at = CURRENT_TIMESTAMP
-       WHERE id = $3`,
-      [status, req.user.id, leaveId]
+      `UPDATE leave_requests SET status = $1 WHERE id = $2`,
+      [status, leaveId]
     );
 
-    // ✅ SEND EMAIL NOTIFICATION
-    if (status === 'APPROVED') {
-      await emailService.sendLeaveApprovedEmail(leaveRequest.user_id, leaveRequest);
-      
-      // Also create notification
-      await pool.query(
-        `INSERT INTO notifications (user_id, message, is_read, created_at)
-         VALUES ($1, $2, false, NOW())`,
-        [leaveRequest.user_id, `Your leave request from ${leaveRequest.from_date} to ${leaveRequest.to_date} has been approved.`]
-      );
+    // Build notification with reason
+    const emoji = status === "APPROVED" ? "\u2705" : "\u274c";
+    let notifMessage;
+    if (status === "REJECTED" && rejection_reason && rejection_reason.trim()) {
+      notifMessage = `${emoji} Your leave request (${leaveRequest.from_date} \u2192 ${leaveRequest.to_date}) has been REJECTED. Reason: ${rejection_reason.trim()}`;
     } else {
-      await emailService.sendLeaveRejectedEmail(
-        leaveRequest.user_id, 
-        leaveRequest, 
-        rejection_reason
-      );
-      
-      // Also create notification
-      await pool.query(
-        `INSERT INTO notifications (user_id, message, is_read, created_at)
-         VALUES ($1, $2, false, NOW())`,
-        [leaveRequest.user_id, `Your leave request from ${leaveRequest.from_date} to ${leaveRequest.to_date} has been rejected.`]
-      );
+      notifMessage = `${emoji} Your leave request (${leaveRequest.from_date} \u2192 ${leaveRequest.to_date}) has been ${status} by Admin.`;
+    }
+
+    await pool.query(
+      `INSERT INTO notifications (user_id, message, is_read, created_at)
+       VALUES ($1, $2, false, NOW())`,
+      [leaveRequest.user_id, notifMessage]
+    );
+
+    // Try email — never crash the endpoint if it fails
+    try {
+      if (status === "APPROVED") {
+        await emailService.sendLeaveApprovedEmail(leaveRequest.user_id, leaveRequest);
+      } else {
+        await emailService.sendLeaveRejectedEmail(leaveRequest.user_id, leaveRequest, rejection_reason);
+      }
+    } catch (emailErr) {
+      console.warn("Email notification failed (non-fatal):", emailErr.message);
     }
 
     res.json({ message: `Leave ${status.toLowerCase()} successfully` });
