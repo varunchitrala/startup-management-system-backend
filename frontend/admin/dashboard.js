@@ -1429,12 +1429,22 @@ let rejectModalInstance = null;
 // Show rejection modal
 function showRejectModal(leaveId) {
   currentLeaveId = leaveId;
+
+  // Reset form state every time modal opens
   document.getElementById('rejectionReason').value = '';
   document.getElementById('rejectMessage').innerHTML = '';
 
+  // Reset button to original state
+  const btn = document.getElementById('confirmRejectBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Reject Leave'; }
+
   const modalEl = document.getElementById('rejectLeaveModal');
+
+  // Remove stale aria-hidden added by Bootstrap that can block the modal
+  modalEl.removeAttribute('aria-hidden');
+
   if (!rejectModalInstance) {
-    rejectModalInstance = new bootstrap.Modal(modalEl);
+    rejectModalInstance = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
   }
   rejectModalInstance.show();
 }
@@ -1445,11 +1455,12 @@ async function confirmRejectLeave() {
   const messageDiv = document.getElementById('rejectMessage');
 
   if (!reason) {
-    messageDiv.innerHTML = '<div class="alert alert-danger py-1 mb-0">Please provide a reason</div>';
+    messageDiv.innerHTML = '<div class="alert alert-danger py-1 mb-0">Please provide a reason for rejection</div>';
     return;
   }
 
-  const btn = document.querySelector('#rejectLeaveModal .btn-danger');
+  // Use the button's direct ID for reliable selection
+  const btn = document.getElementById('confirmRejectBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Rejecting…'; }
 
   try {
@@ -1468,20 +1479,24 @@ async function confirmRejectLeave() {
     const data = await res.json();
 
     if (!res.ok) {
-      messageDiv.innerHTML = `<div class="alert alert-danger py-1 mb-0">${data.message}</div>`;
-      if (btn) { btn.disabled = false; btn.textContent = 'Confirm Reject'; }
+      messageDiv.innerHTML = `<div class="alert alert-danger py-1 mb-0">${data.message || 'Failed to reject leave'}</div>`;
+      if (btn) { btn.disabled = false; btn.textContent = 'Reject Leave'; }
       return;
     }
 
-    // Close modal immediately and refresh
+    // Success: close modal immediately then refresh
     if (rejectModalInstance) rejectModalInstance.hide();
+    // Reset button for next use
+    if (btn) { btn.disabled = false; btn.textContent = 'Reject Leave'; }
+
     loadLeaveRequests();
     loadDashboardSummary();
+    showToast('✅ Leave rejected successfully');
 
   } catch (err) {
-    console.error(err);
-    messageDiv.innerHTML = '<div class="alert alert-danger py-1 mb-0">Failed to reject leave</div>';
-    if (btn) { btn.disabled = false; btn.textContent = 'Confirm Reject'; }
+    console.error('Reject leave error:', err);
+    messageDiv.innerHTML = '<div class="alert alert-danger py-1 mb-0">Network error. Please try again.</div>';
+    if (btn) { btn.disabled = false; btn.textContent = 'Reject Leave'; }
   }
 }
 
