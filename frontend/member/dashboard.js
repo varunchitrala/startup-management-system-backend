@@ -192,7 +192,7 @@ async function submitMemberDailyReport() {
 
     document.getElementById("memberWorkDone").value = "";
     loadMyWorkReports(); // refresh archive instantly
-
+    updateCheckoutBanner(); // hide banner immediately
 
   } catch (err) {
     console.error(err);
@@ -357,6 +357,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadMyWeeklyReports();
   checkWeeklyReportStatus();
   setWeekRangeLabel();
+  updateCheckoutBanner();
 
   // Set month picker to current month and auto-load
   const picker = document.getElementById("attendanceMonthPicker");
@@ -368,10 +369,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
 const MEMBER_LIVE_REFRESH_MS = 15000;
 
+/* ================= CHECKOUT REMINDER BANNER ================= */
+async function updateCheckoutBanner() {
+  try {
+    const banner = document.getElementById("checkoutReminderBanner");
+    if (!banner) return;
+
+    const statusRes = await fetch(`${API_BASE}/api/attendance/my-status`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const statusData = await statusRes.json();
+
+    if (statusData.status !== "CHECKED_IN") {
+      banner.classList.remove("visible");
+      return;
+    }
+
+    const reportRes = await fetch(`${API_BASE}/api/work/check-today`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const reportData = await reportRes.json();
+
+    if (reportData.submitted) {
+      banner.classList.remove("visible");
+    } else {
+      banner.classList.add("visible");
+    }
+  } catch (err) {
+    console.error("Banner check error:", err);
+  }
+}
+
 function refreshMemberLiveData() {
   loadStatus();
   loadNotifications();
   checkWeeklyReportStatus();
+  updateCheckoutBanner();
 
   const picker = document.getElementById("attendanceMonthPicker");
   if (picker && picker.value) {
