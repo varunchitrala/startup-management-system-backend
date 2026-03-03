@@ -17,6 +17,23 @@ function logout() {
   window.location.href = "../index.html";
 }
 
+/* ================= TOAST UTILITY ================= */
+function showToast(message, type = "success") {
+  let container = document.getElementById("toastContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toastContainer";
+    container.style.cssText = "position:fixed;top:64px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;";
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement("div");
+  toast.style.cssText = `background:${type === "success" ? "#00875a" : "#de350b"};color:white;padding:10px 18px;border-radius:4px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.18);opacity:0;transition:opacity 0.2s;max-width:320px;`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = "1"; }, 10);
+  setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
 
 /***********************
  * COMMON FETCH
@@ -230,8 +247,10 @@ async function deleteProject() {
       { method: "DELETE" }
     );
 
-    alert("Project deleted");
     loadAdminProjects();
+    loadDashboardSummary();
+    loadWorkReportDashboard();
+    showToast("✅ Project deleted");
   } catch (err) {
     alert(err.message);
   }
@@ -241,20 +260,27 @@ async function deleteProject() {
  * CREATE TEAM LEAD
  ***********************/
 async function createTeamLead() {
-  const name = document.getElementById("tlName").value;
-  const email = document.getElementById("tlEmail").value;
+  const name = document.getElementById("tlName").value.trim();
+  const email = document.getElementById("tlEmail").value.trim();
   const password = document.getElementById("tlPassword").value;
+
+  if (!name || !email || !password) return alert("All fields are required");
 
   try {
     const res = await apiRequest(
       `${API_BASE}/api/admin/create-team-lead`,
-      {
-        method: "POST",
-        body: JSON.stringify({ name, email, password })
-      }
+      { method: "POST", body: JSON.stringify({ name, email, password }) }
     );
 
-    alert(`Team Lead created: ${res.user_id}`);
+    // Clear inputs & refresh
+    document.getElementById("tlName").value = "";
+    document.getElementById("tlEmail").value = "";
+    document.getElementById("tlPassword").value = "";
+    loadDashboardSummary();
+    loadTeamLeads();       // refresh lead dropdown
+    loadTodayAttendance();
+    // Show inline toast instead of alert
+    showToast(`✅ Team Lead created: ${res.user_id}`);
   } catch (err) {
     alert(err.message);
   }
@@ -264,20 +290,25 @@ async function createTeamLead() {
  * CREATE TEAM MEMBER
  ***********************/
 async function createTeamMember() {
-  const name = document.getElementById("tmName").value;
-  const email = document.getElementById("tmEmail").value;
+  const name = document.getElementById("tmName").value.trim();
+  const email = document.getElementById("tmEmail").value.trim();
   const password = document.getElementById("tmPassword").value;
+
+  if (!name || !email || !password) return alert("All fields are required");
 
   try {
     const res = await apiRequest(
       `${API_BASE}/api/admin/create-team-member`,
-      {
-        method: "POST",
-        body: JSON.stringify({ name, email, password })
-      }
+      { method: "POST", body: JSON.stringify({ name, email, password }) }
     );
 
-    alert(`Team Member created: ${res.user_id}`);
+    // Clear inputs & refresh
+    document.getElementById("tmName").value = "";
+    document.getElementById("tmEmail").value = "";
+    document.getElementById("tmPassword").value = "";
+    loadDashboardSummary();
+    loadTodayAttendance();
+    showToast(`✅ Team Member created: ${res.user_id}`);
   } catch (err) {
     alert(err.message);
   }
@@ -463,32 +494,25 @@ async function loadRoadmapProgress(projectId) {
 }
 
 async function allowLateCheckIn(userId) {
-  if (!userId) {
-    alert("User ID missing");
-    return;
+  if (!userId) { alert("User ID missing"); return; }
+  if (!confirm("Allow late check-in for this user?")) return;
+
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/admin/attendance/allow-late/${userId}`,
+      { method: "POST", headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await res.json();
+
+    if (!res.ok) { alert(data.message || "Failed"); return; }
+
+    loadTodayAttendance();
+    loadDashboardSummary();
+    loadLateUsers();
+    showToast(`✅ ${data.message}`);
+  } catch (err) {
+    alert("Request failed");
   }
-
-  if (!confirm("Allow late check-in?")) return;
-
-  const res = await fetch(
-    `${API_BASE}/api/admin/attendance/allow-late/${userId}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    }
-  );
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    alert(data.message || "Failed");
-    return;
-  }
-
-  alert(data.message);
-  loadTodayAttendance(); // refresh table
 }
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -165,6 +165,7 @@ checkInBtn.onclick = () => {
 
         loadMyStatus();   // ✅ correct function
         loadMyAttendanceHistory(); // refresh attendance table instantly
+        updateCheckoutBanner();    // show banner (checked in, no report yet)
 
       } catch (err) {
         console.error("Check-in error:", err);
@@ -230,6 +231,7 @@ checkOutBtn.onclick = async () => {
 
     loadMyStatus();   // ✅ correct
     loadMyAttendanceHistory(); // refresh attendance table instantly
+    updateCheckoutBanner();    // banner should now clear
 
   } catch (err) {
     console.error("Checkout error:", err);
@@ -388,8 +390,12 @@ async function assignMembers() {
 
   const data = await res.json();
 
-  document.getElementById("assignMessage").innerHTML =
-    `<div class="alert alert-success">${data.message}</div>`;
+  const msgEl = document.getElementById("assignMessage");
+  msgEl.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+  setTimeout(() => { msgEl.innerHTML = ""; }, 3000);
+
+  // Reload roadmap if a project is currently selected
+  if (selectedProjectId) loadRoadmap(selectedProjectId);
 }
 
 //loadMembers();

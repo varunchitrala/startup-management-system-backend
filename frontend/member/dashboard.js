@@ -78,6 +78,7 @@ checkInBtn.onclick = () => {
 
         loadStatus();
         loadMyAttendanceHistory(); // refresh attendance table instantly
+        updateCheckoutBanner();    // show banner now (checked in, no report yet)
 
       } catch (err) {
         console.error("Check-in error:", err);
@@ -146,6 +147,7 @@ checkOutBtn.onclick = async () => {
 
     loadStatus();
     loadMyAttendanceHistory(); // refresh attendance table instantly
+    updateCheckoutBanner();    // banner should clear now
 
   } catch (err) {
     console.error("Check-out error:", err);
