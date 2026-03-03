@@ -498,3 +498,29 @@ exports.getTodayWorkReportDashboard = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* ================= ADMIN: MISSED CHECKOUTS ================= */
+exports.getMissedCheckouts = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        mc.id,
+        mc.date,
+        mc.auto_checkout_at,
+        mc.work_done,
+        mc.late_reason,
+        mc.submitted_at,
+        mc.status,
+        u.user_id,
+        u.name,
+        u.role
+      FROM missed_checkouts mc
+      JOIN users u ON u.id = mc.user_id
+      ORDER BY mc.date DESC, mc.status ASC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Missed checkouts error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

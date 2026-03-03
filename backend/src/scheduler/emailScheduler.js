@@ -33,7 +33,7 @@ cron.schedule('0 21 * * *', async () => {
   console.log('⏰ Running: Missing checkout reminder');
   try {
     const today = new Date().toISOString().split('T')[0];
-    
+
     // Find users who checked in but didn't check out
     const result = await pool.query(`
       SELECT user_id
@@ -242,5 +242,43 @@ cron.schedule('0 9 1 * *', async () => {
 });
 
 console.log('✅ Email scheduler initialized');
+
+// ⏰ AUTO-CHECKOUT at 11:59 PM IST
+cron.schedule('59 23 * * *', async () => {
+  console.log('⏰ Running: Auto-checkout for forgotten checkouts');
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const checkedIn = await pool.query(`
+      SELECT a.user_id, a.id AS aid
+      FROM attendance a
+      WHERE a.date = $1 AND a.status = 'CHECKED_IN'
+        AND a.check_in IS NOT NULL AND a.check_out IS NULL
+    `, [today]);
+
+    for (const row of checkedIn.rows) {
+      await pool.query(
+        `UPDATE attendance SET check_out = NOW(), status = 'PRESENT' WHERE id = $1`,
+        [row.aid]
+      );
+      const rpt = await pool.query(
+        `SELECT 1 FROM work_reports WHERE user_id=$1 AND report_type='DAILY' AND report_date=$2 LIMIT 1`,
+        [row.user_id, today]
+      );
+      if (rpt.rows.length === 0) {
+        await pool.query(
+          `INSERT INTO missed_checkouts (user_id,date,auto_checkout_at,status) VALUES ($1,$2,NOW(),'PENDING') ON CONFLICT (user_id,date) DO NOTHING`,
+          [row.user_id, today]
+        );
+        await pool.query(
+          `INSERT INTO notifications (user_id,message,is_read,created_at) VALUES ($1,$2,false,NOW())`,
+          [row.user_id, 'You were auto-checked-out without submitting your daily report. Please submit your work and reason on next login.']
+        );
+      }
+    }
+    console.log('Auto-checkout done: ' + checkedIn.rows.length + ' users');
+  } catch (error) {
+    console.error('Auto-checkout failed:', error);
+  }
+}, { timezone: "Asia/Kolkata" });
 
 module.exports = {};

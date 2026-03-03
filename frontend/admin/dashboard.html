@@ -693,6 +693,10 @@
             <button class="nav-link rounded-top-2 fw-semibold text-dark" data-bs-toggle="tab"
               data-bs-target="#tab-leaves">Leave Exception Registry</button>
           </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-top-2 fw-semibold text-danger" data-bs-toggle="tab"
+              data-bs-target="#tab-missed">Missed Checkouts</button>
+          </li>
         </ul>
 
         <div class="tab-content border-top" style="max-height: 400px; overflow-y: auto;">
@@ -798,6 +802,26 @@
                 </tr>
               </thead>
               <tbody id="leaveRequestsTable"></tbody>
+            </table>
+          </div>
+
+          <div class="tab-pane fade p-0" id="tab-missed">
+            <table class="table-enterprise">
+              <thead class="bg-light sticky-top">
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Date Missed</th>
+                  <th style="width: 30%;">Work Done</th>
+                  <th style="width: 20%;">Reason</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="missedCheckoutsTable">
+                <tr>
+                  <td colspan="6" class="text-center text-muted py-4">Loading missed checkouts...</td>
+                </tr>
+              </tbody>
             </table>
           </div>
 

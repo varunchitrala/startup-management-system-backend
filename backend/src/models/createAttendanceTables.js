@@ -1,7 +1,6 @@
 require("dotenv").config();
 const pool = require("../config/db");
 
-
 const createAttendanceTables = async () => {
   try {
     // Admin-defined office timing
@@ -54,6 +53,21 @@ const createAttendanceTables = async () => {
       )
     `);
 
+    // Missed checkouts — tracks auto-checkouts requiring late report
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS missed_checkouts (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        date DATE NOT NULL,
+        auto_checkout_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        work_done TEXT,
+        late_reason TEXT,
+        submitted_at TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'PENDING',
+        UNIQUE (user_id, date)
+      )
+    `);
+
     // Admin-managed holidays
     await pool.query(`
       CREATE TABLE IF NOT EXISTS holidays (
@@ -70,7 +84,6 @@ const createAttendanceTables = async () => {
       await pool.query(`ALTER TABLE work_reports ADD COLUMN IF NOT EXISTS project_update TEXT`);
       console.log("✅ Weekly report columns ensured on work_reports");
     } catch (e) {
-      // Columns may already exist — safe to ignore
       console.log("ℹ️ work_reports columns check:", e.message);
     }
 

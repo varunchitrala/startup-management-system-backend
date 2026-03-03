@@ -528,6 +528,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAdminStatus();
   loadGeoSetting();
   loadLeaveRequests();
+  loadMissedCheckouts();
 
 
 
@@ -561,6 +562,7 @@ function refreshAdminLiveData() {
   loadAdminStatus();
   loadLateUsers();
   loadLeaveRequests();
+  loadMissedCheckouts();
 
   const projectSelect = document.getElementById("projectSelect");
   if (projectSelect && projectSelect.value) {
@@ -1420,6 +1422,63 @@ async function changePassword() {
   } catch (err) {
     console.error("Change password error:", err);
     msgDiv.innerHTML = `<span class="text-danger">Failed to update password</span>`;
+  }
+}
+
+/* ================= MISSED CHECKOUTS ================= */
+async function loadMissedCheckouts() {
+  const tbody = document.getElementById("missedCheckoutsTable");
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/missed-checkouts`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Failed to load missed checkouts</td></tr>`;
+      return;
+    }
+
+    const records = await res.json();
+
+    if (records.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No missed checkouts.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = records.map(r => {
+      const dateStr = new Date(r.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+      const statusBadge = r.status === 'PENDING'
+        ? '<span class="badge bg-warning text-dark">PENDING</span>'
+        : '<span class="badge bg-success">RESOLVED</span>';
+
+      return `
+        <tr>
+          <td>
+            <div class="fw-bold">${r.name}</div>
+            <div class="small text-muted">${r.user_id}</div>
+          </td>
+          <td><span class="badge bg-light text-dark border">${r.role}</span></td>
+          <td>${dateStr}</td>
+          <td>
+            <div style="max-height: 60px; overflow-y: auto; font-size: 12px;" class="text-muted">
+              ${r.work_done || '—'}
+            </div>
+          </td>
+          <td>
+            <div style="max-height: 60px; overflow-y: auto; font-size: 12px;">
+              ${r.late_reason || '—'}
+            </div>
+          </td>
+          <td>${statusBadge}</td>
+        </tr>
+      `;
+    }).join("");
+
+  } catch (err) {
+    console.error("Load missed checkouts error:", err);
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Error loading</td></tr>`;
   }
 }
 let currentLeaveId = null;

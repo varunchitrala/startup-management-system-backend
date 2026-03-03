@@ -367,7 +367,35 @@ document.addEventListener("DOMContentLoaded", () => {
     picker.value = new Date().toISOString().slice(0, 7);
     loadMyAttendanceHistory();
   }
+
+  // Enforce missed checkout report
+  checkPendingMissed();
 });
+
+// Add this just below DOMContentLoaded
+let missedCheckoutModalInstance = null;
+async function checkPendingMissed() {
+  try {
+    const res = await fetch(`${API_BASE}/api/work/pending-missed`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const pending = await res.json();
+    if (pending && pending.length > 0) {
+      const mc = pending[0];
+      document.getElementById("mcId").value = mc.id;
+      const fmtDate = new Date(mc.date).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById("mcDateText").innerText = fmtDate;
+      missedCheckoutModalInstance = new bootstrap.Modal(document.getElementById('missedCheckoutModal'), {
+        backdrop: 'static',
+        keyboard: false
+      });
+      missedCheckoutModalInstance.show();
+    }
+  } catch (err) {
+    console.error("Pending missed check error:", err);
+  }
+}
 
 const MEMBER_LIVE_REFRESH_MS = 15000;
 
@@ -899,5 +927,52 @@ async function changePassword() {
   } catch (err) {
     console.error("Change password error:", err);
     msgDiv.innerHTML = `<span class="text-danger">Failed to update password</span>`;
+  }
+}
+
+/* ================= MISSED CHECKOUT SUBMISSION ================= */
+async function submitMissedCheckout() {
+  const mcId = document.getElementById("mcId").value;
+  const workDone = document.getElementById("mcWorkDone").value.trim();
+  const lateReason = document.getElementById("mcLateReason").value.trim();
+  const msgDiv = document.getElementById("mcMessage");
+
+  if (!workDone || !lateReason) {
+    msgDiv.innerHTML = `<div class="alert alert-danger py-2">Please fill both fields.</div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/work/submit-missed`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ id: mcId, work_done: workDone, late_reason: lateReason })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msgDiv.innerHTML = `<div class="alert alert-danger py-2">${data.message || "Submission failed"}</div>`;
+      return;
+    }
+
+    msgDiv.innerHTML = `<div class="alert alert-success py-2">Compliance report submitted</div>`;
+
+    setTimeout(() => {
+      // Hide modal
+      if (missedCheckoutModalInstance) missedCheckoutModalInstance.hide();
+      document.getElementById("mcWorkDone").value = "";
+      document.getElementById("mcLateReason").value = "";
+      // Refresh to see if there are more
+      checkPendingMissed();
+      loadMyWorkReports();
+    }, 1500);
+
+  } catch (err) {
+    console.error("Submit missed checkout error:", err);
+    msgDiv.innerHTML = `<div class="alert alert-danger py-2">Submission failed</div>`;
   }
 }

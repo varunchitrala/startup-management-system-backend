@@ -372,6 +372,13 @@ router.get(
   isAdmin,
   adminWorkController.getTodayWorkReportDashboard
 );
+
+router.get(
+  "/missed-checkouts",
+  verifyToken,
+  isAdmin,
+  adminWorkController.getMissedCheckouts
+);
 router.get(
   "/attendance/daily/export/csv",
   verifyToken,
