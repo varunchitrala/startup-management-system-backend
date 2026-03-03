@@ -503,6 +503,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadWorkReportDashboard();
   loadAdminStatus();
   loadGeoSetting();
+  loadLeaveRequests();
 
 
 
@@ -535,6 +536,7 @@ function refreshAdminLiveData() {
   loadWorkReportDashboard();
   loadAdminStatus();
   loadLateUsers();
+  loadLeaveRequests();
 
   const projectSelect = document.getElementById("projectSelect");
   if (projectSelect && projectSelect.value) {
@@ -1221,7 +1223,6 @@ async function reviewLeave(id, status) {
   alert("Leave updated successfully");
   loadLeaveRequests();
 }
-loadLeaveRequests();
 
 /* ================= OFFICE LOCATION SETTINGS ================= */
 
@@ -1420,9 +1421,12 @@ async function confirmRejectLeave() {
   const messageDiv = document.getElementById('rejectMessage');
 
   if (!reason) {
-    messageDiv.innerHTML = '<div class="alert alert-danger">Please provide a reason</div>';
+    messageDiv.innerHTML = '<div class="alert alert-danger py-1 mb-0">Please provide a reason</div>';
     return;
   }
+
+  const btn = document.querySelector('#rejectLeaveModal .btn-danger');
+  if (btn) { btn.disabled = true; btn.textContent = 'Rejecting…'; }
 
   try {
     const res = await fetch(`${API_BASE}/api/admin/leave-requests/${currentLeaveId}`, {
@@ -1440,31 +1444,25 @@ async function confirmRejectLeave() {
     const data = await res.json();
 
     if (!res.ok) {
-      messageDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+      messageDiv.innerHTML = `<div class="alert alert-danger py-1 mb-0">${data.message}</div>`;
+      if (btn) { btn.disabled = false; btn.textContent = 'Confirm Reject'; }
       return;
     }
 
-    messageDiv.innerHTML = '<div class="alert alert-success">Leave rejected successfully</div>';
-
-    // Close modal and reload
-    setTimeout(() => {
-      if (rejectModalInstance) {
-        rejectModalInstance.hide();
-      }
-      alert('Leave rejected successfully!');
-      loadLeaveRequests(); // Reload your leave list
-    }, 1000);
+    // Close modal immediately and refresh
+    if (rejectModalInstance) rejectModalInstance.hide();
+    loadLeaveRequests();
+    loadDashboardSummary();
 
   } catch (err) {
     console.error(err);
-    messageDiv.innerHTML = '<div class="alert alert-danger">Failed to reject leave</div>';
+    messageDiv.innerHTML = '<div class="alert alert-danger py-1 mb-0">Failed to reject leave</div>';
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm Reject'; }
   }
 }
 
 // Approve leave
 async function approveLeave(leaveId) {
-  if (!confirm('Are you sure you want to approve this leave?')) return;
-
   try {
     const res = await fetch(`${API_BASE}/api/admin/leave-requests/${leaveId}`, {
       method: 'PUT',
@@ -1478,10 +1476,10 @@ async function approveLeave(leaveId) {
     const data = await res.json();
 
     if (res.ok) {
-      alert("✅ Leave approved successfully!");
       loadLeaveRequests();
+      loadDashboardSummary();
     } else {
-      alert("❌ " + data.message);
+      alert('❌ ' + data.message);
     }
   } catch (err) {
     console.error(err);
