@@ -134,60 +134,96 @@ checkInBtn.onclick = () => {
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(
+  checkInBtn.disabled = true;
+  messageDiv.innerHTML =
+    `<div class="alert alert-info">📡 Getting GPS location (wait a few seconds for best accuracy)...</div>`;
 
-    async (position) => {
-      try {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        const accuracy = position.coords.accuracy;
+  let bestPosition = null;
+  let readings = 0;
 
-        console.log("📍 Lead Location:", latitude, longitude, "Accuracy:", accuracy, "m");
+  const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+      readings++;
+      const acc = position.coords.accuracy;
+      console.log(`📍 GPS reading #${readings}: lat=${position.coords.latitude}, lon=${position.coords.longitude}, accuracy=${acc.toFixed(0)}m`);
 
-        const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ latitude, longitude, accuracy })
-        });
+      if (!bestPosition || acc < bestPosition.coords.accuracy) {
+        bestPosition = position;
+      }
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          messageDiv.innerHTML =
-            `<div class="alert alert-danger">${data.message}</div>`;
-          return;
-        }
-
-        messageDiv.innerHTML =
-          `<div class="alert alert-success">${data.message}</div>`;
-
-        loadMyStatus();   // ✅ correct function
-        loadMyAttendanceHistory(); // refresh attendance table instantly
-        updateCheckoutBanner();    // show banner (checked in, no report yet)
-
-      } catch (err) {
-        console.error("Check-in error:", err);
-        messageDiv.innerHTML =
-          `<div class="alert alert-danger">Check-in failed</div>`;
+      if (acc < 30) {
+        navigator.geolocation.clearWatch(watchId);
+        sendLeadCheckIn(bestPosition);
       }
     },
-
     (error) => {
+      navigator.geolocation.clearWatch(watchId);
+      checkInBtn.disabled = false;
       console.error("📍 Geolocation error:", error.code, error.message);
       messageDiv.innerHTML =
         `<div class="alert alert-danger">Location error: ${error.message || "Permission denied"}</div>`;
     },
-
     {
       enableHighAccuracy: true,
-      timeout: 15000,
+      timeout: 20000,
       maximumAge: 0
     }
   );
+
+  setTimeout(() => {
+    navigator.geolocation.clearWatch(watchId);
+    if (bestPosition) {
+      sendLeadCheckIn(bestPosition);
+    } else {
+      checkInBtn.disabled = false;
+      messageDiv.innerHTML =
+        `<div class="alert alert-danger">Could not get GPS location. Please try again.</div>`;
+    }
+  }, 5000);
 };
+
+async function sendLeadCheckIn(position) {
+  try {
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+    const accuracy = position.coords.accuracy;
+
+    console.log("📍 Best GPS reading:", latitude, longitude, "Accuracy:", accuracy.toFixed(0), "m");
+    messageDiv.innerHTML =
+      `<div class="alert alert-info">📡 Checking in (GPS accuracy: ~${Math.round(accuracy)}m)...</div>`;
+
+    const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ latitude, longitude, accuracy })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      messageDiv.innerHTML =
+        `<div class="alert alert-danger">${data.message}</div>`;
+      checkInBtn.disabled = false;
+      return;
+    }
+
+    messageDiv.innerHTML =
+      `<div class="alert alert-success">${data.message}</div>`;
+
+    loadMyStatus();
+    loadMyAttendanceHistory();
+    updateCheckoutBanner();
+
+  } catch (err) {
+    console.error("Check-in error:", err);
+    messageDiv.innerHTML =
+      `<div class="alert alert-danger">Check-in failed</div>`;
+    checkInBtn.disabled = false;
+  }
+}
 checkOutBtn.onclick = async () => {
   try {
     // 🔒 Block checkout if daily work report not submitted

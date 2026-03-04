@@ -1277,30 +1277,65 @@ function captureMyLocation() {
     return;
   }
 
-  msgDiv.innerHTML = `<span class="text-muted">📡 Detecting location (waiting for GPS lock)...</span>`;
+  msgDiv.innerHTML = `<span class="text-muted">📡 Getting GPS lock (collecting readings for best accuracy)...</span>`;
 
-  navigator.geolocation.getCurrentPosition(
+  let bestPosition = null;
+  let readings = 0;
+
+  const watchId = navigator.geolocation.watchPosition(
     (position) => {
+      readings++;
       const lat = position.coords.latitude;
       const lon = position.coords.longitude;
-      const accuracy = position.coords.accuracy; // in meters
+      const acc = position.coords.accuracy;
 
-      document.getElementById("officeLat").value = lat;
-      document.getElementById("officeLon").value = lon;
+      console.log(`📍 Office GPS reading #${readings}: lat=${lat}, lon=${lon}, accuracy=${acc.toFixed(0)}m`);
 
-      if (accuracy > 50) {
-        msgDiv.innerHTML = `<span class="text-warning">⚠️ Location captured but accuracy is low (~${Math.round(accuracy)}m). Try again outdoors or wait for better GPS signal, then click "Capture My Location" again.</span>
-          <br><small class="text-muted">Lat: ${lat}, Lon: ${lon}</small>`;
-      } else {
-        msgDiv.innerHTML = `<span class="text-success">✅ Location captured! Accuracy: ~${Math.round(accuracy)}m. Click Save to update.</span>
-          <br><small class="text-muted">Lat: ${lat}, Lon: ${lon}</small>`;
+      if (!bestPosition || acc < bestPosition.coords.accuracy) {
+        bestPosition = position;
+        document.getElementById("officeLat").value = lat;
+        document.getElementById("officeLon").value = lon;
+
+        msgDiv.innerHTML = `<span class="text-info">📡 Reading #${readings} — Accuracy: ~${Math.round(acc)}m (waiting for better...)
+          <br><small class="text-muted">Lat: ${lat}, Lon: ${lon}</small></span>`;
+      }
+
+      // If we get excellent accuracy, stop early
+      if (acc < 20) {
+        navigator.geolocation.clearWatch(watchId);
+        msgDiv.innerHTML = `<span class="text-success">✅ Excellent location captured! Accuracy: ~${Math.round(acc)}m. Click Save to update.
+          <br><small class="text-muted">Lat: ${lat}, Lon: ${lon}</small></span>`;
       }
     },
     (error) => {
+      navigator.geolocation.clearWatch(watchId);
       msgDiv.innerHTML = `<span class="text-danger">Location error: ${error.message || "Permission denied"}</span>`;
     },
-    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
   );
+
+  // After 8 seconds, finalize with the best reading
+  setTimeout(() => {
+    navigator.geolocation.clearWatch(watchId);
+    if (bestPosition) {
+      const acc = bestPosition.coords.accuracy;
+      const lat = bestPosition.coords.latitude;
+      const lon = bestPosition.coords.longitude;
+
+      if (acc > 100) {
+        msgDiv.innerHTML = `<span class="text-warning">⚠️ Best accuracy was ~${Math.round(acc)}m (poor). Try again outdoors for better GPS. You can still Save, but check-ins may be unreliable.
+          <br><small class="text-muted">Lat: ${lat}, Lon: ${lon}</small></span>`;
+      } else if (acc > 50) {
+        msgDiv.innerHTML = `<span class="text-warning">⚠️ Location captured with ~${Math.round(acc)}m accuracy (fair). Click Save to update. For better results, try outdoors.
+          <br><small class="text-muted">Lat: ${lat}, Lon: ${lon}</small></span>`;
+      } else {
+        msgDiv.innerHTML = `<span class="text-success">✅ Location captured! Accuracy: ~${Math.round(acc)}m. Click Save to update.
+          <br><small class="text-muted">Lat: ${lat}, Lon: ${lon}</small></span>`;
+      }
+    } else {
+      msgDiv.innerHTML = `<span class="text-danger">Could not get GPS location. Please try again.</span>`;
+    }
+  }, 8000);
 }
 
 async function saveOfficeLocation() {

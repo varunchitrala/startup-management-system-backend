@@ -46,61 +46,99 @@ checkInBtn.onclick = () => {
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(
+  checkInBtn.disabled = true;
+  messageDiv.innerHTML =
+    `<div class="alert alert-info">📡 Getting GPS location (wait a few seconds for best accuracy)...</div>`;
 
-    async (position) => {
-      try {
+  let bestPosition = null;
+  let readings = 0;
 
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        const accuracy = position.coords.accuracy;
+  const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+      readings++;
+      const acc = position.coords.accuracy;
+      console.log(`📍 GPS reading #${readings}: lat=${position.coords.latitude}, lon=${position.coords.longitude}, accuracy=${acc.toFixed(0)}m`);
 
-        console.log("📍 Member Location:", latitude, longitude, "Accuracy:", accuracy, "m");
+      // Keep the most accurate reading
+      if (!bestPosition || acc < bestPosition.coords.accuracy) {
+        bestPosition = position;
+      }
 
-        const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ latitude, longitude, accuracy })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          messageDiv.innerHTML =
-            `<div class="alert alert-danger">${data.message}</div>`;
-          return;
-        }
-
-        messageDiv.innerHTML =
-          `<div class="alert alert-success">${data.message}</div>`;
-
-        loadStatus();
-        loadMyAttendanceHistory(); // refresh attendance table instantly
-        updateCheckoutBanner();    // show banner now (checked in, no report yet)
-
-      } catch (err) {
-        console.error("Check-in error:", err);
-        messageDiv.innerHTML =
-          `<div class="alert alert-danger">Check-in failed</div>`;
+      // If we get a very accurate reading (<30m), use it immediately
+      if (acc < 30) {
+        navigator.geolocation.clearWatch(watchId);
+        sendCheckIn(bestPosition);
       }
     },
-
     (error) => {
+      navigator.geolocation.clearWatch(watchId);
+      checkInBtn.disabled = false;
       console.error("📍 Geolocation error:", error.code, error.message);
       messageDiv.innerHTML =
         `<div class="alert alert-danger">Location error: ${error.message || "Permission denied"}</div>`;
     },
-
     {
       enableHighAccuracy: true,
-      timeout: 15000,
+      timeout: 20000,
       maximumAge: 0
     }
   );
+
+  // After 5 seconds, use the best reading we have
+  setTimeout(() => {
+    navigator.geolocation.clearWatch(watchId);
+    if (bestPosition) {
+      sendCheckIn(bestPosition);
+    } else {
+      checkInBtn.disabled = false;
+      messageDiv.innerHTML =
+        `<div class="alert alert-danger">Could not get GPS location. Please try again.</div>`;
+    }
+  }, 5000);
 };
+
+async function sendCheckIn(position) {
+  try {
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+    const accuracy = position.coords.accuracy;
+
+    console.log("📍 Best GPS reading:", latitude, longitude, "Accuracy:", accuracy.toFixed(0), "m");
+    messageDiv.innerHTML =
+      `<div class="alert alert-info">📡 Checking in (GPS accuracy: ~${Math.round(accuracy)}m)...</div>`;
+
+    const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ latitude, longitude, accuracy })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      messageDiv.innerHTML =
+        `<div class="alert alert-danger">${data.message}</div>`;
+      checkInBtn.disabled = false;
+      return;
+    }
+
+    messageDiv.innerHTML =
+      `<div class="alert alert-success">${data.message}</div>`;
+
+    loadStatus();
+    loadMyAttendanceHistory();
+    updateCheckoutBanner();
+
+  } catch (err) {
+    console.error("Check-in error:", err);
+    messageDiv.innerHTML =
+      `<div class="alert alert-danger">Check-in failed</div>`;
+    checkInBtn.disabled = false;
+  }
+}
 
 
 // Check Out
