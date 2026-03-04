@@ -52,9 +52,11 @@ checkInBtn.onclick = () => {
 
   let bestPosition = null;
   let readings = 0;
+  let sent = false;  // guard to prevent double-calling sendCheckIn
 
   const watchId = navigator.geolocation.watchPosition(
     (position) => {
+      if (sent) return;
       readings++;
       const acc = position.coords.accuracy;
       console.log(`📍 GPS reading #${readings}: lat=${position.coords.latitude}, lon=${position.coords.longitude}, accuracy=${acc.toFixed(0)}m`);
@@ -66,16 +68,34 @@ checkInBtn.onclick = () => {
 
       // If we get a very accurate reading (<30m), use it immediately
       if (acc < 30) {
+        sent = true;
         navigator.geolocation.clearWatch(watchId);
         sendCheckIn(bestPosition);
       }
     },
     (error) => {
+      if (sent) return;
       navigator.geolocation.clearWatch(watchId);
-      checkInBtn.disabled = false;
       console.error("📍 Geolocation error:", error.code, error.message);
+
+      // Fallback: try getCurrentPosition as a last resort
       messageDiv.innerHTML =
-        `<div class="alert alert-danger">Location error: ${error.message || "Permission denied"}</div>`;
+        `<div class="alert alert-info">📡 Retrying location with fallback method...</div>`;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (sent) return;
+          sent = true;
+          sendCheckIn(pos);
+        },
+        (err2) => {
+          if (sent) return;
+          checkInBtn.disabled = false;
+          console.error("📍 Fallback geolocation error:", err2.code, err2.message);
+          messageDiv.innerHTML =
+            `<div class="alert alert-danger">Location error: ${err2.message || error.message || "Permission denied"}. Please enable location and try again.</div>`;
+        },
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 }
+      );
     },
     {
       enableHighAccuracy: true,
@@ -84,17 +104,33 @@ checkInBtn.onclick = () => {
     }
   );
 
-  // After 5 seconds, use the best reading we have
+  // After 10 seconds, use the best reading we have (increased from 5s for mobile GPS)
   setTimeout(() => {
     navigator.geolocation.clearWatch(watchId);
+    if (sent) return;  // already sent, do nothing
     if (bestPosition) {
+      sent = true;
       sendCheckIn(bestPosition);
     } else {
-      checkInBtn.disabled = false;
+      // Last resort fallback: try single getCurrentPosition with relaxed settings
       messageDiv.innerHTML =
-        `<div class="alert alert-danger">Could not get GPS location. Please try again.</div>`;
+        `<div class="alert alert-info">📡 Still acquiring location, trying fallback...</div>`;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (sent) return;
+          sent = true;
+          sendCheckIn(pos);
+        },
+        (err) => {
+          if (sent) return;
+          checkInBtn.disabled = false;
+          messageDiv.innerHTML =
+            `<div class="alert alert-danger">Could not get GPS location. Please ensure location is enabled, try outdoors, and try again.</div>`;
+        },
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+      );
     }
-  }, 5000);
+  }, 10000);
 };
 
 async function sendCheckIn(position) {
