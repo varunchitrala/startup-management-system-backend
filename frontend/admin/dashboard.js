@@ -417,13 +417,25 @@ async function loadTodayAttendance() {
   data.forEach(row => {
     const tr = document.createElement("tr");
 
+    const statusColors = {
+      PRESENT: 'bg-success',
+      CHECKED_IN: 'bg-primary',
+      ABSENT: 'bg-danger',
+      LATE: 'bg-warning text-dark',
+      ON_LEAVE: 'bg-info',
+      HOLIDAY: 'bg-secondary',
+      MISSED_CHECKOUT: 'bg-danger'
+    };
+    const badgeClass = statusColors[row.status] || 'bg-secondary';
+    const statusLabel = row.status === 'MISSED_CHECKOUT' ? 'Missed Checkout ⚠️' : row.status;
+
     tr.innerHTML = `
       <td>${row.user_id}</td>
       <td>${row.name}</td>
       <td>${row.role}</td>
       <td>${fmtIST(row.check_in)}</td>
       <td>${fmtIST(row.check_out)}</td>
-      <td><strong>${row.status}</strong></td>
+      <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
       
     `;
 

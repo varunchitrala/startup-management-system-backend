@@ -143,6 +143,21 @@ exports.checkIn = async (req, res) => {
       return res.status(400).json({ message: "Already checked in today" });
     }
 
+    // 🔹 Block check-in if pending missed checkout reports exist
+    if (!isAdmin) {
+      const pendingMissed = await pool.query(
+        `SELECT COUNT(*)::int AS count FROM missed_checkouts
+         WHERE user_id = $1 AND status = 'PENDING'`,
+        [userId]
+      );
+
+      if (pendingMissed.rows[0].count > 0) {
+        return res.status(403).json({
+          message: `You have ${pendingMissed.rows[0].count} pending missed checkout report(s). Submit them before checking in.`
+        });
+      }
+    }
+
     // 🔹 Geo restriction (skip for ADMIN)
     if (!isAdmin) {
       const geoSetting = await pool.query(`

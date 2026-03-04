@@ -243,41 +243,103 @@ cron.schedule('0 9 1 * *', async () => {
 
 console.log('✅ Email scheduler initialized');
 
-// ⏰ AUTO-CHECKOUT at 11:59 PM IST
-cron.schedule('59 23 * * *', async () => {
-  console.log('⏰ Running: Auto-checkout for forgotten checkouts');
+// ⏰ AUTO-CHECKOUT at 7:00 PM IST — with penalty system
+cron.schedule('0 19 * * *', async () => {
+  console.log('⏰ Running: Auto-checkout with penalty system (7 PM)');
   try {
     const today = new Date().toISOString().split('T')[0];
+    const currentMonth = today.slice(0, 7); // YYYY-MM
+
     const checkedIn = await pool.query(`
-      SELECT a.user_id, a.id AS aid
+      SELECT a.user_id, a.id AS aid, u.name
       FROM attendance a
+      JOIN users u ON u.id = a.user_id
       WHERE a.date = $1 AND a.status = 'CHECKED_IN'
         AND a.check_in IS NOT NULL AND a.check_out IS NULL
     `, [today]);
 
     for (const row of checkedIn.rows) {
-      await pool.query(
-        `UPDATE attendance SET check_out = NOW(), status = 'PRESENT' WHERE id = $1`,
-        [row.aid]
-      );
+      // Check if daily report was submitted
       const rpt = await pool.query(
         `SELECT 1 FROM work_reports WHERE user_id=$1 AND report_type='DAILY' AND report_date=$2 LIMIT 1`,
         [row.user_id, today]
       );
-      if (rpt.rows.length === 0) {
+
+      const hasReport = rpt.rows.length > 0;
+
+      if (hasReport) {
+        // Had report but forgot to click checkout — mark as PRESENT (minor offense)
         await pool.query(
-          `INSERT INTO missed_checkouts (user_id,date,auto_checkout_at,status) VALUES ($1,$2,NOW(),'PENDING') ON CONFLICT (user_id,date) DO NOTHING`,
-          [row.user_id, today]
+          `UPDATE attendance SET check_out = NOW(), status = 'PRESENT' WHERE id = $1`,
+          [row.aid]
         );
         await pool.query(
-          `INSERT INTO notifications (user_id,message,is_read,created_at) VALUES ($1,$2,false,NOW())`,
-          [row.user_id, 'You were auto-checked-out without submitting your daily report. Please submit your work and reason on next login.']
+          `INSERT INTO notifications (user_id, message, is_read, created_at) VALUES ($1, $2, false, NOW())`,
+          [row.user_id, '⚠️ You forgot to checkout today but your work report was submitted. Auto-checked out.']
+        );
+      } else {
+        // No report AND no checkout — PENALTY
+        await pool.query(
+          `UPDATE attendance SET check_out = NOW(), status = 'MISSED_CHECKOUT' WHERE id = $1`,
+          [row.aid]
+        );
+
+        // Create missed checkout record
+        await pool.query(
+          `INSERT INTO missed_checkouts (user_id, date, auto_checkout_at, status)
+           VALUES ($1, $2, NOW(), 'PENDING')
+           ON CONFLICT (user_id, date) DO NOTHING`,
+          [row.user_id, today]
+        );
+
+        // Count missed checkouts this month for progressive penalty
+        const countRes = await pool.query(
+          `SELECT COUNT(*)::int AS total FROM missed_checkouts
+           WHERE user_id = $1 AND TO_CHAR(date, 'YYYY-MM') = $2`,
+          [row.user_id, currentMonth]
+        );
+        const missedCount = countRes.rows[0].total;
+
+        let penaltyMsg = '';
+
+        if (missedCount <= 5) {
+          // Warning only
+          penaltyMsg = `⚠️ WARNING (${missedCount}/5): You missed checkout and didn't submit your work report today. Your check-in is BLOCKED until you submit the missed checkout report. After 5 warnings, leave will be deducted.`;
+        } else {
+          // Deduct 1 day leave for each offense after 5 warnings
+          penaltyMsg = `🚨 PENALTY: Missed checkout #${missedCount} this month (exceeded 5 warnings). 1 day leave has been deducted. Check-in is BLOCKED until you submit the report.`;
+
+          // Deduct from leave balance
+          const year = new Date().getFullYear();
+          await pool.query(
+            `UPDATE leave_balances
+             SET used = used + 1,
+                 remaining = GREATEST(remaining - 1, 0)
+             WHERE user_id = $1 AND year = $2`,
+            [row.user_id, year]
+          );
+
+          // Notify admin about penalty
+          const adminRes = await pool.query(`SELECT id FROM users WHERE role = 'ADMIN'`);
+          for (const admin of adminRes.rows) {
+            await pool.query(
+              `INSERT INTO notifications (user_id, message, is_read, created_at) VALUES ($1, $2, false, NOW())`,
+              [admin.id, `🚨 ${row.name} has ${missedCount} missed checkouts this month. 1 day leave deducted as penalty.`]
+            );
+          }
+        }
+
+        // Notify the user
+        await pool.query(
+          `INSERT INTO notifications (user_id, message, is_read, created_at) VALUES ($1, $2, false, NOW())`,
+          [row.user_id, penaltyMsg]
         );
       }
     }
-    console.log('Auto-checkout done: ' + checkedIn.rows.length + ' users');
+
+    console.log(`✅ Auto-checkout with penalties done: ${checkedIn.rows.length} users processed`);
   } catch (error) {
-    console.error('Auto-checkout failed:', error);
+    console.error('Auto-checkout with penalties failed:', error);
   }
 }, { timezone: "Asia/Kolkata" });
 

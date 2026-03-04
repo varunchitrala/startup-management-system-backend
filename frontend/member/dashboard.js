@@ -119,8 +119,19 @@ async function sendCheckIn(position) {
     const data = await res.json();
 
     if (!res.ok) {
-      messageDiv.innerHTML =
-        `<div class="alert alert-danger">${data.message}</div>`;
+      // If blocked by missed checkout penalty, show button to open the modal
+      if (res.status === 403 && data.message && data.message.includes('missed checkout')) {
+        messageDiv.innerHTML =
+          `<div class="alert alert-danger">
+            ${data.message}
+            <br><button class="btn btn-sm btn-warning mt-2 fw-bold" onclick="forceOpenMissedModal()">
+              📝 Submit Missed Report Now
+            </button>
+          </div>`;
+      } else {
+        messageDiv.innerHTML =
+          `<div class="alert alert-danger">${data.message}</div>`;
+      }
       checkInBtn.disabled = false;
       return;
     }
@@ -428,20 +439,65 @@ async function checkPendingMissed() {
     if (!res.ok) return;
     const pending = await res.json();
     if (pending && pending.length > 0) {
-      const mc = pending[0];
-      document.getElementById("mcId").value = mc.id;
-      const fmtDate = new Date(mc.date).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      document.getElementById("mcDateText").innerText = fmtDate;
-      missedCheckoutModalInstance = new bootstrap.Modal(document.getElementById('missedCheckoutModal'), {
-        backdrop: 'static',
-        keyboard: false
-      });
-      missedCheckoutModalInstance.show();
+      openMissedModal(pending[0]);
     }
   } catch (err) {
     console.error("Pending missed check error:", err);
   }
 }
+
+// Reusable function to open missed checkout modal — can be called from anywhere
+function openMissedModal(mcData) {
+  try {
+    if (mcData) {
+      document.getElementById("mcId").value = mcData.id;
+      const fmtDate = new Date(mcData.date).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById("mcDateText").innerText = fmtDate;
+    }
+
+    const modalEl = document.getElementById('missedCheckoutModal');
+    if (!modalEl) {
+      console.error("missedCheckoutModal element not found in HTML!");
+      return;
+    }
+
+    // Remove stale aria-hidden
+    modalEl.removeAttribute('aria-hidden');
+
+    if (!missedCheckoutModalInstance) {
+      missedCheckoutModalInstance = new bootstrap.Modal(modalEl, {
+        backdrop: 'static',
+        keyboard: false
+      });
+    }
+    missedCheckoutModalInstance.show();
+  } catch (err) {
+    console.error("Failed to open missed checkout modal:", err);
+    // Ultimate fallback: alert
+    alert("⚠️ You have a pending missed checkout report. Please refresh the page and submit it.");
+  }
+}
+
+// Expose so the check-in error button can call it
+window.openMissedModal = openMissedModal;
+
+// Fallback: fetch and open modal manually (called from check-in error button)
+window.forceOpenMissedModal = async function () {
+  try {
+    const res = await fetch(`${API_BASE}/api/work/pending-missed`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const pending = await res.json();
+    if (pending && pending.length > 0) {
+      openMissedModal(pending[0]);
+    }
+  } catch (err) {
+    console.error("Force open missed modal error:", err);
+    alert("⚠️ Could not load missed checkout data. Please refresh the page.");
+  }
+};
+
 
 const MEMBER_LIVE_REFRESH_MS = 15000;
 
@@ -779,6 +835,7 @@ const STATUS_STYLE = {
   LATE: { bg: "#fef9c3", color: "#a16207", label: "Late" },
   ON_LEAVE: { bg: "#ede9fe", color: "#7c3aed", label: "On Leave" },
   HOLIDAY: { bg: "#e0f2fe", color: "#0369a1", label: "Holiday" },
+  MISSED_CHECKOUT: { bg: "#fecaca", color: "#991b1b", label: "Missed Checkout ⚠️" },
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
