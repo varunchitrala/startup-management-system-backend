@@ -1209,13 +1209,22 @@ async function loadLeaveRequests() {
   }
 
   data.forEach(l => {
+    const fmtDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+    const used = l.leave_used || 0;
+    const quota = l.leave_quota || 18;
+    const remaining = l.leave_remaining ?? (quota - used);
+    const exceeded = remaining <= 0;
+    const balBadge = exceeded
+      ? `<span class="badge bg-danger">⚠️ ${used}/${quota} (0 left)</span>`
+      : `<span class="badge bg-secondary">${used}/${quota} (${remaining} left)</span>`;
+
     table.innerHTML += `
-      <tr>
+      <tr${exceeded ? ' style="background:#fff5f5;"' : ''}>
         <td>${l.user_id} - ${l.name}</td>
         <td>${l.role}</td>
-        <td>${l.from_date}</td>
-        <td>${l.to_date}</td>
-        <td>${l.reason}</td>
+        <td>${fmtDate(l.from_date)}</td>
+        <td>${fmtDate(l.to_date)}</td>
+        <td>${l.reason}${exceeded ? '<br><small class="text-danger fw-bold">⚠️ Exceeded leave quota!</small>' : ''}</td>
         <td>
           <span class="badge ${l.status === "PENDING" ? "bg-warning text-dark" :
         l.status === "APPROVED" ? "bg-success" :
@@ -1223,6 +1232,7 @@ async function loadLeaveRequests() {
       }">
             ${l.status}
           </span>
+          <br><small class="text-muted">${balBadge}</small>
         </td>
         <td>
           ${l.status === "PENDING"

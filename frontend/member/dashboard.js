@@ -154,6 +154,8 @@ async function sendCheckIn(position) {
 
 // Check Out
 checkOutBtn.onclick = async () => {
+  checkOutBtn.disabled = true;
+  checkOutBtn.textContent = "Processing...";
   try {
     // 🔒 Block checkout if daily work report not submitted
     const reportCheck = await fetch(`${API_BASE}/api/work/check-today`, {
@@ -164,6 +166,8 @@ checkOutBtn.onclick = async () => {
     if (!reportData.submitted) {
       messageDiv.innerHTML =
         `<div class="alert alert-warning">⚠️ Please submit your daily work report before checking out.</div>`;
+      checkOutBtn.disabled = false;
+      checkOutBtn.textContent = "Check Out";
       return;
     }
 
@@ -180,6 +184,8 @@ checkOutBtn.onclick = async () => {
       if (!weeklyData.submitted) {
         messageDiv.innerHTML =
           `<div class="alert alert-warning">Saturday checkout is blocked until you submit this week's weekly report.</div>`;
+        checkOutBtn.disabled = false;
+        checkOutBtn.textContent = "Check Out";
         return;
       }
     }
@@ -196,6 +202,8 @@ checkOutBtn.onclick = async () => {
     if (!res.ok) {
       messageDiv.innerHTML =
         `<div class="alert alert-danger">${data.message}</div>`;
+      checkOutBtn.disabled = false;
+      checkOutBtn.textContent = "Check Out";
       return;
     }
 
@@ -203,13 +211,15 @@ checkOutBtn.onclick = async () => {
       `<div class="alert alert-success">${data.message}</div>`;
 
     loadStatus();
-    loadMyAttendanceHistory(); // refresh attendance table instantly
-    updateCheckoutBanner();    // banner should clear now
+    loadMyAttendanceHistory();
+    updateCheckoutBanner();
 
   } catch (err) {
     console.error("Check-out error:", err);
     messageDiv.innerHTML =
       `<div class="alert alert-danger">Check-out failed</div>`;
+    checkOutBtn.disabled = false;
+    checkOutBtn.textContent = "Check Out";
   }
 };
 
@@ -219,12 +229,15 @@ async function submitMemberDailyReport() {
     .value.trim();
 
   const messageDiv = document.getElementById("memberWorkMessage");
+  const btn = event ? event.target : null;
 
   if (!workDone) {
     messageDiv.innerHTML =
       `<div class="alert alert-danger">Please enter work details</div>`;
     return;
   }
+
+  if (btn) { btn.disabled = true; btn.textContent = "Submitting..."; }
 
   try {
     const res = await fetch(`${API_BASE}/api/work/daily`, {
@@ -243,6 +256,7 @@ async function submitMemberDailyReport() {
     if (!res.ok) {
       messageDiv.innerHTML =
         `<div class="alert alert-danger">${data.message}</div>`;
+      if (btn) { btn.disabled = false; btn.textContent = "Commit Report"; }
       return;
     }
 
@@ -250,13 +264,15 @@ async function submitMemberDailyReport() {
       `<div class="alert alert-success">${data.message}</div>`;
 
     document.getElementById("memberWorkDone").value = "";
-    loadMyWorkReports(); // refresh archive instantly
-    updateCheckoutBanner(); // hide banner immediately
+    loadMyWorkReports();
+    updateCheckoutBanner();
+    if (btn) { btn.disabled = false; btn.textContent = "Commit Report"; }
 
   } catch (err) {
     console.error(err);
     messageDiv.innerHTML =
       `<div class="alert alert-danger">Submission failed</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = "Commit Report"; }
   }
 }
 async function loadMemberProjects() {

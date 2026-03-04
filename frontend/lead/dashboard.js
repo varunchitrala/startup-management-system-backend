@@ -235,6 +235,8 @@ async function sendLeadCheckIn(position) {
   }
 }
 checkOutBtn.onclick = async () => {
+  checkOutBtn.disabled = true;
+  checkOutBtn.textContent = "Processing...";
   try {
     // 🔒 Block checkout if daily work report not submitted
     const reportCheck = await fetch(`${API_BASE}/api/work/check-today`, {
@@ -245,6 +247,8 @@ checkOutBtn.onclick = async () => {
     if (!reportData.submitted) {
       messageDiv.innerHTML =
         `<div class="alert alert-warning">⚠️ Please submit your daily work report before checking out.</div>`;
+      checkOutBtn.disabled = false;
+      checkOutBtn.textContent = "Check Out";
       return;
     }
 
@@ -261,6 +265,8 @@ checkOutBtn.onclick = async () => {
       if (!weeklyData.submitted) {
         messageDiv.innerHTML =
           `<div class="alert alert-warning">Saturday checkout is blocked until you submit this week's weekly report.</div>`;
+        checkOutBtn.disabled = false;
+        checkOutBtn.textContent = "Check Out";
         return;
       }
     }
@@ -277,20 +283,24 @@ checkOutBtn.onclick = async () => {
     if (!res.ok) {
       messageDiv.innerHTML =
         `<div class="alert alert-danger">${data.message}</div>`;
+      checkOutBtn.disabled = false;
+      checkOutBtn.textContent = "Check Out";
       return;
     }
 
     messageDiv.innerHTML =
       `<div class="alert alert-success">${data.message}</div>`;
 
-    loadMyStatus();   // ✅ correct
-    loadMyAttendanceHistory(); // refresh attendance table instantly
-    updateCheckoutBanner();    // banner should now clear
+    loadMyStatus();
+    loadMyAttendanceHistory();
+    updateCheckoutBanner();
 
   } catch (err) {
     console.error("Checkout error:", err);
     messageDiv.innerHTML =
       `<div class="alert alert-danger">Checkout failed</div>`;
+    checkOutBtn.disabled = false;
+    checkOutBtn.textContent = "Check Out";
   }
 };
 

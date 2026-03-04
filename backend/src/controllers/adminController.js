@@ -396,6 +396,7 @@ exports.getAllTeamLeads = async (req, res) => {
 
 exports.getAllLeaveRequests = async (req, res) => {
   try {
+    const year = new Date().getFullYear();
     const result = await pool.query(`
       SELECT
         lr.id,
@@ -407,11 +408,15 @@ exports.getAllLeaveRequests = async (req, res) => {
         lr.reason,
         lr.status,
         lr.applied_at,
-        lr.reviewed_at
+        lr.reviewed_at,
+        COALESCE(lb.used, 0) AS leave_used,
+        COALESCE(lb.remaining, lb.total_quota, 18) AS leave_remaining,
+        COALESCE(lb.total_quota, 18) AS leave_quota
       FROM leave_requests lr
       JOIN users u ON u.id = lr.user_id
+      LEFT JOIN leave_balances lb ON lb.user_id = u.id AND lb.year = $1
       ORDER BY lr.applied_at DESC
-    `);
+    `, [year]);
 
     res.json(result.rows);
 

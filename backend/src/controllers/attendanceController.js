@@ -695,6 +695,7 @@ exports.getTodayAttendanceList = async (req, res) => {
         CASE
           WHEN a.status IS NOT NULL THEN a.status
           WHEN dm.is_holiday THEN 'HOLIDAY'
+          WHEN lr.id IS NOT NULL THEN 'ON_LEAVE'
           ELSE 'ABSENT'
         END AS status
       FROM users u
@@ -702,6 +703,10 @@ exports.getTodayAttendanceList = async (req, res) => {
       LEFT JOIN attendance a
         ON a.user_id = u.id
         AND a.date = CURRENT_DATE
+      LEFT JOIN leave_requests lr
+        ON lr.user_id = u.id
+        AND lr.status = 'APPROVED'
+        AND CURRENT_DATE BETWEEN lr.from_date AND lr.to_date
       ORDER BY u.id
     `);
 
@@ -749,6 +754,21 @@ exports.applyLeave = async (req, res) => {
       });
     }
 
+    // Calculate days requested
+    const requestedDays = Math.ceil(
+      (new Date(to_date) - new Date(from_date)) / (1000 * 60 * 60 * 24)
+    ) + 1;
+
+    // Check leave balance
+    const year = new Date().getFullYear();
+    const balRes = await pool.query(
+      `SELECT remaining FROM leave_balances WHERE user_id = $1 AND year = $2`,
+      [userId, year]
+    );
+
+    const remaining = balRes.rows.length > 0 ? balRes.rows[0].remaining : 18;
+    const isExtraLeave = requestedDays > remaining;
+
     await pool.query(
       `INSERT INTO leave_requests
        (user_id, from_date, to_date, reason, status, applied_at)
@@ -756,10 +776,26 @@ exports.applyLeave = async (req, res) => {
       [userId, from_date, to_date, reason]
     );
 
-    // ✅ SEND EMAIL NOTIFICATION
-    await emailService.sendLeaveAppliedEmail(userId);
+    // Notify admin about extra leave
+    if (isExtraLeave) {
+      const userRes = await pool.query(`SELECT name FROM users WHERE id = $1`, [userId]);
+      const userName = userRes.rows[0]?.name || 'A user';
+      const adminRes = await pool.query(`SELECT id FROM users WHERE role = 'ADMIN'`);
+      for (const admin of adminRes.rows) {
+        await pool.query(
+          `INSERT INTO notifications (user_id, message, is_read, created_at) VALUES ($1, $2, false, NOW())`,
+          [admin.id, `⚠️ ${userName} applied for ${requestedDays} day(s) leave but only has ${remaining} remaining (quota: 18). Please review.`]
+        );
+      }
+    }
 
-    res.json({ message: "Leave request submitted successfully" });
+    if (isExtraLeave) {
+      res.json({
+        message: `Leave request submitted. ⚠️ You have only ${remaining} leave(s) remaining out of 18. Admin will review your extra leave request.`
+      });
+    } else {
+      res.json({ message: "Leave request submitted successfully" });
+    }
 
   } catch (err) {
     console.error("Apply leave error:", err);
