@@ -247,6 +247,13 @@ router.delete(
   deleteProject
 );
 
+// Lead: mark project as completed
+router.patch(
+  "/projects/:id/complete",
+  verifyToken,
+  projectController.completeProject
+);
+
 router.post(
   "/attendance/auto-process",
   verifyToken,

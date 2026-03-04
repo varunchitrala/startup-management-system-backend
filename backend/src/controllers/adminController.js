@@ -109,11 +109,13 @@ exports.getTeamMembers = async (req, res) => {
 
         CASE
           WHEN u.role = 'TEAM_LEAD' AND EXISTS (
-            SELECT 1 FROM projects p WHERE p.assigned_to = u.id
+            SELECT 1 FROM projects p WHERE p.assigned_to = u.id AND p.status != 'COMPLETED'
           ) THEN true
 
           WHEN u.role = 'MEMBER' AND EXISTS (
-            SELECT 1 FROM project_members pm WHERE pm.member_id = u.id
+            SELECT 1 FROM project_members pm
+            JOIN projects p ON p.id = pm.project_id
+            WHERE pm.member_id = u.id AND p.status != 'COMPLETED'
           ) THEN true
 
           ELSE false

@@ -369,35 +369,120 @@ async function loadProjects() {
     const list = document.getElementById("projectsList");
     list.innerHTML = "";
 
-    // RIGHT: dropdown
+    // RIGHT: dropdown (only active projects)
     const select = document.getElementById("assignProjectSelect");
     select.innerHTML = `<option value="">Select Project</option>`;
 
     if (!projects.length) {
-      list.innerHTML = `<div class="list-group-item">No projects assigned</div>`;
+      list.innerHTML = `<div class="list-group-item text-muted text-center py-4">No projects assigned</div>`;
       return;
     }
 
     projects.forEach(p => {
-      // Project list
-      const btn = document.createElement("button");
-      btn.className = "list-group-item list-group-item-action";
-      btn.innerText = p.project_name;
-      btn.onclick = () => {
-        selectedProjectId = p.id;
-        loadRoadmap(p.id);
-      };
-      list.appendChild(btn);
+      const isCompleted = p.status === 'COMPLETED';
 
-      // Dropdown option
-      const opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = p.project_name;
-      select.appendChild(opt);
+      // Project list item with status
+      const item = document.createElement("div");
+      item.className = `list-group-item d-flex justify-content-between align-items-center ${isCompleted ? 'bg-light' : ''}`;
+      item.style.cursor = isCompleted ? 'default' : 'pointer';
+
+      const leftSide = document.createElement("div");
+      leftSide.className = "d-flex align-items-center gap-2";
+      leftSide.innerHTML = `
+        <span class="${isCompleted ? 'text-muted' : ''}">${p.project_name}</span>
+        <span class="badge ${isCompleted ? 'bg-success' : 'bg-primary'}" style="font-size:10px;">
+          ${isCompleted ? '✅ COMPLETED' : 'ACTIVE'}
+        </span>
+      `;
+
+      const rightSide = document.createElement("div");
+      rightSide.className = "d-flex gap-2 align-items-center";
+
+      if (!isCompleted) {
+        // View Roadmap button
+        const viewBtn = document.createElement("button");
+        viewBtn.className = "btn-sys btn-sys-default border";
+        viewBtn.style.fontSize = "11px";
+        viewBtn.style.padding = "3px 10px";
+        viewBtn.textContent = "📋 Roadmap";
+        viewBtn.onclick = (e) => {
+          e.stopPropagation();
+          selectedProjectId = p.id;
+          loadRoadmap(p.id);
+        };
+        rightSide.appendChild(viewBtn);
+
+        // Mark Complete button
+        const completeBtn = document.createElement("button");
+        completeBtn.className = "btn-sys btn-sys-primary";
+        completeBtn.style.fontSize = "11px";
+        completeBtn.style.padding = "3px 10px";
+        completeBtn.style.background = "#00875a";
+        completeBtn.textContent = "✅ Mark Complete";
+        completeBtn.onclick = (e) => {
+          e.stopPropagation();
+          completeProject(p.id, p.project_name);
+        };
+        rightSide.appendChild(completeBtn);
+      }
+
+      item.appendChild(leftSide);
+      item.appendChild(rightSide);
+
+      if (!isCompleted) {
+        item.onclick = () => {
+          selectedProjectId = p.id;
+          loadRoadmap(p.id);
+        };
+      }
+
+      list.appendChild(item);
+
+      // Dropdown option — only active projects
+      if (!isCompleted) {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.project_name;
+        select.appendChild(opt);
+      }
     });
 
   } catch (err) {
     console.error("loadProjects failed:", err);
+  }
+}
+
+// ================= COMPLETE PROJECT =================
+async function completeProject(projectId, projectName) {
+  if (!confirm(`Are you sure you want to mark "${projectName}" as COMPLETED?\n\nThis will release all assigned members.`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/projects/${projectId}/complete`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Failed to complete project");
+      return;
+    }
+
+    alert("✅ " + data.message);
+    loadProjects();
+
+    // Clear roadmap section if this was the selected project
+    if (selectedProjectId === projectId) {
+      selectedProjectId = null;
+      document.getElementById("roadmapSection").style.display = "none";
+    }
+
+  } catch (err) {
+    console.error("Complete project error:", err);
+    alert("Failed to complete project");
   }
 }
 

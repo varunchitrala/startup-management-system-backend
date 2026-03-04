@@ -233,15 +233,79 @@ exports.getRoadmapProgress = async (req, res) => {
 exports.getAllProjects = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, project_name
-      FROM projects
-      ORDER BY id DESC
+      SELECT
+        p.id,
+        p.project_name,
+        p.description,
+        p.status,
+        p.created_at,
+        u.name AS team_lead_name,
+        u.user_id AS team_lead_code,
+        COALESCE(mc.member_count, 0)::int AS member_count,
+        COALESCE(rs_total.total_steps, 0)::int AS total_steps,
+        COALESCE(rs_done.completed_steps, 0)::int AS completed_steps
+      FROM projects p
+      LEFT JOIN users u ON u.id = p.assigned_to
+      LEFT JOIN (
+        SELECT project_id, COUNT(*)::int AS member_count
+        FROM project_members
+        GROUP BY project_id
+      ) mc ON mc.project_id = p.id
+      LEFT JOIN (
+        SELECT r.project_id, COUNT(rs.id)::int AS total_steps
+        FROM roadmaps r
+        JOIN roadmap_steps rs ON rs.roadmap_id = r.id
+        GROUP BY r.project_id
+      ) rs_total ON rs_total.project_id = p.id
+      LEFT JOIN (
+        SELECT r.project_id, COUNT(rs.id)::int AS completed_steps
+        FROM roadmaps r
+        JOIN roadmap_steps rs ON rs.roadmap_id = r.id
+        WHERE rs.is_completed = true
+        GROUP BY r.project_id
+      ) rs_done ON rs_done.project_id = p.id
+      ORDER BY
+        CASE WHEN p.status = 'COMPLETED' THEN 1 ELSE 0 END,
+        p.id DESC
     `);
 
     res.json(result.rows);
   } catch (err) {
     console.error("Get all projects error:", err);
     res.status(500).json({ message: "Failed to fetch projects" });
+  }
+};
+
+// ================= COMPLETE PROJECT (LEAD) =================
+exports.completeProject = async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const userId = req.user.id;
+
+    // Verify project belongs to this lead
+    const projectCheck = await pool.query(
+      `SELECT id, status FROM projects WHERE id = $1 AND assigned_to = $2`,
+      [projectId, userId]
+    );
+
+    if (projectCheck.rows.length === 0) {
+      return res.status(403).json({ message: "Not authorized for this project" });
+    }
+
+    if (projectCheck.rows[0].status === 'COMPLETED') {
+      return res.status(400).json({ message: "Project is already completed" });
+    }
+
+    await pool.query(
+      `UPDATE projects SET status = 'COMPLETED' WHERE id = $1`,
+      [projectId]
+    );
+
+    res.json({ message: "Project marked as completed" });
+
+  } catch (err) {
+    console.error("Complete project error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 // Team Lead: view roadmap for assigned project
