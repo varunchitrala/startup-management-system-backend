@@ -140,8 +140,9 @@ checkInBtn.onclick = () => {
       try {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
 
-        console.log("📍 Lead Location:", latitude, longitude);
+        console.log("📍 Lead Location:", latitude, longitude, "Accuracy:", accuracy, "m");
 
         const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
           method: "POST",
@@ -149,7 +150,7 @@ checkInBtn.onclick = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`
           },
-          body: JSON.stringify({ latitude, longitude })
+          body: JSON.stringify({ latitude, longitude, accuracy })
         });
 
         const data = await res.json();

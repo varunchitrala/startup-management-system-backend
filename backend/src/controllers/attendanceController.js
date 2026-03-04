@@ -167,18 +167,23 @@ exports.checkIn = async (req, res) => {
         const officeLat = parseFloat(office.rows[0].latitude);
         const officeLon = parseFloat(office.rows[0].longitude);
         const allowedRadius = parseFloat(office.rows[0].allowed_radius);
+        const gpsAccuracy = parseFloat(req.body.accuracy) || 0;
 
-        console.log(`📍 User coords: lat=${latitude} (${typeof latitude}), lon=${longitude} (${typeof longitude})`);
-        console.log(`🏢 Office coords: lat=${officeLat} (${typeof officeLat}), lon=${officeLon} (${typeof officeLon})`);
-        console.log(`📐 Allowed radius: ${allowedRadius}m (${typeof allowedRadius})`);
+        console.log(`📍 User coords: lat=${latitude}, lon=${longitude}, GPS accuracy: ~${gpsAccuracy.toFixed(0)}m`);
+        console.log(`🏢 Office coords: lat=${officeLat}, lon=${officeLon}`);
+        console.log(`📐 Allowed radius: ${allowedRadius}m`);
 
         const distance = getDistanceInMeters(latitude, longitude, officeLat, officeLon);
 
-        console.log(`📏 Distance from office: ${distance.toFixed(2)}m | Allowed: ${allowedRadius}m | GeoEnabled: ${geoEnabled}`);
+        // Account for GPS inaccuracy: if GPS says accuracy is 200m,
+        // the real position could be up to 200m closer than reported
+        const effectiveDistance = Math.max(0, distance - gpsAccuracy);
 
-        if (distance > allowedRadius) {
+        console.log(`📏 Raw distance: ${distance.toFixed(2)}m | GPS accuracy: ~${gpsAccuracy.toFixed(0)}m | Effective distance: ${effectiveDistance.toFixed(2)}m | Allowed: ${allowedRadius}m`);
+
+        if (effectiveDistance > allowedRadius) {
           return res.status(403).json({
-            message: `You are outside office location (${Math.round(distance)}m away, allowed: ${allowedRadius}m)`
+            message: `You are outside office location (${Math.round(distance)}m away, GPS accuracy: ~${Math.round(gpsAccuracy)}m, allowed: ${allowedRadius}m)`
           });
         }
       } else {

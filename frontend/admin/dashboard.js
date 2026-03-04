@@ -1277,18 +1277,29 @@ function captureMyLocation() {
     return;
   }
 
-  msgDiv.innerHTML = `<span class="text-muted">📡 Detecting location...</span>`;
+  msgDiv.innerHTML = `<span class="text-muted">📡 Detecting location (waiting for GPS lock)...</span>`;
 
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      document.getElementById("officeLat").value = position.coords.latitude;
-      document.getElementById("officeLon").value = position.coords.longitude;
-      msgDiv.innerHTML = `<span class="text-success">✅ Location captured! Click Save to update.</span>`;
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const accuracy = position.coords.accuracy; // in meters
+
+      document.getElementById("officeLat").value = lat;
+      document.getElementById("officeLon").value = lon;
+
+      if (accuracy > 50) {
+        msgDiv.innerHTML = `<span class="text-warning">⚠️ Location captured but accuracy is low (~${Math.round(accuracy)}m). Try again outdoors or wait for better GPS signal, then click "Capture My Location" again.</span>
+          <br><small class="text-muted">Lat: ${lat}, Lon: ${lon}</small>`;
+      } else {
+        msgDiv.innerHTML = `<span class="text-success">✅ Location captured! Accuracy: ~${Math.round(accuracy)}m. Click Save to update.</span>
+          <br><small class="text-muted">Lat: ${lat}, Lon: ${lon}</small>`;
+      }
     },
-    () => {
-      msgDiv.innerHTML = `<span class="text-danger">Location permission denied</span>`;
+    (error) => {
+      msgDiv.innerHTML = `<span class="text-danger">Location error: ${error.message || "Permission denied"}</span>`;
     },
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
   );
 }
 
