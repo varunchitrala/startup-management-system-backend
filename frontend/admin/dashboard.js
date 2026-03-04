@@ -1288,7 +1288,7 @@ function captureMyLocation() {
     () => {
       msgDiv.innerHTML = `<span class="text-danger">Location permission denied</span>`;
     },
-    { enableHighAccuracy: true }
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
   );
 }
 

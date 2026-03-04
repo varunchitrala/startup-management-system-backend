@@ -174,9 +174,16 @@ checkInBtn.onclick = () => {
       }
     },
 
-    () => {
+    (error) => {
+      console.error("📍 Geolocation error:", error.code, error.message);
       messageDiv.innerHTML =
-        `<div class="alert alert-danger">Location permission denied</div>`;
+        `<div class="alert alert-danger">Location error: ${error.message || "Permission denied"}</div>`;
+    },
+
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
     }
   );
 };

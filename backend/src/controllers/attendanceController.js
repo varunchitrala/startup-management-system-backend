@@ -118,7 +118,8 @@ exports.checkIn = async (req, res) => {
     const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
     const nowIST = new Date(Date.now() + IST_OFFSET_MS);
 
-    const { latitude, longitude } = req.body;
+    const latitude = parseFloat(req.body.latitude);
+    const longitude = parseFloat(req.body.longitude);
 
     // 🔹 Leave check
     const leaveCheck = await pool.query(`
@@ -159,20 +160,26 @@ exports.checkIn = async (req, res) => {
           return res.status(400).json({ message: "Office location not configured" });
         }
 
-        if (!latitude || !longitude) {
+        if (isNaN(latitude) || isNaN(longitude)) {
           return res.status(400).json({ message: "Location required for check-in" });
         }
 
-        const officeLat = office.rows[0].latitude;
-        const officeLon = office.rows[0].longitude;
-        const allowedRadius = office.rows[0].allowed_radius;
+        const officeLat = parseFloat(office.rows[0].latitude);
+        const officeLon = parseFloat(office.rows[0].longitude);
+        const allowedRadius = parseFloat(office.rows[0].allowed_radius);
+
+        console.log(`📍 User coords: lat=${latitude} (${typeof latitude}), lon=${longitude} (${typeof longitude})`);
+        console.log(`🏢 Office coords: lat=${officeLat} (${typeof officeLat}), lon=${officeLon} (${typeof officeLon})`);
+        console.log(`📐 Allowed radius: ${allowedRadius}m (${typeof allowedRadius})`);
 
         const distance = getDistanceInMeters(latitude, longitude, officeLat, officeLon);
 
-        console.log(`📏 Distance from office: ${distance}m | Allowed: ${allowedRadius}m | GeoEnabled: ${geoEnabled}`);
+        console.log(`📏 Distance from office: ${distance.toFixed(2)}m | Allowed: ${allowedRadius}m | GeoEnabled: ${geoEnabled}`);
 
         if (distance > allowedRadius) {
-          return res.status(403).json({ message: "You are outside office location" });
+          return res.status(403).json({
+            message: `You are outside office location (${Math.round(distance)}m away, allowed: ${allowedRadius}m)`
+          });
         }
       } else {
         console.log("🌍 Geo-fencing disabled — skipping location check");
