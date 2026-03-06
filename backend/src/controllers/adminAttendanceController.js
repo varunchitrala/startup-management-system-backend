@@ -255,74 +255,227 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
 const ExcelJS = require("exceljs");
 
 exports.exportDailyAttendanceExcel = async (req, res) => {
-  try {
-    const { date } = req.query;
+    try {
+        const { date } = req.query;
 
-    if (!date) {
-      return res.status(400).json({ message: "Date is required" });
-    }
+        if (!date) {
+            return res.status(400).json({ message: "Date is required" });
+        }
 
-    const result = await pool.query(`
+        // ── Query: attendance + work reports ──
+        const result = await pool.query(`
       WITH day_meta AS (
         SELECT EXISTS (
           SELECT 1 FROM holidays WHERE holiday_date = $1::date
         ) OR EXTRACT(DOW FROM $1::date) = 0 AS is_holiday
       )
       SELECT
-        u.user_id,
         u.name,
-        u.role,
+        a.date AS att_date,
         a.check_in,
         a.check_out,
         a.status,
-        dm.is_holiday
+        dm.is_holiday,
+        wr.work_done,
+        wr.created_at AS submitted_at
       FROM users u
       CROSS JOIN day_meta dm
       LEFT JOIN attendance a
         ON a.user_id = u.id
         AND a.date = $1
-      ORDER BY u.id
+      LEFT JOIN work_reports wr
+        ON wr.user_id = u.id
+        AND wr.report_date = $1
+        AND wr.report_type = 'DAILY'
+      ORDER BY u.name
     `, [date]);
 
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Daily Attendance");
+        // ── Summary counts ──
+        const totalResult = await pool.query("SELECT COUNT(*)::int AS total FROM users");
+        const totalStudents = totalResult.rows[0].total;
 
-    sheet.columns = [
-      { header: "User ID", key: "user_id", width: 15 },
-      { header: "Name", key: "name", width: 20 },
-      { header: "Role", key: "role", width: 15 },
-      { header: "Check In", key: "check_in", width: 20 },
-      { header: "Check Out", key: "check_out", width: 20 },
-      { header: "Status", key: "status", width: 15 }
-    ];
+        let presentCount = 0;
+        let absentCount = 0;
+        result.rows.forEach(r => {
+            const st = r.status || (r.is_holiday ? "HOLIDAY" : "ABSENT");
+            if (st === "PRESENT" || (r.check_in && r.check_out)) presentCount++;
+            else if (st === "ABSENT" || (!r.check_in && !r.is_holiday)) absentCount++;
+        });
 
-    result.rows.forEach(r => {
-      sheet.addRow({
-        user_id: r.user_id,
-        name: r.name,
-        role: r.role,
-        check_in: r.check_in || "-",
-        check_out: r.check_out || "-",
-        status: r.status || (r.is_holiday ? "HOLIDAY" : "ABSENT")
-      });
-    });
+        // ── Date display ──
+        const dateObj = new Date(date + "T00:00:00+05:30");
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const dayNum = dateObj.getDate();
+        const suffix = [11, 12, 13].includes(dayNum) ? "th" : { 1: "st", 2: "nd", 3: "rd" }[dayNum % 10] || "th";
+        const dateDisplay = `${dayNum}${suffix} ${months[dateObj.getMonth()]} & ${dayNames[dateObj.getDay()]}`;
 
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=attendance_${date}.xlsx`
-    );
+        // ── Helper: format UTC timestamp to IST HH:MM:SS ──
+        const fmtIST = (raw) => {
+            if (!raw) return "";
+            const d = new Date(raw);
+            return d.toLocaleTimeString("en-IN", {
+                hour: "2-digit", minute: "2-digit", second: "2-digit",
+                hour12: false, timeZone: "Asia/Kolkata"
+            });
+        };
 
-    await workbook.xlsx.write(res);
-    res.end();
+        const fmtISTDateTime = (raw) => {
+            if (!raw) return "";
+            const d = new Date(raw);
+            return d.toLocaleString("en-IN", {
+                day: "2-digit", month: "2-digit", year: "numeric",
+                hour: "2-digit", minute: "2-digit",
+                hour12: false, timeZone: "Asia/Kolkata"
+            });
+        };
 
-  } catch (err) {
-    console.error("Daily Excel export error:", err);
-    res.status(500).json({ message: "Excel export failed" });
-  }
+        // ── Colors ──
+        const BLUE_HEADER = "1F4E79";
+        const LIGHT_BLUE = "D6E4F0";
+        const WHITE = "FFFFFF";
+        const BLACK = "000000";
+        const DARK_BLUE = "0D3B66";
+
+        const thinBorder = {
+            top: { style: "thin" }, left: { style: "thin" },
+            bottom: { style: "thin" }, right: { style: "thin" }
+        };
+
+        // ── Build workbook ──
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = "SUN NEXUS SOLUTIONS";
+        const sheet = workbook.addWorksheet("Daily Report");
+
+        // Column widths
+        sheet.columns = [
+            { width: 22 }, // A - Student Name
+            { width: 14 }, // B - Date
+            { width: 12 }, // C - Check-In
+            { width: 12 }, // D - Check-Out
+            { width: 42 }, // E - Work Summary
+            { width: 22 }, // F - Submitted
+        ];
+
+        // ROW 1: Company Title
+        sheet.mergeCells("A1:F1");
+        const titleCell = sheet.getCell("A1");
+        titleCell.value = "SUN NEXUS SOLUTIONS Daily Report";
+        titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: DARK_BLUE } };
+        titleCell.alignment = { horizontal: "center", vertical: "middle" };
+        sheet.getRow(1).height = 36;
+
+        // ROW 3-8: Attendance Summary
+        const summaryStart = 3;
+        sheet.mergeCells("A" + summaryStart + ":B" + summaryStart);
+        const summaryHeader = sheet.getCell("A" + summaryStart);
+        summaryHeader.value = "Attendance Summary";
+        summaryHeader.font = { name: "Calibri", size: 13, bold: true, color: { argb: BLACK } };
+        summaryHeader.alignment = { horizontal: "center", vertical: "middle" };
+        summaryHeader.border = thinBorder;
+        sheet.getCell("C" + summaryStart).border = thinBorder;
+        sheet.mergeCells("C" + summaryStart + ":F" + summaryStart);
+
+        const summaryRows = [
+            ["Date & Day:", dateDisplay],
+            ["Total Students:", totalStudents],
+            ["Absent:", absentCount],
+            ["Present:", presentCount],
+            ["Official Club Timing:", "8:00 AM"],
+        ];
+
+        summaryRows.forEach((item, i) => {
+            const rowIdx = summaryStart + 1 + i;
+            sheet.mergeCells("A" + rowIdx + ":B" + rowIdx);
+            const labelCell = sheet.getCell("A" + rowIdx);
+            labelCell.value = item[0];
+            labelCell.font = { name: "Calibri", size: 11, bold: true };
+            labelCell.alignment = { horizontal: "right", vertical: "middle" };
+            labelCell.border = thinBorder;
+
+            sheet.mergeCells("C" + rowIdx + ":F" + rowIdx);
+            const valCell = sheet.getCell("C" + rowIdx);
+            valCell.value = item[1];
+            valCell.font = { name: "Calibri", size: 11, color: { argb: BLUE_HEADER } };
+            valCell.alignment = { horizontal: "left", vertical: "middle" };
+            valCell.border = thinBorder;
+        });
+
+        // Section Title
+        const sectionTitleRow = summaryStart + summaryRows.length + 2;
+        sheet.mergeCells("A" + sectionTitleRow + ":F" + sectionTitleRow);
+        const sectionTitle = sheet.getCell("A" + sectionTitleRow);
+        sectionTitle.value = "Daily Attendance Report Overview";
+        sectionTitle.font = { name: "Calibri", size: 13, bold: true, color: { argb: BLACK } };
+        sectionTitle.alignment = { horizontal: "center", vertical: "middle" };
+        sectionTitle.border = thinBorder;
+        sheet.getRow(sectionTitleRow).height = 28;
+
+        // Table Header
+        const headerRowNum = sectionTitleRow + 1;
+        const headers = ["Student Name", "Date", "Check-In", "Check-Out", "Work Summary", "Submitted"];
+        const hRow = sheet.getRow(headerRowNum);
+        headers.forEach((h, i) => {
+            const cell = hRow.getCell(i + 1);
+            cell.value = h;
+            cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_HEADER } };
+            cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+            cell.border = thinBorder;
+        });
+        hRow.height = 24;
+
+        // DATA ROWS
+        let dataRowIdx = headerRowNum + 1;
+        result.rows.forEach((r, i) => {
+            const row = sheet.getRow(dataRowIdx);
+            const isEven = i % 2 === 0;
+
+            const rowData = [
+                r.name || "",
+                date,
+                fmtIST(r.check_in),
+                fmtIST(r.check_out),
+                r.work_done || "No work summary",
+                fmtISTDateTime(r.submitted_at)
+            ];
+
+            rowData.forEach((val, ci) => {
+                const cell = row.getCell(ci + 1);
+                cell.value = val;
+                cell.font = { name: "Calibri", size: 10 };
+                cell.alignment = { vertical: "middle", wrapText: ci === 4 };
+                cell.border = thinBorder;
+                if (isEven) {
+                    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: LIGHT_BLUE } };
+                }
+            });
+
+            // Adjust row height for work summary
+            if (r.work_done && r.work_done.length > 60) {
+                row.height = Math.min(80, 20 + Math.floor(r.work_done.length / 40) * 14);
+            }
+
+            dataRowIdx++;
+        });
+
+        // ── Send response ──
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=daily_report_" + date + ".xlsx"
+        );
+
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (err) {
+        console.error("Daily Excel export error:", err);
+        res.status(500).json({ message: "Excel export failed" });
+    }
 };
 
 exports.getMonthlyAttendanceSummary = async (req, res) => {
