@@ -235,6 +235,13 @@ router.get(
 );
 
 router.get(
+  "/team-members/export/excel",
+  verifyToken,
+  isAdmin,
+  adminController.exportEmployeesExcel
+);
+
+router.get(
   "/team-members",
   verifyToken,
   isAdmin,

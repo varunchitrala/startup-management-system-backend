@@ -42,6 +42,7 @@ async function loadEmployees() {
 function filterEmployees() {
   const searchText = (document.getElementById("searchInput")?.value || "").toLowerCase().trim();
   const roleFilter = document.getElementById("roleFilter")?.value || "";
+  const statusFilter = document.getElementById("statusFilter")?.value || "";
 
   let filtered = allEmployees;
 
@@ -54,6 +55,12 @@ function filterEmployees() {
 
   if (roleFilter) {
     filtered = filtered.filter(u => u.role === roleFilter);
+  }
+
+  if (statusFilter === "assigned") {
+    filtered = filtered.filter(u => u.is_assigned);
+  } else if (statusFilter === "free") {
+    filtered = filtered.filter(u => !u.is_assigned);
   }
 
   renderEmployees(filtered);
@@ -181,6 +188,32 @@ function logout() {
   localStorage.removeItem("token");
   localStorage.removeItem("role");
   window.location.href = "../index.html";
+}
+
+/* ================= EXPORT EMPLOYEES EXCEL ================= */
+async function exportEmployeesExcel() {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/team-members/export/excel`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      alert("Export failed");
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "employees_report.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error("Export error:", err);
+    alert("Failed to export employees");
+  }
 }
 
 /* ================= INIT ================= */

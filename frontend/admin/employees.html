@@ -308,6 +308,17 @@
             <option value="TEAM_LEAD">Team Lead</option>
             <option value="MEMBER">Member</option>
           </select>
+
+          <select id="statusFilter" class="form-select form-select-sm" style="max-width: 150px;"
+            onchange="filterEmployees()">
+            <option value="">All Status</option>
+            <option value="assigned">Assigned</option>
+            <option value="free">Free</option>
+          </select>
+
+          <button class="btn btn-sm btn-success" onclick="exportEmployeesExcel()">
+            <i class="bi bi-file-earmark-excel"></i> Export
+          </button>
         </div>
       </div>
 

@@ -334,7 +334,24 @@ async function loadMemberProjects() {
           No project assigned
         </li>
       `;
+      // Show FREE status
+      const badge = document.getElementById("assignmentStatusBadge");
+      const text = document.getElementById("assignmentStatusText");
+      if (badge && text) {
+        badge.style.display = "block";
+        text.className = "badge fs-6 bg-success";
+        text.textContent = "🟢 Free — No Active Projects";
+      }
       return;
+    }
+
+    // Show ASSIGNED status
+    const badge = document.getElementById("assignmentStatusBadge");
+    const text = document.getElementById("assignmentStatusText");
+    if (badge && text) {
+      badge.style.display = "block";
+      text.className = "badge fs-6 bg-warning text-dark";
+      text.textContent = "🟠 Assigned — " + projects.length + " Active Project" + (projects.length > 1 ? "s" : "");
     }
 
     projects.forEach(p => {

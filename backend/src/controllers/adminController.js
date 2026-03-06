@@ -535,3 +535,183 @@ exports.broadcastAnnouncement = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* ================== EXPORT EMPLOYEES EXCEL ================== */
+const ExcelJS = require("exceljs");
+
+exports.exportEmployeesExcel = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        u.id, u.user_id, u.name, u.email, u.role, u.domain,
+        s.name AS shift_name, s.check_in_time, s.check_out_time,
+        CASE
+          WHEN u.role = 'TEAM_LEAD' AND EXISTS (
+            SELECT 1 FROM projects p WHERE p.assigned_to = u.id AND p.status != 'COMPLETED'
+          ) THEN true
+          WHEN u.role = 'MEMBER' AND EXISTS (
+            SELECT 1 FROM project_members pm
+            JOIN projects p ON p.id = pm.project_id
+            WHERE pm.member_id = u.id AND p.status != 'COMPLETED'
+          ) THEN true
+          ELSE false
+        END AS is_assigned,
+        (
+          SELECT string_agg(p.project_name, ', ')
+          FROM projects p
+          LEFT JOIN project_members pm ON pm.project_id = p.id
+          WHERE (p.assigned_to = u.id OR pm.member_id = u.id)
+            AND p.status != 'COMPLETED'
+        ) AS assigned_projects
+      FROM users u
+      LEFT JOIN shifts s ON s.id = u.shift_id
+      WHERE u.role IN ('TEAM_LEAD', 'MEMBER')
+      ORDER BY u.role, u.name
+    `);
+
+    const employees = result.rows;
+    const totalCount = employees.length;
+    const assignedCount = employees.filter(e => e.is_assigned).length;
+    const freeCount = totalCount - assignedCount;
+
+    // Colors
+    const BLUE = "1F4E79";
+    const DARK_BLUE = "0D3B66";
+    const WHITE = "FFFFFF";
+    const BLACK = "000000";
+    const GREEN = "00875A";
+    const ORANGE = "FF8B00";
+
+    const thinBorder = {
+      top: { style: "thin" }, left: { style: "thin" },
+      bottom: { style: "thin" }, right: { style: "thin" }
+    };
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "SUN NEXUS SOLUTIONS";
+    const sheet = workbook.addWorksheet("Employees Report");
+
+    sheet.columns = [
+      { width: 6 },   // A - #
+      { width: 12 },  // B - User ID
+      { width: 22 },  // C - Name
+      { width: 26 },  // D - Email
+      { width: 14 },  // E - Role
+      { width: 12 },  // F - Status
+      { width: 20 },  // G - Shift
+      { width: 14 },  // H - Domain
+      { width: 28 },  // I - Assigned Projects
+    ];
+
+    // Title
+    sheet.mergeCells("A1:I1");
+    const titleCell = sheet.getCell("A1");
+    titleCell.value = "SUN NEXUS SOLUTIONS — Employees Report";
+    titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: DARK_BLUE } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    sheet.getRow(1).height = 36;
+
+    // Summary
+    const sRow = 3;
+    sheet.mergeCells("A" + sRow + ":D" + sRow);
+    const sumH = sheet.getCell("A" + sRow);
+    sumH.value = "Workforce Summary";
+    sumH.font = { name: "Calibri", size: 13, bold: true };
+    sumH.alignment = { horizontal: "center", vertical: "middle" };
+    sumH.border = thinBorder;
+    sheet.mergeCells("E" + sRow + ":I" + sRow);
+    sheet.getCell("E" + sRow).border = thinBorder;
+
+    const summaryItems = [
+      ["Total Employees:", totalCount],
+      ["Assigned:", assignedCount],
+      ["Free:", freeCount],
+    ];
+
+    summaryItems.forEach((item, i) => {
+      const r = sRow + 1 + i;
+      sheet.mergeCells("A" + r + ":D" + r);
+      const lc = sheet.getCell("A" + r);
+      lc.value = item[0];
+      lc.font = { name: "Calibri", size: 11, bold: true };
+      lc.alignment = { horizontal: "right", vertical: "middle" };
+      lc.border = thinBorder;
+      sheet.mergeCells("E" + r + ":I" + r);
+      const vc = sheet.getCell("E" + r);
+      vc.value = item[1];
+      vc.font = { name: "Calibri", size: 11, bold: true, color: { argb: BLUE } };
+      vc.alignment = { horizontal: "left", vertical: "middle" };
+      vc.border = thinBorder;
+    });
+
+    // Section title
+    const secRow = sRow + summaryItems.length + 2;
+    sheet.mergeCells("A" + secRow + ":I" + secRow);
+    const secT = sheet.getCell("A" + secRow);
+    secT.value = "All Employees — Detailed Overview";
+    secT.font = { name: "Calibri", size: 13, bold: true };
+    secT.alignment = { horizontal: "center", vertical: "middle" };
+    secT.border = thinBorder;
+    sheet.getRow(secRow).height = 28;
+
+    // Table Header
+    const hdrRow = secRow + 1;
+    const headers = ["#", "User ID", "Name", "Email", "Role", "Status", "Shift", "Domain", "Assigned Projects"];
+    const hRow = sheet.getRow(hdrRow);
+    headers.forEach((h, i) => {
+      const c = hRow.getCell(i + 1);
+      c.value = h;
+      c.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE } };
+      c.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      c.border = thinBorder;
+    });
+    hRow.height = 24;
+
+    // Data rows
+    let dIdx = hdrRow + 1;
+    employees.forEach((e, i) => {
+      const row = sheet.getRow(dIdx);
+      const statusText = e.is_assigned ? "Assigned" : "Free";
+      const statusColor = e.is_assigned ? ORANGE : GREEN;
+      const shiftText = e.shift_name
+        ? e.shift_name + " (" + e.check_in_time + " - " + e.check_out_time + ")"
+        : "No shift";
+
+      const vals = [
+        i + 1,
+        e.user_id,
+        e.name,
+        e.email,
+        e.role,
+        statusText,
+        shiftText,
+        e.domain || "—",
+        e.assigned_projects || "—"
+      ];
+
+      vals.forEach((v, ci) => {
+        const cell = row.getCell(ci + 1);
+        cell.value = v;
+        cell.font = { name: "Calibri", size: 10, color: { argb: BLUE } };
+        cell.alignment = { vertical: "middle", wrapText: (ci === 8) };
+        cell.border = thinBorder;
+        if (ci === 2) cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: DARK_BLUE } };
+        if (ci === 5) cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: statusColor } };
+      });
+
+      row.height = 22;
+      dIdx++;
+    });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=employees_report.xlsx");
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (err) {
+    console.error("Employees Excel export error:", err);
+    res.status(500).json({ message: "Excel export failed" });
+  }
+};
