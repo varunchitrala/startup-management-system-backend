@@ -255,15 +255,15 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
 const ExcelJS = require("exceljs");
 
 exports.exportDailyAttendanceExcel = async (req, res) => {
-    try {
-        const { date } = req.query;
+  try {
+    const { date } = req.query;
 
-        if (!date) {
-            return res.status(400).json({ message: "Date is required" });
-        }
+    if (!date) {
+      return res.status(400).json({ message: "Date is required" });
+    }
 
-        // ── Query: attendance + work reports ──
-        const result = await pool.query(`
+    // ── Query: attendance + work reports + shifts + leave ──
+    const result = await pool.query(`
       WITH day_meta AS (
         SELECT EXISTS (
           SELECT 1 FROM holidays WHERE holiday_date = $1::date
@@ -276,208 +276,248 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
         a.check_out,
         a.status,
         dm.is_holiday,
+        s.name AS shift_name,
+        s.check_in_time AS shift_start,
         wr.work_done,
-        wr.created_at AS submitted_at
+        wr.created_at AS submitted_at,
+        lr.id AS leave_id
       FROM users u
       CROSS JOIN day_meta dm
       LEFT JOIN attendance a
         ON a.user_id = u.id
         AND a.date = $1
+      LEFT JOIN shifts s
+        ON s.id = a.shift_id
       LEFT JOIN work_reports wr
         ON wr.user_id = u.id
         AND wr.report_date = $1
         AND wr.report_type = 'DAILY'
+      LEFT JOIN leave_requests lr
+        ON lr.user_id = u.id
+        AND lr.status = 'APPROVED'
+        AND $1 BETWEEN lr.from_date AND lr.to_date
       ORDER BY u.name
     `, [date]);
 
-        // ── Summary counts ──
-        const totalResult = await pool.query("SELECT COUNT(*)::int AS total FROM users");
-        const totalStudents = totalResult.rows[0].total;
+    // ── Summary counts ──
+    const totalResult = await pool.query("SELECT COUNT(*)::int AS total FROM users");
+    const totalStudents = totalResult.rows[0].total;
 
-        let presentCount = 0;
-        let absentCount = 0;
-        result.rows.forEach(r => {
-            const st = r.status || (r.is_holiday ? "HOLIDAY" : "ABSENT");
-            if (st === "PRESENT" || (r.check_in && r.check_out)) presentCount++;
-            else if (st === "ABSENT" || (!r.check_in && !r.is_holiday)) absentCount++;
-        });
+    let presentCount = 0;
+    let absentCount = 0;
+    let checkedInCount = 0;
+    let onLeaveCount = 0;
+    let holidayCount = 0;
 
-        // ── Date display ──
-        const dateObj = new Date(date + "T00:00:00+05:30");
-        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const dayNum = dateObj.getDate();
-        const suffix = [11, 12, 13].includes(dayNum) ? "th" : { 1: "st", 2: "nd", 3: "rd" }[dayNum % 10] || "th";
-        const dateDisplay = `${dayNum}${suffix} ${months[dateObj.getMonth()]} & ${dayNames[dateObj.getDay()]}`;
+    result.rows.forEach(r => {
+      let st = "ABSENT";
+      if (r.leave_id) { st = "ON_LEAVE"; onLeaveCount++; }
+      else if (r.status === "HOLIDAY" || r.is_holiday) { st = "HOLIDAY"; holidayCount++; }
+      else if (r.check_in && r.check_out) { st = "PRESENT"; presentCount++; }
+      else if (r.check_in && !r.check_out) { st = "CHECKED_IN"; checkedInCount++; }
+      else { absentCount++; }
+    });
 
-        // ── Helper: format UTC timestamp to IST HH:MM:SS ──
-        const fmtIST = (raw) => {
-            if (!raw) return "";
-            const d = new Date(raw);
-            return d.toLocaleTimeString("en-IN", {
-                hour: "2-digit", minute: "2-digit", second: "2-digit",
-                hour12: false, timeZone: "Asia/Kolkata"
-            });
-        };
+    // ── Fetch shift timings from DB ──
+    const shiftsResult = await pool.query("SELECT name, check_in_time, last_checkin_time FROM shifts ORDER BY id");
+    const shiftTimings = shiftsResult.rows.length > 0
+      ? shiftsResult.rows.map(s => s.name + ": " + s.check_in_time + " - " + s.last_checkin_time).join(" | ")
+      : "No shifts configured";
 
-        const fmtISTDateTime = (raw) => {
-            if (!raw) return "";
-            const d = new Date(raw);
-            return d.toLocaleString("en-IN", {
-                day: "2-digit", month: "2-digit", year: "numeric",
-                hour: "2-digit", minute: "2-digit",
-                hour12: false, timeZone: "Asia/Kolkata"
-            });
-        };
+    // ── Date display ──
+    const dateObj = new Date(date + "T00:00:00+05:30");
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dayNum = dateObj.getDate();
+    const suffix = [11, 12, 13].includes(dayNum) ? "th" : { 1: "st", 2: "nd", 3: "rd" }[dayNum % 10] || "th";
+    const dateDisplay = dayNum + suffix + " " + months[dateObj.getMonth()] + " & " + dayNames[dateObj.getDay()];
 
-        // ── Colors ──
-        const BLUE_HEADER = "1F4E79";
-        const LIGHT_BLUE = "D6E4F0";
-        const WHITE = "FFFFFF";
-        const BLACK = "000000";
-        const DARK_BLUE = "0D3B66";
+    // ── Helper: format UTC timestamp to IST HH:MM:SS ──
+    const fmtIST = (raw) => {
+      if (!raw) return "";
+      const d = new Date(raw);
+      return d.toLocaleTimeString("en-IN", {
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: false, timeZone: "Asia/Kolkata"
+      });
+    };
 
-        const thinBorder = {
-            top: { style: "thin" }, left: { style: "thin" },
-            bottom: { style: "thin" }, right: { style: "thin" }
-        };
+    // Format submitted as "YYYY-MM-DD\nHH:MM:SS" (date + time stacked)
+    const fmtSubmitted = (raw) => {
+      if (!raw) return "";
+      const d = new Date(raw);
+      const dateStr = d.toLocaleDateString("en-IN", {
+        year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Kolkata"
+      }).split("/").reverse().join("-");
+      const timeStr = d.toLocaleTimeString("en-IN", {
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: false, timeZone: "Asia/Kolkata"
+      });
+      return dateStr + "\n" + timeStr;
+    };
 
-        // ── Build workbook ──
-        const workbook = new ExcelJS.Workbook();
-        workbook.creator = "SUN NEXUS SOLUTIONS";
-        const sheet = workbook.addWorksheet("Daily Report");
+    // ── Colors ──
+    const BLUE_HEADER = "1F4E79";
+    const LIGHT_BLUE = "D6E4F0";
+    const WHITE = "FFFFFF";
+    const BLACK = "000000";
+    const DARK_BLUE = "0D3B66";
+    const DATA_BLUE = "1F4E79";
 
-        // Column widths
-        sheet.columns = [
-            { width: 22 }, // A - Student Name
-            { width: 14 }, // B - Date
-            { width: 12 }, // C - Check-In
-            { width: 12 }, // D - Check-Out
-            { width: 42 }, // E - Work Summary
-            { width: 22 }, // F - Submitted
-        ];
+    const thinBorder = {
+      top: { style: "thin" }, left: { style: "thin" },
+      bottom: { style: "thin" }, right: { style: "thin" }
+    };
 
-        // ROW 1: Company Title
-        sheet.mergeCells("A1:F1");
-        const titleCell = sheet.getCell("A1");
-        titleCell.value = "SUN NEXUS SOLUTIONS Daily Report";
-        titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: DARK_BLUE } };
-        titleCell.alignment = { horizontal: "center", vertical: "middle" };
-        sheet.getRow(1).height = 36;
+    // ── Build workbook ──
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "SUN NEXUS SOLUTIONS";
+    const sheet = workbook.addWorksheet("Daily Report");
 
-        // ROW 3-8: Attendance Summary
-        const summaryStart = 3;
-        sheet.mergeCells("A" + summaryStart + ":B" + summaryStart);
-        const summaryHeader = sheet.getCell("A" + summaryStart);
-        summaryHeader.value = "Attendance Summary";
-        summaryHeader.font = { name: "Calibri", size: 13, bold: true, color: { argb: BLACK } };
-        summaryHeader.alignment = { horizontal: "center", vertical: "middle" };
-        summaryHeader.border = thinBorder;
-        sheet.getCell("C" + summaryStart).border = thinBorder;
-        sheet.mergeCells("C" + summaryStart + ":F" + summaryStart);
+    // Column widths
+    sheet.columns = [
+      { width: 24 }, // A - Student Name
+      { width: 14 }, // B - Date
+      { width: 12 }, // C - Check-In
+      { width: 12 }, // D - Check-Out
+      { width: 42 }, // E - Work Summary
+      { width: 20 }, // F - Submitted
+    ];
 
-        const summaryRows = [
-            ["Date & Day:", dateDisplay],
-            ["Total Students:", totalStudents],
-            ["Absent:", absentCount],
-            ["Present:", presentCount],
-            ["Official Club Timing:", "8:00 AM"],
-        ];
+    // ═══════ ROW 1: Company Title ═══════
+    sheet.mergeCells("A1:F1");
+    const titleCell = sheet.getCell("A1");
+    titleCell.value = "SUN NEXUS SOLUTIONS Daily Report";
+    titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: DARK_BLUE } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    sheet.getRow(1).height = 36;
 
-        summaryRows.forEach((item, i) => {
-            const rowIdx = summaryStart + 1 + i;
-            sheet.mergeCells("A" + rowIdx + ":B" + rowIdx);
-            const labelCell = sheet.getCell("A" + rowIdx);
-            labelCell.value = item[0];
-            labelCell.font = { name: "Calibri", size: 11, bold: true };
-            labelCell.alignment = { horizontal: "right", vertical: "middle" };
-            labelCell.border = thinBorder;
+    // ═══════ ROW 3: Attendance Summary Header ═══════
+    const summaryStart = 3;
+    sheet.mergeCells("A" + summaryStart + ":C" + summaryStart);
+    const summaryHeader = sheet.getCell("A" + summaryStart);
+    summaryHeader.value = "Attendance Summary";
+    summaryHeader.font = { name: "Calibri", size: 13, bold: true, color: { argb: BLACK } };
+    summaryHeader.alignment = { horizontal: "center", vertical: "middle" };
+    summaryHeader.border = thinBorder;
+    sheet.getCell("D" + summaryStart).border = thinBorder;
+    sheet.mergeCells("D" + summaryStart + ":F" + summaryStart);
 
-            sheet.mergeCells("C" + rowIdx + ":F" + rowIdx);
-            const valCell = sheet.getCell("C" + rowIdx);
-            valCell.value = item[1];
-            valCell.font = { name: "Calibri", size: 11, color: { argb: BLUE_HEADER } };
-            valCell.alignment = { horizontal: "left", vertical: "middle" };
-            valCell.border = thinBorder;
-        });
+    // ═══════ Summary Rows ═══════
+    const summaryData = [
+      ["Date & Day:", dateDisplay],
+      ["Total Students:", totalStudents],
+      ["Absent:", absentCount],
+      ["Present:", presentCount],
+      ["Checked In:", checkedInCount],
+      ["On Leave:", onLeaveCount],
+      ["Holiday:", holidayCount],
+      ["Official Club Timing:", shiftTimings],
+    ];
 
-        // Section Title
-        const sectionTitleRow = summaryStart + summaryRows.length + 2;
-        sheet.mergeCells("A" + sectionTitleRow + ":F" + sectionTitleRow);
-        const sectionTitle = sheet.getCell("A" + sectionTitleRow);
-        sectionTitle.value = "Daily Attendance Report Overview";
-        sectionTitle.font = { name: "Calibri", size: 13, bold: true, color: { argb: BLACK } };
-        sectionTitle.alignment = { horizontal: "center", vertical: "middle" };
-        sectionTitle.border = thinBorder;
-        sheet.getRow(sectionTitleRow).height = 28;
+    summaryData.forEach((item, i) => {
+      const rowIdx = summaryStart + 1 + i;
+      sheet.mergeCells("A" + rowIdx + ":C" + rowIdx);
+      const labelCell = sheet.getCell("A" + rowIdx);
+      labelCell.value = item[0];
+      labelCell.font = { name: "Calibri", size: 11, bold: true };
+      labelCell.alignment = { horizontal: "right", vertical: "middle" };
+      labelCell.border = thinBorder;
 
-        // Table Header
-        const headerRowNum = sectionTitleRow + 1;
-        const headers = ["Student Name", "Date", "Check-In", "Check-Out", "Work Summary", "Submitted"];
-        const hRow = sheet.getRow(headerRowNum);
-        headers.forEach((h, i) => {
-            const cell = hRow.getCell(i + 1);
-            cell.value = h;
-            cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
-            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_HEADER } };
-            cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-            cell.border = thinBorder;
-        });
-        hRow.height = 24;
+      sheet.mergeCells("D" + rowIdx + ":F" + rowIdx);
+      const valCell = sheet.getCell("D" + rowIdx);
+      valCell.value = item[1];
+      valCell.font = { name: "Calibri", size: 11, bold: true, color: { argb: BLUE_HEADER } };
+      valCell.alignment = { horizontal: "left", vertical: "middle" };
+      valCell.border = thinBorder;
+    });
 
-        // DATA ROWS
-        let dataRowIdx = headerRowNum + 1;
-        result.rows.forEach((r, i) => {
-            const row = sheet.getRow(dataRowIdx);
-            const isEven = i % 2 === 0;
+    // ═══════ Section Title: Daily Attendance Report Overview ═══════
+    const sectionTitleRow = summaryStart + summaryData.length + 2;
+    sheet.mergeCells("A" + sectionTitleRow + ":F" + sectionTitleRow);
+    const sectionTitle = sheet.getCell("A" + sectionTitleRow);
+    sectionTitle.value = "Daily Attendance Report Overview";
+    sectionTitle.font = { name: "Calibri", size: 13, bold: true, color: { argb: BLACK } };
+    sectionTitle.alignment = { horizontal: "center", vertical: "middle" };
+    sectionTitle.border = thinBorder;
+    sheet.getRow(sectionTitleRow).height = 28;
 
-            const rowData = [
-                r.name || "",
-                date,
-                fmtIST(r.check_in),
-                fmtIST(r.check_out),
-                r.work_done || "No work summary",
-                fmtISTDateTime(r.submitted_at)
-            ];
+    // ═══════ Table Header ═══════
+    const headerRowNum = sectionTitleRow + 1;
+    const headers = ["Student Name", "Date", "Check-In", "Check-Out", "Work Summary", "Submitted"];
+    const hRow = sheet.getRow(headerRowNum);
+    headers.forEach((h, i) => {
+      const cell = hRow.getCell(i + 1);
+      cell.value = h;
+      cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_HEADER } };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border = thinBorder;
+    });
+    hRow.height = 24;
 
-            rowData.forEach((val, ci) => {
-                const cell = row.getCell(ci + 1);
-                cell.value = val;
-                cell.font = { name: "Calibri", size: 10 };
-                cell.alignment = { vertical: "middle", wrapText: ci === 4 };
-                cell.border = thinBorder;
-                if (isEven) {
-                    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: LIGHT_BLUE } };
-                }
-            });
+    // ═══════ DATA ROWS ═══════
+    let dataRowIdx = headerRowNum + 1;
+    result.rows.forEach((r, i) => {
+      const row = sheet.getRow(dataRowIdx);
 
-            // Adjust row height for work summary
-            if (r.work_done && r.work_done.length > 60) {
-                row.height = Math.min(80, 20 + Math.floor(r.work_done.length / 40) * 14);
-            }
+      // Determine status
+      let status = "ABSENT";
+      if (r.leave_id) status = "ON_LEAVE";
+      else if (r.status === "HOLIDAY" || r.is_holiday) status = "HOLIDAY";
+      else if (r.check_in && r.check_out) status = "PRESENT";
+      else if (r.check_in && !r.check_out) status = "CHECKED_IN";
 
-            dataRowIdx++;
-        });
+      const rowValues = [
+        r.name || "",
+        date,
+        fmtIST(r.check_in),
+        fmtIST(r.check_out),
+        r.work_done || "No work summary",
+        fmtSubmitted(r.submitted_at)
+      ];
 
-        // ── Send response ──
-        res.setHeader(
-            "Content-Type",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        );
-        res.setHeader(
-            "Content-Disposition",
-            "attachment; filename=daily_report_" + date + ".xlsx"
-        );
+      rowValues.forEach((val, ci) => {
+        const cell = row.getCell(ci + 1);
+        cell.value = val;
+        // Student Name = bold + blue, rest = blue
+        if (ci === 0) {
+          cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: DATA_BLUE } };
+        } else {
+          cell.font = { name: "Calibri", size: 10, color: { argb: DATA_BLUE } };
+        }
+        cell.alignment = { vertical: "middle", wrapText: (ci === 4 || ci === 5) };
+        cell.border = thinBorder;
+      });
 
-        await workbook.xlsx.write(res);
-        res.end();
+      // Adjust row height for multi-line content
+      if (r.work_done && r.work_done.length > 60) {
+        row.height = Math.min(80, 24 + Math.floor(r.work_done.length / 40) * 14);
+      } else {
+        row.height = 30; // enough for 2-line submitted column
+      }
 
-    } catch (err) {
-        console.error("Daily Excel export error:", err);
-        res.status(500).json({ message: "Excel export failed" });
-    }
+      dataRowIdx++;
+    });
+
+    // ── Send response ──
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=daily_report_" + date + ".xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (err) {
+    console.error("Daily Excel export error:", err);
+    res.status(500).json({ message: "Excel export failed" });
+  }
 };
-
 exports.getMonthlyAttendanceSummary = async (req, res) => {
   try {
     const { month } = req.query; // format: YYYY-MM
