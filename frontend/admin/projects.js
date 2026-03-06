@@ -190,5 +190,31 @@ function logout() {
   window.location.href = "../index.html";
 }
 
+/* ================= EXPORT PROJECTS EXCEL ================= */
+async function exportProjectsExcel() {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/projects/export/excel`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      alert("Export failed");
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "projects_report.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error("Export error:", err);
+    alert("Failed to export projects");
+  }
+}
+
 /* ================= INIT ================= */
 loadProjects();

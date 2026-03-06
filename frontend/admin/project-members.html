@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Console | Project Members</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --bg-app: #f4f5f7;
+            --bg-panel: #ffffff;
+            --nav-bg: #172b4d;
+            --text-main: #172b4d;
+            --text-muted: #5e6c84;
+            --border-color: #dfe1e6;
+            --primary: #0052cc;
+            --primary-hover: #0047b3;
+            --danger: #de350b;
+            --success: #00875a;
+            --warning: #ffab00;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-app);
+            font-family: var(--font-family);
+            color: var(--text-main);
+            font-size: 14px;
+            margin: 0;
+            padding-top: 56px;
+        }
+
+        .topnav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background-color: var(--nav-bg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 1030;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+
+        .topnav-brand {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .topnav-tools {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            color: #ffffff;
+        }
+
+        .subnav {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+            display: flex;
+            gap: 24px;
+        }
+
+        .subnav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 14px 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .subnav a:hover {
+            color: var(--text-main);
+        }
+
+        .subnav a.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .container-app {
+            padding: 24px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            box-shadow: 0 1px 1px rgba(9, 30, 66, 0.05);
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fafbfc;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-body {
+            padding: 20px;
+            flex-grow: 1;
+        }
+
+        .panel-body-flush {
+            padding: 0;
+        }
+
+        .table-enterprise {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+        }
+
+        .table-enterprise th {
+            background: #fafbfc;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 10px 16px;
+            border-bottom: 2px solid var(--border-color);
+            text-align: left;
+        }
+
+        .table-enterprise td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            color: var(--text-main);
+            font-size: 13px;
+        }
+
+        .table-enterprise tbody tr:hover {
+            background-color: #ebecf0;
+        }
+
+        .lead-card {
+            background: linear-gradient(135deg, #0052cc11, #0052cc08);
+            border: 1px solid #0052cc33;
+            border-radius: 6px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .lead-card .lead-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .btn-back {
+            background: rgba(9, 30, 66, 0.04);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            font-weight: 500;
+            font-size: 13px;
+            padding: 6px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-back:hover {
+            background: rgba(9, 30, 66, 0.08);
+            color: var(--text-main);
+        }
+
+        @media (max-width: 768px) {
+            .topnav {
+                padding: 0 12px;
+            }
+
+            .topnav-brand {
+                font-size: 14px;
+            }
+
+            .container-app {
+                padding: 16px;
+            }
+
+            .subnav {
+                overflow-x: auto;
+                white-space: nowrap;
+                padding: 0 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="topnav">
+        <div class="topnav-brand">
+            <i class="bi bi-hdd-network"></i> <span class="d-none d-sm-inline">SUN Nexus | System
+                Administration</span><span class="d-sm-none">Admin</span>
+        </div>
+        <div class="topnav-tools">
+            <div class="d-flex align-items-center gap-2 border-start border-secondary ps-3 ms-2">
+                <i class="bi bi-person-circle fs-5"></i>
+                <span class="d-none d-sm-inline" style="font-size: 13px; font-weight: 500;">Admin User</span>
+                <button class="btn btn-sm btn-link text-white ms-2" onclick="logout()" title="Logout"><i
+                        class="bi bi-box-arrow-right"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="subnav">
+        <a href="dashboard.html">Operations Dashboard</a>
+        <a href="employees.html">Workforce Roster</a>
+        <a href="projects.html" class="active">Project Sandbox</a>
+    </nav>
+
+    <main class="container-app">
+
+        <!-- Back Button + Project Name -->
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <a href="projects.html" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Back to Projects
+            </a>
+            <h5 class="mb-0 fw-bold" id="projectTitle" style="color: var(--text-main);">
+                <div class="spinner-border spinner-border-sm text-secondary me-1" role="status"></div>
+                Loading...
+            </h5>
+        </div>
+
+        <!-- Team Lead Card -->
+        <div class="lead-card" id="leadCard" style="display:none;">
+            <div class="lead-icon" id="leadInitial">—</div>
+            <div>
+                <div class="fw-bold" style="font-size: 15px;" id="leadName">—</div>
+                <div class="text-muted small" id="leadCode">Team Lead</div>
+            </div>
+        </div>
+
+        <!-- Members Table -->
+        <div class="panel">
+            <div class="panel-header py-3">
+                <h2 class="panel-title"><i class="bi bi-people"></i> Assigned Members</h2>
+                <span class="badge bg-primary" id="memberCount">0</span>
+            </div>
+
+            <div class="panel-body-flush table-responsive">
+                <table class="table-enterprise">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Domain</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTable">
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+                                Loading members...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = "https://startup-management-system-backend.onrender.com";
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            alert("Unauthorized");
+            window.location.href = "../index.html";
+        }
+
+        function logout() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            window.location.href = "../index.html";
+        }
+
+        // Get projectId from URL
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get("projectId");
+
+        if (!projectId) {
+            document.getElementById("projectTitle").textContent = "No project selected";
+            document.getElementById("membersTable").innerHTML =
+                '<tr><td colspan="5" class="text-center text-muted py-4">No project ID provided. <a href="projects.html">Go back</a></td></tr>';
+        } else {
+            loadProjectMembers(projectId);
+        }
+
+        async function loadProjectMembers(pid) {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/admin-project-members/${pid}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    document.getElementById("projectTitle").textContent = "Project Not Found";
+                    document.getElementById("membersTable").innerHTML =
+                        `<tr><td colspan="5" class="text-center text-danger py-4">${err.message || "Failed to load project"}</td></tr>`;
+                    return;
+                }
+
+                const data = await res.json();
+
+                // Project title
+                document.getElementById("projectTitle").innerHTML =
+                    `<i class="bi bi-kanban me-2" style="color: var(--primary);"></i> Project Members`;
+
+                // Team Lead card
+                const leadCard = document.getElementById("leadCard");
+                if (data.project.team_lead_name) {
+                    leadCard.style.display = "flex";
+                    document.getElementById("leadName").textContent = data.project.team_lead_name;
+                    document.getElementById("leadCode").textContent = `Team Lead • ${data.project.team_lead_code || ""}`;
+                    document.getElementById("leadInitial").textContent =
+                        data.project.team_lead_name.charAt(0).toUpperCase();
+                }
+
+                // Members table
+                const tbody = document.getElementById("membersTable");
+                const members = data.members;
+                document.getElementById("memberCount").textContent = members.length;
+
+                if (members.length === 0) {
+                    tbody.innerHTML =
+                        '<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-person-x fs-4 d-block mb-2"></i>No members assigned to this project</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = "";
+                members.forEach((m, i) => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td><span class="badge bg-light text-dark border">${m.user_id}</span></td>
+            <td class="fw-semibold">${m.name}</td>
+            <td>${m.email || "—"}</td>
+            <td>${m.domain || "—"}</td>
+          `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (err) {
+                console.error("Load project members error:", err);
+                document.getElementById("projectTitle").textContent = "Error";
+                document.getElementById("membersTable").innerHTML =
+                    '<tr><td colspan="5" class="text-center text-danger py-4">Failed to load project members</td></tr>';
+            }
+        }
+    </script>
+</body>
+
+</html>

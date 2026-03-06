@@ -82,6 +82,13 @@ const {
 } = require("../controllers/attendanceController");
 
 router.get(
+  "/projects/export/excel",
+  verifyToken,
+  isAdmin,
+  projectController.exportProjectsExcel
+);
+
+router.get(
   "/projects",
   verifyToken,
   isAdmin,

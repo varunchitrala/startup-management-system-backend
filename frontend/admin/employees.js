@@ -8,6 +8,7 @@ if (!token) {
 
 const tableBody = document.getElementById("employeesTable");
 let shiftsCache = [];
+let allEmployees = [];
 
 /* ================= LOAD SHIFTS ================= */
 async function loadShifts() {
@@ -25,49 +26,8 @@ async function loadEmployees() {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const users = await res.json();
-    tableBody.innerHTML = "";
-
-    if (users.length === 0) {
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="7" class="text-center text-muted">No employees found</td>
-        </tr>`;
-      return;
-    }
-
-    users.forEach(user => {
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td>${user.user_id}</td>
-        <td>${user.name}</td>
-        <td>${user.email}</td>
-        <td>
-          <span class="badge ${user.role === "TEAM_LEAD" ? "bg-primary" : "bg-secondary"}">
-            ${user.role}
-          </span>
-        </td>
-        <td>
-          <span class="badge bg-${user.is_assigned ? "warning" : "success"}">
-            ${user.is_assigned ? "Assigned" : "Free"}
-          </span>
-        </td>
-        <td>
-          ${renderShiftDropdown(user)}
-        </td>
-        <td>
-          <button
-            class="btn btn-sm btn-danger"
-            ${user.is_assigned ? "disabled" : ""}
-            onclick="deleteUser(${user.id}, '${user.role}')">
-            Delete
-          </button>
-        </td>
-      `;
-
-      tableBody.appendChild(tr);
-    });
+    allEmployees = await res.json();
+    filterEmployees();
 
   } catch (err) {
     console.error(err);
@@ -76,6 +36,73 @@ async function loadEmployees() {
         <td colspan="7" class="text-danger text-center">Error loading employees</td>
       </tr>`;
   }
+}
+
+/* ================= FILTER EMPLOYEES ================= */
+function filterEmployees() {
+  const searchText = (document.getElementById("searchInput")?.value || "").toLowerCase().trim();
+  const roleFilter = document.getElementById("roleFilter")?.value || "";
+
+  let filtered = allEmployees;
+
+  if (searchText) {
+    filtered = filtered.filter(u =>
+      u.name.toLowerCase().includes(searchText) ||
+      (u.user_id && u.user_id.toLowerCase().includes(searchText))
+    );
+  }
+
+  if (roleFilter) {
+    filtered = filtered.filter(u => u.role === roleFilter);
+  }
+
+  renderEmployees(filtered);
+}
+
+/* ================= RENDER EMPLOYEES ================= */
+function renderEmployees(users) {
+  tableBody.innerHTML = "";
+
+  if (users.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center text-muted">No employees found</td>
+      </tr>`;
+    return;
+  }
+
+  users.forEach(user => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${user.user_id}</td>
+      <td>${user.name}</td>
+      <td>${user.email}</td>
+      <td>
+        <span class="badge ${user.role === "TEAM_LEAD" ? "bg-primary" : "bg-secondary"}">
+          ${user.role}
+        </span>
+      </td>
+      <td>
+        <span class="badge bg-${user.is_assigned ? "warning" : "success"}">
+          ${user.is_assigned ? "Assigned" : "Free"}
+        </span>
+      </td>
+      <td>
+        ${renderShiftDropdown(user)}
+      </td>
+      <td>
+        <button
+          class="btn btn-sm btn-danger"
+          ${user.is_assigned ? "disabled" : ""}
+          onclick="deleteUser(${user.id}, '${user.role}')">
+          Delete
+        </button>
+      </td>
+    `;
+
+    tableBody.appendChild(tr);
+  });
 }
 
 /* ================= SHIFT DROPDOWN ================= */

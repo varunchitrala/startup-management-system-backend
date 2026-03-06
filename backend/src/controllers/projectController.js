@@ -552,3 +552,260 @@ exports.getMemberRoadmaps = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ================= EXPORT PROJECTS TO EXCEL =================
+const ExcelJS = require("exceljs");
+
+exports.exportProjectsExcel = async (req, res) => {
+  try {
+    // ── 1. All projects with stats ──
+    const result = await pool.query(`
+      SELECT
+        p.id,
+        p.project_name,
+        p.description,
+        p.status,
+        p.created_at,
+        u.name AS team_lead_name,
+        u.user_id AS team_lead_code,
+        COALESCE(mc.member_count, 0)::int AS member_count,
+        COALESCE(rs_total.total_steps, 0)::int AS total_steps,
+        COALESCE(rs_done.completed_steps, 0)::int AS completed_steps
+      FROM projects p
+      LEFT JOIN users u ON u.id = p.assigned_to
+      LEFT JOIN (
+        SELECT project_id, COUNT(*)::int AS member_count
+        FROM project_members
+        GROUP BY project_id
+      ) mc ON mc.project_id = p.id
+      LEFT JOIN (
+        SELECT r.project_id, COUNT(rs.id)::int AS total_steps
+        FROM roadmaps r
+        JOIN roadmap_steps rs ON rs.roadmap_id = r.id
+        GROUP BY r.project_id
+      ) rs_total ON rs_total.project_id = p.id
+      LEFT JOIN (
+        SELECT r.project_id, COUNT(rs.id)::int AS completed_steps
+        FROM roadmaps r
+        JOIN roadmap_steps rs ON rs.roadmap_id = r.id
+        WHERE rs.is_completed = true
+        GROUP BY r.project_id
+      ) rs_done ON rs_done.project_id = p.id
+      ORDER BY
+        CASE WHEN p.status = 'COMPLETED' THEN 1 ELSE 0 END,
+        p.id DESC
+    `);
+
+    const projects = result.rows;
+
+    // ── 2. Get members for each project ──
+    const membersResult = await pool.query(`
+      SELECT pm.project_id, u.name, u.user_id, u.email, u.domain
+      FROM project_members pm
+      JOIN users u ON u.id = pm.member_id
+      ORDER BY pm.project_id, u.name
+    `);
+
+    const membersByProject = {};
+    membersResult.rows.forEach(m => {
+      if (!membersByProject[m.project_id]) membersByProject[m.project_id] = [];
+      membersByProject[m.project_id].push(m);
+    });
+
+    // ── 3. Stats ──
+    const totalProjects = projects.length;
+    const ongoingCount = projects.filter(p => p.status !== "COMPLETED").length;
+    const completedCount = projects.filter(p => p.status === "COMPLETED").length;
+    const totalMembers = projects.reduce((s, p) => s + p.member_count, 0);
+
+    // ── 4. Colors & Styles ──
+    const BLUE = "1F4E79";
+    const DARK_BLUE = "0D3B66";
+    const WHITE = "FFFFFF";
+    const BLACK = "000000";
+    const LIGHT_BLUE = "D6E4F0";
+    const GREEN = "00875A";
+    const ORANGE = "FF8B00";
+
+    const thinBorder = {
+      top: { style: "thin" }, left: { style: "thin" },
+      bottom: { style: "thin" }, right: { style: "thin" }
+    };
+
+    // ── 5. Build workbook ──
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "SUN NEXUS SOLUTIONS";
+    const sheet = workbook.addWorksheet("Projects Report");
+
+    sheet.columns = [
+      { width: 6 },   // A - #
+      { width: 24 },  // B - Project Name
+      { width: 30 },  // C - Description
+      { width: 18 },  // D - Team Lead
+      { width: 10 },  // E - Members
+      { width: 18 },  // F - Roadmap Progress
+      { width: 14 },  // G - Status
+      { width: 16 },  // H - Created
+    ];
+
+    // ═══════ ROW 1: Company Title ═══════
+    sheet.mergeCells("A1:H1");
+    const titleCell = sheet.getCell("A1");
+    titleCell.value = "SUN NEXUS SOLUTIONS — Projects Report";
+    titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: DARK_BLUE } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    sheet.getRow(1).height = 36;
+
+    // ═══════ ROW 3: Summary Header ═══════
+    const sRow = 3;
+    sheet.mergeCells("A" + sRow + ":D" + sRow);
+    const sumHeader = sheet.getCell("A" + sRow);
+    sumHeader.value = "Project Portfolio Summary";
+    sumHeader.font = { name: "Calibri", size: 13, bold: true, color: { argb: BLACK } };
+    sumHeader.alignment = { horizontal: "center", vertical: "middle" };
+    sumHeader.border = thinBorder;
+    sheet.mergeCells("E" + sRow + ":H" + sRow);
+    sheet.getCell("E" + sRow).border = thinBorder;
+
+    const summaryItems = [
+      ["Total Projects:", totalProjects],
+      ["Ongoing:", ongoingCount],
+      ["Completed:", completedCount],
+      ["Total Members Assigned:", totalMembers],
+    ];
+
+    summaryItems.forEach((item, i) => {
+      const rowIdx = sRow + 1 + i;
+      sheet.mergeCells("A" + rowIdx + ":D" + rowIdx);
+      const lbl = sheet.getCell("A" + rowIdx);
+      lbl.value = item[0];
+      lbl.font = { name: "Calibri", size: 11, bold: true };
+      lbl.alignment = { horizontal: "right", vertical: "middle" };
+      lbl.border = thinBorder;
+
+      sheet.mergeCells("E" + rowIdx + ":H" + rowIdx);
+      const val = sheet.getCell("E" + rowIdx);
+      val.value = item[1];
+      val.font = { name: "Calibri", size: 11, bold: true, color: { argb: BLUE } };
+      val.alignment = { horizontal: "left", vertical: "middle" };
+      val.border = thinBorder;
+    });
+
+    // ═══════ Section Title ═══════
+    const secRow = sRow + summaryItems.length + 2;
+    sheet.mergeCells("A" + secRow + ":H" + secRow);
+    const secTitle = sheet.getCell("A" + secRow);
+    secTitle.value = "All Projects — Detailed Overview";
+    secTitle.font = { name: "Calibri", size: 13, bold: true, color: { argb: BLACK } };
+    secTitle.alignment = { horizontal: "center", vertical: "middle" };
+    secTitle.border = thinBorder;
+    sheet.getRow(secRow).height = 28;
+
+    // ═══════ Table Header ═══════
+    const hdrRow = secRow + 1;
+    const headers = ["#", "Project Name", "Description", "Team Lead", "Members", "Roadmap Progress", "Status", "Created"];
+    const hRow = sheet.getRow(hdrRow);
+    headers.forEach((h, i) => {
+      const cell = hRow.getCell(i + 1);
+      cell.value = h;
+      cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE } };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border = thinBorder;
+    });
+    hRow.height = 24;
+
+    // ═══════ Data Rows ═══════
+    let dataIdx = hdrRow + 1;
+
+    projects.forEach((p, i) => {
+      const row = sheet.getRow(dataIdx);
+      const progress = p.total_steps > 0
+        ? Math.round((p.completed_steps / p.total_steps) * 100) + "%"
+        : "No roadmap";
+      const progressDetail = p.total_steps > 0
+        ? p.completed_steps + "/" + p.total_steps + " steps"
+        : "";
+
+      const created = p.created_at
+        ? new Date(p.created_at).toLocaleDateString("en-IN", {
+          day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata"
+        })
+        : "—";
+
+      const isCompleted = p.status === "COMPLETED";
+      const statusColor = isCompleted ? GREEN : ORANGE;
+
+      const vals = [
+        i + 1,
+        p.project_name,
+        p.description || "—",
+        p.team_lead_name ? p.team_lead_name + " (" + (p.team_lead_code || "") + ")" : "—",
+        p.member_count,
+        progress + (progressDetail ? "\n" + progressDetail : ""),
+        p.status || "—",
+        created
+      ];
+
+      vals.forEach((v, ci) => {
+        const cell = row.getCell(ci + 1);
+        cell.value = v;
+        cell.font = { name: "Calibri", size: 10, color: { argb: BLUE } };
+        cell.alignment = { vertical: "middle", wrapText: (ci === 2 || ci === 5) };
+        cell.border = thinBorder;
+
+        // Bold project name
+        if (ci === 1) cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: DARK_BLUE } };
+        // Status color
+        if (ci === 6) cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: statusColor } };
+      });
+
+      row.height = 28;
+      dataIdx++;
+
+      // ── Members sub-rows ──
+      const members = membersByProject[p.id] || [];
+      if (members.length > 0) {
+        const mHeaderRow = sheet.getRow(dataIdx);
+        sheet.mergeCells("B" + dataIdx + ":C" + dataIdx);
+        const mhCell = mHeaderRow.getCell(2);
+        mhCell.value = "Assigned Members:";
+        mhCell.font = { name: "Calibri", size: 9, bold: true, italic: true };
+        mhCell.alignment = { horizontal: "left", vertical: "middle" };
+        mhCell.border = thinBorder;
+        // Fill remaining cells border
+        for (let c = 1; c <= 8; c++) {
+          if (c !== 2 && c !== 3) mHeaderRow.getCell(c).border = thinBorder;
+        }
+        mHeaderRow.getCell(1).border = thinBorder;
+        sheet.mergeCells("D" + dataIdx + ":H" + dataIdx);
+        const memberNames = members.map(m => m.name + " (" + m.user_id + ")").join(", ");
+        const mnCell = mHeaderRow.getCell(4);
+        mnCell.value = memberNames;
+        mnCell.font = { name: "Calibri", size: 9, color: { argb: BLUE } };
+        mnCell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+        mnCell.border = thinBorder;
+        mHeaderRow.height = 22;
+
+        dataIdx++;
+      }
+    });
+
+    // ── Send response ──
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=projects_report.xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (err) {
+    console.error("Projects Excel export error:", err);
+    res.status(500).json({ message: "Excel export failed" });
+  }
+};

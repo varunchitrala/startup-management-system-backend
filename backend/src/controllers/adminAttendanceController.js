@@ -324,13 +324,14 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
       ? shiftsResult.rows.map(s => s.name + ": " + s.check_in_time + " - " + s.last_checkin_time).join(" | ")
       : "No shifts configured";
 
-    // ── Date display ──
-    const dateObj = new Date(date + "T00:00:00+05:30");
+    // ── Date display (parse string directly to avoid UTC timezone shift) ──
+    const [yyyy, mm, dd] = date.split("-").map(Number);
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const dayNum = dateObj.getDate();
+    const dayNum = dd;
     const suffix = [11, 12, 13].includes(dayNum) ? "th" : { 1: "st", 2: "nd", 3: "rd" }[dayNum % 10] || "th";
-    const dateDisplay = dayNum + suffix + " " + months[dateObj.getMonth()] + " & " + dayNames[dateObj.getDay()];
+    const dayOfWeek = new Date(Date.UTC(yyyy, mm - 1, dd, 12, 0, 0)).getUTCDay();
+    const dateDisplay = dayNum + suffix + " " + months[mm - 1] + " & " + dayNames[dayOfWeek];
 
     // ── Helper: format UTC timestamp to IST HH:MM:SS ──
     const fmtIST = (raw) => {

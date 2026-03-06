@@ -298,10 +298,12 @@
           <h2 class="panel-title me-auto"><i class="bi bi-people"></i> Employees Management</h2>
           <div class="input-group input-group-sm" style="max-width: 300px;">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" class="form-control border-start-0 ps-0 bg-light" placeholder="Search by name or ID...">
+            <input type="text" id="searchInput" class="form-control border-start-0 ps-0 bg-light"
+              placeholder="Search by name or ID..." oninput="filterEmployees()">
           </div>
 
-          <select class="form-select form-select-sm" style="max-width: 150px;">
+          <select id="roleFilter" class="form-select form-select-sm" style="max-width: 150px;"
+            onchange="filterEmployees()">
             <option value="">All Roles</option>
             <option value="TEAM_LEAD">Team Lead</option>
             <option value="MEMBER">Member</option>
