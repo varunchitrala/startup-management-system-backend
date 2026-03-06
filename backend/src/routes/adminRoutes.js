@@ -358,6 +358,12 @@ router.get(
   projectController.getMemberRoadmaps
 );
 
+router.get(
+  "/my-project-stats",
+  verifyToken,
+  projectController.getMyProjectStats
+);
+
 router.post("/shifts", verifyToken, isAdmin, shiftController.createShift);
 router.get("/shifts", verifyToken, isAdmin, shiftController.getAllShifts);
 router.put(

@@ -541,6 +541,8 @@ const ExcelJS = require("exceljs");
 
 exports.exportEmployeesExcel = async (req, res) => {
   try {
+    const { status, role, search } = req.query;
+
     const result = await pool.query(`
       SELECT
         u.id, u.user_id, u.name, u.email, u.role, u.domain,
@@ -569,7 +571,26 @@ exports.exportEmployeesExcel = async (req, res) => {
       ORDER BY u.role, u.name
     `);
 
-    const employees = result.rows;
+    // Apply filters from query params
+    let employees = result.rows;
+
+    if (status === "assigned") {
+      employees = employees.filter(e => e.is_assigned);
+    } else if (status === "free") {
+      employees = employees.filter(e => !e.is_assigned);
+    }
+
+    if (role) {
+      employees = employees.filter(e => e.role === role);
+    }
+
+    if (search) {
+      const s = search.toLowerCase();
+      employees = employees.filter(e =>
+        e.name.toLowerCase().includes(s) ||
+        (e.user_id && e.user_id.toLowerCase().includes(s))
+      );
+    }
     const totalCount = employees.length;
     const assignedCount = employees.filter(e => e.is_assigned).length;
     const freeCount = totalCount - assignedCount;

@@ -678,10 +678,93 @@ async function submitLeadDailyReport() {
       `<div class="alert alert-danger">Failed to submit report</div>`;
   }
 }
+
+/* ================= MY PROJECT PORTFOLIO STATS ================= */
+async function loadMyProjectStats() {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/my-project-stats`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const statusBadge = document.getElementById("myProjectStatusBadge");
+    if (statusBadge) {
+      if (data.status === "FREE") {
+        statusBadge.className = "badge bg-success";
+        statusBadge.textContent = "🟢 Free";
+      } else {
+        statusBadge.className = "badge bg-warning text-dark";
+        statusBadge.textContent = "🟠 Assigned";
+      }
+    }
+
+    const ac = document.getElementById("activeProjectCount");
+    const cc = document.getElementById("completedProjectCount");
+    const tc = document.getElementById("totalProjectCount");
+    if (ac) ac.textContent = data.active_count;
+    if (cc) cc.textContent = data.completed_count;
+    if (tc) tc.textContent = data.active_count + data.completed_count;
+
+    const activeDiv = document.getElementById("activeProjectsList");
+    if (activeDiv) {
+      if (data.active_projects.length === 0) {
+        activeDiv.innerHTML = `<div class="text-muted small text-center py-2">No active projects</div>`;
+      } else {
+        activeDiv.innerHTML = `
+          <h6 class="fw-bold text-uppercase text-muted small mb-2">
+            <i class="bi bi-lightning-charge text-warning"></i> Active Projects
+          </h6>` +
+          data.active_projects.map(p => `
+            <div class="border rounded p-3 mb-2 bg-light">
+              <div class="d-flex justify-content-between align-items-start">
+                <strong class="text-primary">${p.project_name}</strong>
+                <span class="badge bg-info text-dark">${p.days_elapsed} day${p.days_elapsed > 1 ? "s" : ""}</span>
+              </div>
+              <div class="small text-muted mt-1">Members: ${p.member_count || 0}</div>
+              <div class="progress mt-2" style="height:6px;">
+                <div class="progress-bar bg-success" style="width:${p.progress}%"></div>
+              </div>
+              <div class="d-flex justify-content-between mt-1">
+                <span class="small text-muted">Roadmap: ${p.progress}%</span>
+                <span class="small text-muted">${p.completed_steps}/${p.total_steps} steps</span>
+              </div>
+            </div>
+          `).join("");
+      }
+    }
+
+    const compDiv = document.getElementById("completedProjectsList");
+    if (compDiv) {
+      if (data.completed_projects.length === 0) {
+        compDiv.innerHTML = `<div class="text-muted small text-center py-2">No completed projects yet</div>`;
+      } else {
+        compDiv.innerHTML = `
+          <h6 class="fw-bold text-uppercase text-muted small mb-2">
+            <i class="bi bi-check-circle text-success"></i> Completed Projects
+          </h6>` +
+          data.completed_projects.map(p => `
+            <div class="border rounded p-2 mb-2" style="background:#f0fdf4;">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-success">${p.project_name}</span>
+                <span class="badge bg-success">${p.days_taken} day${p.days_taken > 1 ? "s" : ""}</span>
+              </div>
+              <div class="small text-muted">Members: ${p.member_count || 0}</div>
+            </div>
+          `).join("");
+      }
+    }
+
+  } catch (err) {
+    console.error("Project stats error:", err);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   loadProjects();
-  loadMembers();    // members checkbox list
-  loadMyStatus();   // attendance
+  loadMembers();
+  loadMyStatus();
+  loadMyProjectStats();
   loadNotifications();
   setInterval(loadNotifications, 60000);
   loadMyLeaveBalance();

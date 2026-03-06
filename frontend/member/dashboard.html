@@ -528,10 +528,7 @@
         </div>
         <div class="panel-body text-center">
           <h3 id="statusText" class="mb-1 fw-bold text-success">STATUS: -</h3>
-          <p class="text-muted small mb-2">Daily Attendance</p>
-          <div id="assignmentStatusBadge" class="mb-3" style="display:none;">
-            <span id="assignmentStatusText" class="badge fs-6"></span>
-          </div>
+          <p class="text-muted small mb-3">Daily Attendance</p>
           <div class="d-flex gap-2">
             <button id="checkInBtn" class="btn-sys btn-sys-primary flex-fill">Check In</button>
             <button id="checkOutBtn" class="btn-sys btn-sys-default flex-fill border text-danger">Check Out</button>
@@ -594,6 +591,33 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ===== MY PROJECT PORTFOLIO STATS ===== -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title"><i class="bi bi-bar-chart-line"></i> My Project Portfolio</h2>
+        <span id="myProjectStatusBadge" class="badge bg-secondary">Loading...</span>
+      </div>
+      <div class="panel-body">
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <div class="text-center p-2 rounded border flex-fill bg-light">
+            <div class="fw-bold fs-4 text-primary" id="activeProjectCount">—</div>
+            <div class="small fw-semibold text-muted text-uppercase">Active</div>
+          </div>
+          <div class="text-center p-2 rounded border flex-fill bg-light">
+            <div class="fw-bold fs-4 text-success" id="completedProjectCount">—</div>
+            <div class="small fw-semibold text-muted text-uppercase">Completed</div>
+          </div>
+          <div class="text-center p-2 rounded border flex-fill bg-light">
+            <div class="fw-bold fs-4 text-dark" id="totalProjectCount">—</div>
+            <div class="small fw-semibold text-muted text-uppercase">Total</div>
+          </div>
+        </div>
+
+        <div id="activeProjectsList" class="mb-3"></div>
+        <div id="completedProjectsList"></div>
       </div>
     </div>
 

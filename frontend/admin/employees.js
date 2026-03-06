@@ -193,7 +193,11 @@ function logout() {
 /* ================= EXPORT EMPLOYEES EXCEL ================= */
 async function exportEmployeesExcel() {
   try {
-    const res = await fetch(`${API_BASE}/api/admin/team-members/export/excel`, {
+    const status = document.getElementById("statusFilter")?.value || "";
+    const role = document.getElementById("roleFilter")?.value || "";
+    const search = document.getElementById("searchInput")?.value?.trim() || "";
+    let exportUrl = `${API_BASE}/api/admin/team-members/export/excel?status=${status}&role=${role}&search=${encodeURIComponent(search)}`;
+    const res = await fetch(exportUrl, {
       headers: { Authorization: `Bearer ${token}` }
     });
 

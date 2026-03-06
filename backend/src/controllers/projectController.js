@@ -553,6 +553,91 @@ exports.getMemberRoadmaps = async (req, res) => {
   }
 };
 
+// ================= MY PROJECT STATS (MEMBER / LEAD) =================
+exports.getMyProjectStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    let activeQuery, completedQuery;
+
+    if (userRole === "TEAM_LEAD") {
+      activeQuery = `
+        SELECT p.id, p.project_name, p.created_at, p.status,
+          COALESCE(mc.cnt, 0)::int AS member_count,
+          COALESCE(rs_t.total, 0)::int AS total_steps,
+          COALESCE(rs_d.done, 0)::int AS completed_steps
+        FROM projects p
+        LEFT JOIN (SELECT project_id, COUNT(*)::int AS cnt FROM project_members GROUP BY project_id) mc ON mc.project_id = p.id
+        LEFT JOIN (SELECT r.project_id, COUNT(rs.id)::int AS total FROM roadmaps r JOIN roadmap_steps rs ON rs.roadmap_id = r.id GROUP BY r.project_id) rs_t ON rs_t.project_id = p.id
+        LEFT JOIN (SELECT r.project_id, COUNT(rs.id)::int AS done FROM roadmaps r JOIN roadmap_steps rs ON rs.roadmap_id = r.id WHERE rs.is_completed = true GROUP BY r.project_id) rs_d ON rs_d.project_id = p.id
+        WHERE p.assigned_to = $1 AND p.status != 'COMPLETED'
+        ORDER BY p.created_at DESC
+      `;
+      completedQuery = `
+        SELECT p.id, p.project_name, p.created_at, p.status,
+          COALESCE(mc.cnt, 0)::int AS member_count
+        FROM projects p
+        LEFT JOIN (SELECT project_id, COUNT(*)::int AS cnt FROM project_members GROUP BY project_id) mc ON mc.project_id = p.id
+        WHERE p.assigned_to = $1 AND p.status = 'COMPLETED'
+        ORDER BY p.created_at DESC
+      `;
+    } else {
+      activeQuery = `
+        SELECT p.id, p.project_name, p.created_at, p.status,
+          u.name AS team_lead_name,
+          COALESCE(rs_t.total, 0)::int AS total_steps,
+          COALESCE(rs_d.done, 0)::int AS completed_steps
+        FROM project_members pm
+        JOIN projects p ON p.id = pm.project_id
+        LEFT JOIN users u ON u.id = p.assigned_to
+        LEFT JOIN (SELECT r.project_id, COUNT(rs.id)::int AS total FROM roadmaps r JOIN roadmap_steps rs ON rs.roadmap_id = r.id GROUP BY r.project_id) rs_t ON rs_t.project_id = p.id
+        LEFT JOIN (SELECT r.project_id, COUNT(rs.id)::int AS done FROM roadmaps r JOIN roadmap_steps rs ON rs.roadmap_id = r.id WHERE rs.is_completed = true GROUP BY r.project_id) rs_d ON rs_d.project_id = p.id
+        WHERE pm.member_id = $1 AND p.status != 'COMPLETED'
+        ORDER BY p.created_at DESC
+      `;
+      completedQuery = `
+        SELECT p.id, p.project_name, p.created_at, p.status,
+          u.name AS team_lead_name
+        FROM project_members pm
+        JOIN projects p ON p.id = pm.project_id
+        LEFT JOIN users u ON u.id = p.assigned_to
+        WHERE pm.member_id = $1 AND p.status = 'COMPLETED'
+        ORDER BY p.created_at DESC
+      `;
+    }
+
+    const activeResult = await pool.query(activeQuery, [userId]);
+    const completedResult = await pool.query(completedQuery, [userId]);
+
+    const now = new Date();
+    const activeProjects = activeResult.rows.map(p => {
+      const created = new Date(p.created_at);
+      const daysElapsed = Math.max(1, Math.ceil((now - created) / (1000 * 60 * 60 * 24)));
+      const progress = p.total_steps > 0 ? Math.round((p.completed_steps / p.total_steps) * 100) : 0;
+      return { ...p, days_elapsed: daysElapsed, progress };
+    });
+
+    const completedProjects = completedResult.rows.map(p => {
+      const created = new Date(p.created_at);
+      const daysTaken = Math.max(1, Math.ceil((now - created) / (1000 * 60 * 60 * 24)));
+      return { ...p, days_taken: daysTaken };
+    });
+
+    res.json({
+      status: activeProjects.length > 0 ? "ASSIGNED" : "FREE",
+      active_count: activeProjects.length,
+      completed_count: completedProjects.length,
+      active_projects: activeProjects,
+      completed_projects: completedProjects
+    });
+
+  } catch (err) {
+    console.error("Project stats error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // ================= EXPORT PROJECTS TO EXCEL =================
 const ExcelJS = require("exceljs");
 
