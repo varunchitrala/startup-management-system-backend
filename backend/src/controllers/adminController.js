@@ -536,6 +536,31 @@ exports.broadcastAnnouncement = async (req, res) => {
   }
 };
 
+/* ================== SEND PERSONAL MESSAGE ================== */
+exports.sendPersonalMessage = async (req, res) => {
+  try {
+    const { userId, message } = req.body;
+
+    if (!userId || !message || !message.trim()) {
+      return res.status(400).json({ message: "User ID and message are required" });
+    }
+
+    const text = `✉️ Direct Message from Admin: ${message.trim()}`;
+
+    await pool.query(
+      `INSERT INTO notifications (user_id, message, is_read, created_at)
+       VALUES ($1, $2, $3, NOW())`,
+      [userId, text, false]
+    );
+
+    res.json({ message: "Message sent successfully" });
+
+  } catch (err) {
+    console.error("Personal message error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 /* ================== EXPORT EMPLOYEES EXCEL ================== */
 const ExcelJS = require("exceljs");
 

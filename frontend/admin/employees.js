@@ -99,12 +99,19 @@ function renderEmployees(users) {
         ${renderShiftDropdown(user)}
       </td>
       <td>
-        <button
-          class="btn btn-sm btn-danger"
-          ${user.is_assigned ? "disabled" : ""}
-          onclick="deleteUser(${user.id}, '${user.role}')">
-          Delete
-        </button>
+        <div class="d-flex gap-2">
+          <button
+            class="btn btn-sm btn-primary"
+            onclick="openMessageModal(${user.id}, '${user.name.replace(/'/g, "\\'")}')">
+            Message
+          </button>
+          <button
+            class="btn btn-sm btn-danger"
+            ${user.is_assigned ? "disabled" : ""}
+            onclick="deleteUser(${user.id}, '${user.role}')">
+            Delete
+          </button>
+        </div>
       </td>
     `;
 
@@ -219,6 +226,55 @@ async function exportEmployeesExcel() {
     alert("Failed to export employees");
   }
 }
+
+/* ================= SEND PERSONAL MESSAGE ================= */
+let messageModal;
+
+function openMessageModal(userId, userName) {
+  document.getElementById("messageUserId").value = userId;
+  document.getElementById("messageModalLabel").innerText = `Message to ${userName}`;
+  document.getElementById("messageText").value = "";
+
+  if (!messageModal) {
+    messageModal = new bootstrap.Modal(document.getElementById("messageModal"));
+  }
+  messageModal.show();
+}
+
+document.getElementById("sendMessageForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const userId = document.getElementById("messageUserId").value;
+  const message = document.getElementById("messageText").value;
+  const btn = e.target.querySelector("button[type='submit']");
+  const originalText = btn.innerHTML;
+
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...`;
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/send-message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ userId, message })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to send message");
+
+    alert("Message sent successfully!");
+    messageModal.hide();
+  } catch (err) {
+    console.error("Send message error:", err);
+    alert(err.message);
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+});
 
 /* ================= INIT ================= */
 (async function init() {

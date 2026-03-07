@@ -481,8 +481,9 @@ router.put("/office-settings", verifyToken, isAdmin, updateOfficeSettings);
 router.get("/attendance/early-checkouts", verifyToken, isAdmin, getEarlyCheckoutsToday);
 router.get("/attendance/overtime", verifyToken, isAdmin, getOvertimeToday);
 
-/* ================= ANNOUNCEMENTS ================= */
-const { broadcastAnnouncement } = require("../controllers/adminController");
+/* ================== ANNOUNCEMENTS ================== */
+const { broadcastAnnouncement, sendPersonalMessage } = require("../controllers/adminController");
 router.post("/announcements", verifyToken, isAdmin, broadcastAnnouncement);
+router.post("/send-message", verifyToken, isAdmin, sendPersonalMessage);
 
 module.exports = router;
