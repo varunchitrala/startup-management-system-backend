@@ -61,6 +61,14 @@ exports.assignMembersToProject = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    // Begin member replacement
+    // First, remove existing members for this project
+    await pool.query(
+      "DELETE FROM project_members WHERE project_id = $1",
+      [project_id]
+    );
+
+    // Then, insert the newly selected members
     for (const memberId of member_ids) {
       await pool.query(
         `
@@ -178,6 +186,92 @@ exports.updateRoadmapStep = async (req, res) => {
     res.json({ message: "Roadmap step updated successfully" });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Team Lead: Add a single step to an existing roadmap
+exports.addRoadmapStep = async (req, res) => {
+  try {
+    const { project_id, step_title } = req.body;
+    const userId = req.user.id;
+
+    if (!project_id || !step_title) {
+      return res.status(400).json({ message: "Invalid roadmap step data" });
+    }
+
+    // Verify project belongs to this team lead
+    const projectCheck = await pool.query(
+      `SELECT id FROM projects WHERE id = $1 AND assigned_to = $2`,
+      [project_id, userId]
+    );
+
+    if (projectCheck.rows.length === 0) {
+      return res.status(403).json({ message: "Not authorized for this project" });
+    }
+
+    // Find roadmap for this project, or create one if it doesn't exist
+    let roadmapResult = await pool.query(
+      `SELECT id FROM roadmaps WHERE project_id = $1`,
+      [project_id]
+    );
+
+    let roadmapId;
+    if (roadmapResult.rows.length > 0) {
+      roadmapId = roadmapResult.rows[0].id;
+    } else {
+      const newRoadmap = await pool.query(
+        `INSERT INTO roadmaps (project_id, created_by) VALUES ($1, $2) RETURNING id`,
+        [project_id, userId]
+      );
+      roadmapId = newRoadmap.rows[0].id;
+    }
+
+    // Insert new step
+    const stepResult = await pool.query(
+      `
+      INSERT INTO roadmap_steps (roadmap_id, step_title)
+      VALUES ($1, $2)
+      RETURNING id, step_title
+      `,
+      [roadmapId, step_title]
+    );
+
+    res.json({ message: "Step added successfully", step: stepResult.rows[0] });
+
+  } catch (err) {
+    console.error("Add roadmap step error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Team Lead: Delete a roadmap step
+exports.deleteRoadmapStep = async (req, res) => {
+  try {
+    const { step_id } = req.params;
+    const userId = req.user.id;
+
+    // Verify step belongs to a project assigned to this lead
+    const stepCheck = await pool.query(
+      `
+      SELECT rs.id 
+      FROM roadmap_steps rs
+      JOIN roadmaps r ON rs.roadmap_id = r.id
+      JOIN projects p ON r.project_id = p.id
+      WHERE rs.id = $1 AND p.assigned_to = $2
+      `,
+      [step_id, userId]
+    );
+
+    if (stepCheck.rows.length === 0) {
+      return res.status(403).json({ message: "Not authorized to delete this step" });
+    }
+
+    await pool.query(`DELETE FROM roadmap_steps WHERE id = $1`, [step_id]);
+
+    res.json({ message: "Step deleted successfully" });
+  } catch (err) {
+    console.error("Delete roadmap step error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

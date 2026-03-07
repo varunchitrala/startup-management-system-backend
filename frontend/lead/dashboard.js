@@ -73,14 +73,26 @@ async function loadRoadmap(projectId) {
       };
 
       left.appendChild(checkbox);
-      left.append(step.step_title);
 
-      const right = document.createElement("small");
-      right.className = "text-muted";
-      if (step.updated_by) right.innerText = `Updated by ${step.updated_by}`;
+      const span = document.createElement("span");
+      span.className = step.is_completed ? "text-decoration-line-through text-muted" : "fw-bold";
+      span.innerText = step.step_title;
+      left.appendChild(span);
+
+      const center = document.createElement("small");
+      center.className = "text-muted ms-auto pe-3";
+      center.style.minWidth = "120px";
+      center.style.textAlign = "right";
+      if (step.updated_by) center.innerHTML = `<i class="bi bi-person-check text-success"></i> ${step.updated_by}`;
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "btn btn-sm btn-outline-danger border-0";
+      deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+      deleteBtn.onclick = () => deleteStep(step.id, projectId);
 
       li.appendChild(left);
-      li.appendChild(right);
+      li.appendChild(center);
+      li.appendChild(deleteBtn);
       roadmapSteps.appendChild(li);
     });
 
@@ -105,6 +117,58 @@ async function updateStep(stepId, isCompleted, projectId) {
   });
 
   loadRoadmap(projectId);
+}
+
+// ================= DELETE ROADMAP STEP ================= */
+async function deleteStep(stepId, projectId) {
+  if (!confirm("Are you sure you want to delete this step?")) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/roadmap-step/${stepId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) throw new Error("Failed to delete step");
+
+    // Reload roadmap
+    loadRoadmap(projectId);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to delete step");
+  }
+}
+
+// ================= ADD SINGLE ROADMAP STEP ================= */
+async function addSingleStep() {
+  if (!selectedProjectId) return;
+
+  const input = document.getElementById("newStepInput");
+  const stepTitle = input.value.trim();
+
+  if (!stepTitle) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/roadmap-step/add`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        project_id: selectedProjectId,
+        step_title: stepTitle
+      })
+    });
+
+    if (!res.ok) throw new Error("Failed to add step");
+
+    input.value = "";
+    loadRoadmap(selectedProjectId);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to add step");
+  }
 }
 
 
@@ -535,6 +599,37 @@ async function loadMembers() {
 
       container.appendChild(div);
     });
+
+    // Add change listener to project select to auto-check assigned members
+    const projSelect = document.getElementById("assignProjectSelect");
+    if (projSelect) {
+      projSelect.addEventListener("change", async (e) => {
+        const pId = e.target.value;
+        const checkboxes = document.querySelectorAll("#membersList input[type='checkbox']");
+
+        // Reset all checkboxes
+        checkboxes.forEach(cb => cb.checked = false);
+
+        if (!pId) return;
+
+        try {
+          // Fetch existing members for this project
+          const res = await fetch(`${API_BASE}/api/admin/project-members/${pId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error("Failed to fetch project members");
+
+          const assignedMembers = await res.json();
+          // Check the boxes for currently assigned members
+          assignedMembers.forEach(m => {
+            const cb = document.getElementById(`member_${m.id}`);
+            if (cb) cb.checked = true;
+          });
+        } catch (err) {
+          console.error("Auto-check members error:", err);
+        }
+      });
+    }
 
   } catch (err) {
     console.error("loadMembers error:", err);

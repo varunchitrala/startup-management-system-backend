@@ -984,7 +984,7 @@ async function loadMyAttendanceHistory() {
   const tbody = document.getElementById("attendanceHistoryBody");
   const summaryBar = document.getElementById("attendanceSummaryBar");
 
-  tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Loading...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">Loading...</td></tr>`;
 
   try {
     const res = await fetch(`${API_BASE}/api/attendance/my-history?month=${month}`, {
@@ -994,20 +994,38 @@ async function loadMyAttendanceHistory() {
     const records = await res.json();
 
     if (!records.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No records for this month</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">No records for this month</td></tr>`;
       summaryBar.innerHTML = "";
       return;
     }
 
     // Summary counts
     const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, ON_LEAVE: 0, CHECKED_IN: 0, HOLIDAY: 0 };
-    records.forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+    let totalEarly = 0;
+    let totalOT = 0;
+    records.forEach(r => {
+      if (counts[r.status] !== undefined) counts[r.status]++;
+      if (r.early_checkout_minutes) totalEarly += Number(r.early_checkout_minutes);
+      if (r.overtime_minutes) totalOT += Number(r.overtime_minutes);
+    });
 
     tbody.innerHTML = records.map(r => {
       const s = STATUS_STYLE[r.status] || { bg: "#f1f5f9", color: "#64748b", label: r.status };
       const dateObj = new Date(r.date);
       const dayName = DAYS[dateObj.getUTCDay()];
       const dateStr = dateObj.toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "UTC" });
+
+      const earlyMin = r.early_checkout_minutes ? Number(r.early_checkout_minutes) : 0;
+      const otMin = r.overtime_minutes ? Number(r.overtime_minutes) : 0;
+
+      const earlyBadge = earlyMin > 0
+        ? `<span style="background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600;">${earlyMin}</span>`
+        : `<span class="text-muted">—</span>`;
+
+      const otBadge = otMin > 0
+        ? `<span style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600;">${otMin}</span>`
+        : `<span class="text-muted">—</span>`;
+
       return `
         <tr>
           <td>${dateStr}</td>
@@ -1016,6 +1034,8 @@ async function loadMyAttendanceHistory() {
           <td>${r.check_out || "—"}</td>
           <td><span style="background:${s.bg}; color:${s.color}; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600;">${s.label}</span></td>
           <td class="text-muted">${r.shift_name || "—"}</td>
+          <td>${earlyBadge}</td>
+          <td>${otBadge}</td>
         </tr>`;
     }).join("");
 
@@ -1027,11 +1047,13 @@ async function loadMyAttendanceHistory() {
       `<span>⏰ Late: <strong>${counts.LATE}</strong></span>`,
       `<span>🟣 On Leave: <strong>${counts.ON_LEAVE}</strong></span>`,
       `<span>🏖️ Holiday: <strong>${counts.HOLIDAY}</strong></span>`,
-    ].join("<span class='mx-1'>·</span>");
+      totalEarly > 0 ? `<span>⚠️ Early: <strong style="color:#dc2626;">${totalEarly} min</strong></span>` : "",
+      totalOT > 0 ? `<span>💪 OT: <strong style="color:#15803d;">${totalOT} min</strong></span>` : "",
+    ].filter(Boolean).join(`<span class='mx-1'>·</span>`);
 
   } catch (err) {
     console.error("Attendance history error:", err);
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Failed to load</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Failed to load</td></tr>`;
   }
 }
 

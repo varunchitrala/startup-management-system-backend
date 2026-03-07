@@ -541,6 +541,8 @@ document.addEventListener("DOMContentLoaded", () => {
   loadGeoSetting();
   loadLeaveRequests();
   loadMissedCheckouts();
+  loadEarlyCheckouts();
+  loadOvertimeToday();
 
 
 
@@ -575,6 +577,8 @@ function refreshAdminLiveData() {
   loadLateUsers();
   loadLeaveRequests();
   loadMissedCheckouts();
+  loadEarlyCheckouts();
+  loadOvertimeToday();
 
   const projectSelect = document.getElementById("projectSelect");
   if (projectSelect && projectSelect.value) {
@@ -890,6 +894,68 @@ async function deleteShift(id) {
 
   alert(data.message);
   loadShifts();
+}
+
+/* ================= EARLY CHECKOUTS & OVERTIME (ADMIN) ================= */
+
+async function loadEarlyCheckouts() {
+  const tbody = document.getElementById("earlyCheckoutsTableBody");
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/attendance/early-checkouts`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No early checkouts today</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.user_id}</td>
+        <td>${r.name}</td>
+        <td>${r.role}</td>
+        <td>${r.shift_name || "—"}</td>
+        <td>${r.shift_end_time || "—"}</td>
+        <td>${r.check_out ? new Date(r.check_out).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" }) : "—"}</td>
+        <td><span style="background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:4px; font-weight:600;">${r.early_checkout_minutes} min</span></td>
+      </tr>
+    `).join("");
+  } catch (err) {
+    console.error("Early checkouts error:", err);
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Failed to load</td></tr>`;
+  }
+}
+
+async function loadOvertimeToday() {
+  const tbody = document.getElementById("overtimeTableBody");
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/attendance/overtime`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No overtime records today</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.user_id}</td>
+        <td>${r.name}</td>
+        <td>${r.role}</td>
+        <td>${r.shift_name || "—"}</td>
+        <td>${r.shift_end_time || "—"}</td>
+        <td>${r.check_out ? new Date(r.check_out).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" }) : "—"}</td>
+        <td><span style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:4px; font-weight:600;">${r.overtime_minutes} min</span></td>
+      </tr>
+    `).join("");
+  } catch (err) {
+    console.error("Overtime error:", err);
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Failed to load</td></tr>`;
+  }
 }
 async function loadLateUsers() {
   try {

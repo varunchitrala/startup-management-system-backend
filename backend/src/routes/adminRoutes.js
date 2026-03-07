@@ -36,6 +36,8 @@ const {
   createRoadmap,
   getLeadRoadmap,
   updateRoadmapStep,
+  addRoadmapStep,
+  deleteRoadmapStep,
   getRoadmapProgress,
   getAllMembersForLead,
   getMemberRoadmaps
@@ -152,6 +154,12 @@ router.get("/project-members/:project_id", verifyToken, getProjectMembers);
 
 // Create roadmap
 router.post("/create-roadmap", verifyToken, createRoadmap);
+
+// Add a single roadmap step
+router.post("/roadmap-step/add", verifyToken, addRoadmapStep);
+
+// Delete a single roadmap step
+router.delete("/roadmap-step/:step_id", verifyToken, deleteRoadmapStep);
 
 // Update roadmap step (checkbox)
 router.patch(
