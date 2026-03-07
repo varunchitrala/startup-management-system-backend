@@ -760,9 +760,10 @@ async function createShift() {
   const name = document.getElementById("shiftName").value;
   const checkIn = document.getElementById("checkInTime").value;
   const lastCheckIn = document.getElementById("lastCheckInTime").value;
+  const checkOut = document.getElementById("checkOutTime").value;
 
   if (!name || !checkIn || !lastCheckIn) {
-    alert("All fields required");
+    alert("Name, Start Time, and Cut-off Time are required");
     return;
   }
 
@@ -775,12 +776,18 @@ async function createShift() {
     body: JSON.stringify({
       name,
       check_in_time: checkIn,
-      last_checkin_time: lastCheckIn
+      last_checkin_time: lastCheckIn,
+      check_out_time: checkOut || null
     })
   });
 
   const data = await res.json();
   alert(data.message);
+
+  document.getElementById("shiftName").value = "";
+  document.getElementById("checkInTime").value = "";
+  document.getElementById("lastCheckInTime").value = "";
+  document.getElementById("checkOutTime").value = "";
 
   loadShifts();
 }
@@ -799,18 +806,71 @@ async function loadShifts() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${s.name}</td>
-      <td>${s.check_in_time}</td>
-      <td>${s.last_checkin_time}</td>
+      <td>${s.check_in_time || "-"}</td>
+      <td>${s.last_checkin_time || "-"}</td>
       <td>
-        <button class="btn btn-sm btn-danger"
-          onclick="deleteShift(${s.id})">
-          Delete
-        </button>
+        <span id="endTimeDisplay_${s.id}">${s.check_out_time || "-"}</span>
+        <input type="time" id="endTimeEdit_${s.id}" value="${s.check_out_time || ""}"
+          class="form-control form-control-sm d-none" style="width: 110px; display: inline-block;">
+      </td>
+      <td>
+        <div class="d-flex gap-1">
+          <button id="editBtn_${s.id}" class="btn btn-sm btn-outline-primary"
+            onclick="toggleEditShift(${s.id})">
+            Edit
+          </button>
+          <button id="saveBtn_${s.id}" class="btn btn-sm btn-success d-none"
+            onclick="updateShift(${s.id})">
+            Save
+          </button>
+          <button class="btn btn-sm btn-danger"
+            onclick="deleteShift(${s.id})">
+            Delete
+          </button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
   });
 }
+
+function toggleEditShift(id) {
+  const display = document.getElementById(`endTimeDisplay_${id}`);
+  const input = document.getElementById(`endTimeEdit_${id}`);
+  const editBtn = document.getElementById(`editBtn_${id}`);
+  const saveBtn = document.getElementById(`saveBtn_${id}`);
+
+  display.classList.toggle("d-none");
+  input.classList.toggle("d-none");
+  editBtn.classList.toggle("d-none");
+  saveBtn.classList.toggle("d-none");
+}
+
+async function updateShift(id) {
+  const checkOutTime = document.getElementById(`endTimeEdit_${id}`).value;
+
+  const res = await fetch(`${API_BASE}/api/admin/shifts/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      check_out_time: checkOutTime || null
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.message || "Update failed");
+    return;
+  }
+
+  showToast("✅ Shift end time updated");
+  loadShifts();
+}
+
 async function deleteShift(id) {
   if (!confirm("Are you sure you want to delete this shift?")) return;
 

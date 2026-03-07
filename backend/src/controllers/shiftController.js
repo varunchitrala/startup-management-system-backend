@@ -67,14 +67,33 @@ exports.updateShift = async (req, res) => {
     const { id } = req.params;
     const { check_in_time, last_checkin_time, check_out_time } = req.body;
 
-    await pool.query(`
-      UPDATE shifts
-      SET
-        check_in_time = $1,
-        last_checkin_time = $2,
-        check_out_time = $3
-      WHERE id = $4
-    `, [check_in_time, last_checkin_time, check_out_time, id]);
+    // Build dynamic SET clause — only update columns that were provided
+    const setClauses = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (check_in_time !== undefined) {
+      setClauses.push(`check_in_time = $${paramIndex++}`);
+      values.push(check_in_time);
+    }
+    if (last_checkin_time !== undefined) {
+      setClauses.push(`last_checkin_time = $${paramIndex++}`);
+      values.push(last_checkin_time);
+    }
+    if (check_out_time !== undefined) {
+      setClauses.push(`check_out_time = $${paramIndex++}`);
+      values.push(check_out_time);
+    }
+
+    if (setClauses.length === 0) {
+      return res.status(400).json({ message: "No fields to update" });
+    }
+
+    values.push(id);
+    await pool.query(
+      `UPDATE shifts SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+      values
+    );
 
     res.json({ message: "Shift updated successfully" });
 

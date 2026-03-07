@@ -1086,13 +1086,17 @@
               <input type="text" id="shiftName" class="form-control form-control-sm" placeholder="e.g. MORNING_A">
             </div>
             <div class="row g-2 mb-3">
-              <div class="col-6">
+              <div class="col-4">
                 <label class="form-label">Start Time</label>
                 <input type="time" id="checkInTime" class="form-control form-control-sm">
               </div>
-              <div class="col-6">
+              <div class="col-4">
                 <label class="form-label">Cut-off Time</label>
                 <input type="time" id="lastCheckInTime" class="form-control form-control-sm">
+              </div>
+              <div class="col-4">
+                <label class="form-label">End Time</label>
+                <input type="time" id="checkOutTime" class="form-control form-control-sm">
               </div>
             </div>
             <button class="btn-sys btn-sys-default w-100" onclick="createShift()">Deploy Shift Rule</button>
@@ -1104,6 +1108,7 @@
                     <th>Name</th>
                     <th>Start</th>
                     <th>Cut-off</th>
+                    <th>End Time</th>
                     <th>Action</th>
                   </tr>
                 </thead>
