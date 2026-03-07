@@ -1011,3 +1011,57 @@ exports.updateOfficeSettings = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* ================= EARLY CHECKOUT / OVERTIME LOGS ================= */
+
+exports.getEarlyCheckoutsToday = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        u.user_id,
+        u.name,
+        u.role,
+        a.early_checkout_minutes,
+        a.check_out,
+        s.name AS shift_name,
+        s.check_out_time AS shift_end_time
+      FROM attendance a
+      JOIN users u ON u.id = a.user_id
+      LEFT JOIN shifts s ON s.id = a.shift_id
+      WHERE a.date = CURRENT_DATE
+        AND a.early_checkout_minutes > 0
+      ORDER BY a.early_checkout_minutes DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Early checkouts query error:", err);
+    res.status(500).json({ message: "Failed to fetch early checkouts" });
+  }
+};
+
+exports.getOvertimeToday = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        u.user_id,
+        u.name,
+        u.role,
+        a.overtime_minutes,
+        a.check_out,
+        s.name AS shift_name,
+        s.check_out_time AS shift_end_time
+      FROM attendance a
+      JOIN users u ON u.id = a.user_id
+      LEFT JOIN shifts s ON s.id = a.shift_id
+      WHERE a.date = CURRENT_DATE
+        AND a.overtime_minutes > 0
+      ORDER BY a.overtime_minutes DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Overtime query error:", err);
+    res.status(500).json({ message: "Failed to fetch overtime records" });
+  }
+};

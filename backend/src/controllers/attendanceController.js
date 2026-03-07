@@ -410,15 +410,120 @@ exports.checkOut = async (req, res) => {
       }
     }
 
+    // ===== Early Checkout / Overtime Detection =====
+    const IST_OFFSET_MS_CO = 5.5 * 60 * 60 * 1000;
+    const nowIST_CO = new Date(Date.now() + IST_OFFSET_MS_CO);
+
+    let earlyMinutes = 0;
+    let overtimeMinutes = 0;
+    let shiftEndTimeFormatted = null;
+
+    // Fetch the shift's check_out_time if the attendance record has a shift_id
+    if (record.shift_id) {
+      const shiftResult = await pool.query(
+        `SELECT check_out_time, name FROM shifts WHERE id = $1`,
+        [record.shift_id]
+      );
+
+      if (shiftResult.rows.length > 0 && shiftResult.rows[0].check_out_time) {
+        const shift = shiftResult.rows[0];
+        const [h, m, s] = shift.check_out_time.split(":").map(Number);
+
+        // Build shift end time in IST
+        const shiftEnd = new Date(nowIST_CO);
+        shiftEnd.setUTCHours(h, m, s || 0, 0);
+
+        // Calculate difference in minutes
+        const diffMs = nowIST_CO.getTime() - shiftEnd.getTime();
+        const diffMinutes = Math.round(diffMs / 60000);
+
+        if (diffMinutes < 0) {
+          // Checked out BEFORE shift end → early checkout
+          earlyMinutes = Math.abs(diffMinutes);
+        } else if (diffMinutes > 0) {
+          // Checked out AFTER shift end → overtime
+          overtimeMinutes = diffMinutes;
+        }
+
+        // Format shift end time for display (e.g. "06:00 PM")
+        const displayDate = new Date(Date.UTC(2000, 0, 1, h, m, s || 0));
+        shiftEndTimeFormatted = displayDate.toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'UTC'
+        });
+      }
+    }
+
+    // Update attendance with checkout time and early/overtime info
     await pool.query(
       `UPDATE attendance
        SET check_out = NOW(),
-           status = 'PRESENT'
+           status = 'PRESENT',
+           early_checkout_minutes = $2,
+           overtime_minutes = $3
        WHERE id = $1`,
-      [record.id]
+      [record.id, earlyMinutes, overtimeMinutes]
     );
 
-    res.json({ message: "Checked out successfully" });
+    // ===== Notifications =====
+    const formatMinutes = (mins) => {
+      if (mins >= 60) {
+        const hrs = Math.floor(mins / 60);
+        const remainMins = mins % 60;
+        return remainMins > 0 ? `${hrs}h ${remainMins}m` : `${hrs}h`;
+      }
+      return `${mins} minutes`;
+    };
+
+    // Get user name for admin notifications
+    let userName = '';
+    if (earlyMinutes > 0) {
+      const userRes = await pool.query(`SELECT name FROM users WHERE id = $1`, [userId]);
+      userName = userRes.rows[0]?.name || 'A member';
+    }
+
+    if (earlyMinutes > 0 && shiftEndTimeFormatted) {
+      // Notify member about early checkout
+      const memberMsg = `⚠️ You checked out ${formatMinutes(earlyMinutes)} before your shift ends (Shift ends: ${shiftEndTimeFormatted})`;
+      await pool.query(
+        `INSERT INTO notifications (user_id, message, is_read, created_at) VALUES ($1, $2, false, NOW())`,
+        [userId, memberMsg]
+      );
+
+      // Notify all admins about early checkout
+      const adminMsg = `⚠️ ${userName} checked out ${formatMinutes(earlyMinutes)} early (Shift ends: ${shiftEndTimeFormatted})`;
+      await pool.query(
+        `INSERT INTO notifications (user_id, message, is_read, created_at)
+         SELECT id, $1, false, NOW() FROM users WHERE role = 'ADMIN'`,
+        [adminMsg]
+      );
+
+    }
+
+    if (overtimeMinutes > 0 && shiftEndTimeFormatted) {
+      // Notify member about overtime
+      const memberMsg = `💪 You worked ${formatMinutes(overtimeMinutes)} of overtime today (Shift ended: ${shiftEndTimeFormatted})`;
+      await pool.query(
+        `INSERT INTO notifications (user_id, message, is_read, created_at) VALUES ($1, $2, false, NOW())`,
+        [userId, memberMsg]
+      );
+    }
+
+    // Build response message
+    let responseMsg = "Checked out successfully";
+    if (earlyMinutes > 0 && shiftEndTimeFormatted) {
+      responseMsg += `. ⚠️ You left ${formatMinutes(earlyMinutes)} early (Shift ends: ${shiftEndTimeFormatted})`;
+    } else if (overtimeMinutes > 0 && shiftEndTimeFormatted) {
+      responseMsg += `. 💪 You worked ${formatMinutes(overtimeMinutes)} overtime (Shift ended: ${shiftEndTimeFormatted})`;
+    }
+
+    res.json({
+      message: responseMsg,
+      early_checkout_minutes: earlyMinutes,
+      overtime_minutes: overtimeMinutes
+    });
 
   } catch (err) {
     console.error("Checkout error:", err);
@@ -814,7 +919,9 @@ exports.getMyAttendanceHistory = async (req, res) => {
          a.check_in,
          a.check_out,
          a.status,
-         s.name AS shift_name
+         s.name AS shift_name,
+         a.early_checkout_minutes,
+         a.overtime_minutes
        FROM attendance a
        LEFT JOIN shifts s ON s.id = a.shift_id
        WHERE a.user_id = $1

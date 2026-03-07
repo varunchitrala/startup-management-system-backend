@@ -50,7 +50,9 @@ const {
   getGeoSetting,
   updateGeoSetting,
   getOfficeSettings,
-  updateOfficeSettings
+  updateOfficeSettings,
+  getEarlyCheckoutsToday,
+  getOvertimeToday
 } = require("../controllers/adminAttendanceController");
 
 
@@ -466,6 +468,10 @@ router.delete("/holidays/:id", verifyToken, isAdmin, deleteHoliday);
 /* ================= OFFICE SETTINGS ROUTES ================= */
 router.get("/office-settings", verifyToken, isAdmin, getOfficeSettings);
 router.put("/office-settings", verifyToken, isAdmin, updateOfficeSettings);
+
+/* ================= EARLY CHECKOUT / OVERTIME ================= */
+router.get("/attendance/early-checkouts", verifyToken, isAdmin, getEarlyCheckoutsToday);
+router.get("/attendance/overtime", verifyToken, isAdmin, getOvertimeToday);
 
 /* ================= ANNOUNCEMENTS ================= */
 const { broadcastAnnouncement } = require("../controllers/adminController");

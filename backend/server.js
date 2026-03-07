@@ -13,6 +13,8 @@ app.use(express.json());
 require("./src/config/db");
 require("./src/models/initDb");
 require("./src/models/createAttendanceTables");
+const addShiftCheckoutColumns = require("./src/models/addShiftCheckoutColumns");
+addShiftCheckoutColumns();
 
 /* ================= ROUTES ================= */
 const authRoutes = require("./src/routes/authRoutes");

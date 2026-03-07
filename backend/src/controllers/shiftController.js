@@ -3,14 +3,14 @@ const pool = require("../config/db");
 /* ================= CREATE SHIFT ================= */
 exports.createShift = async (req, res) => {
   try {
-    const { name, check_in_time, last_checkin_time } = req.body;
+    const { name, check_in_time, last_checkin_time, check_out_time } = req.body;
 
     await pool.query(
       `
-      INSERT INTO shifts (name, check_in_time, last_checkin_time)
-      VALUES ($1, $2, $3)
+      INSERT INTO shifts (name, check_in_time, last_checkin_time, check_out_time)
+      VALUES ($1, $2, $3, $4)
       `,
-      [name, check_in_time, last_checkin_time]
+      [name, check_in_time, last_checkin_time, check_out_time || null]
     );
 
     res.json({ message: "Shift saved successfully" });
