@@ -1,31 +1,8 @@
 const pool = require("../config/db");
-
 const emailService = require('../services/emailService');
+const { nowIST, todayIST, getWeekRangeIST, getMonthPeriodIST } = require('../utils/istTime');
 
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-
-function getIstNowShifted() {
-  return new Date(Date.now() + IST_OFFSET_MS);
-}
-
-function getWeekRangeIST() {
-  const now = getIstNowShifted();
-  const day = now.getUTCDay(); // shifted UTC day behaves like IST day
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() + diffToMonday);
-  monday.setUTCHours(0, 0, 0, 0);
-
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
-  sunday.setUTCHours(23, 59, 59, 999);
-
-  return {
-    weekStart: monday.toISOString().split("T")[0],
-    weekEnd: sunday.toISOString().split("T")[0]
-  };
-}
+function getIstNowShifted() { return nowIST(); }
 
 function getDistanceInMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000; // Earth radius in meters
@@ -1135,23 +1112,16 @@ exports.getMyAttendancePercentage = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Period: 2nd of the current month → today
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed
-    const startDate = new Date(Date.UTC(year, month, 2));
-    const today = new Date(Date.UTC(year, now.getMonth(), now.getDate()));
+    // Period: 2nd of the current month → today (IST)
+    const { startStr, todayStr } = getMonthPeriodIST();
 
-    const startStr = startDate.toISOString().split('T')[0];
-    const todayStr = today.toISOString().split('T')[0];
-
-    // Count total working days (non-Sunday, non-holiday) in the period
+    // Count total working days (Mon–Sat, non-holiday) in the period
     const workingDaysResult = await pool.query(
       `SELECT COUNT(*)::int AS working_days
        FROM (
          SELECT d::date AS day
          FROM generate_series($1::date, $2::date, interval '1 day') d
-         WHERE EXTRACT(DOW FROM d::date) <> 0
+         WHERE EXTRACT(DOW FROM d::date) NOT IN (0)
            AND NOT EXISTS (
              SELECT 1 FROM holidays h WHERE h.holiday_date = d::date
            )
@@ -1186,19 +1156,17 @@ exports.getMyAttendancePercentage = async (req, res) => {
     );
     const leaveDays = leaveDaysResult.rows[0]?.leave_days || 0;
 
-    // Effective working days = total working days minus approved leave days
-    const effectiveWorkingDays = Math.max(workingDays - leaveDays, 0);
-
-    const percentage = effectiveWorkingDays === 0
+    // Leaves count as absent — divide by full working days
+    const percentage = workingDays === 0
       ? 100
-      : Math.round((presentDays / effectiveWorkingDays) * 100);
+      : Math.round((presentDays / workingDays) * 100);
 
     res.json({
       from: startStr,
       to: todayStr,
       working_days: workingDays,
       leave_days: leaveDays,
-      effective_working_days: effectiveWorkingDays,
+      effective_working_days: workingDays,
       present_days: presentDays,
       percentage: Math.min(percentage, 100)
     });
@@ -1224,17 +1192,15 @@ exports.getMyOverallAttendancePercentage = async (req, res) => {
     const joinDate = new Date(userRes.rows[0].created_at);
     const startStr = joinDate.toISOString().split('T')[0];
 
-    const now = new Date();
-    const todayStr = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
-      .toISOString().split('T')[0];
+    const todayStr = todayIST();
 
-    // Total working days since joining (no Sundays, no holidays)
+    // Total working days since joining (Mon–Sat, no holidays)
     const workingDaysResult = await pool.query(
       `SELECT COUNT(*)::int AS working_days
        FROM (
          SELECT d::date AS day
          FROM generate_series($1::date, $2::date, interval '1 day') d
-         WHERE EXTRACT(DOW FROM d::date) <> 0
+         WHERE EXTRACT(DOW FROM d::date) NOT IN (0)
            AND NOT EXISTS (
              SELECT 1 FROM holidays h WHERE h.holiday_date = d::date
            )
@@ -1268,17 +1234,17 @@ exports.getMyOverallAttendancePercentage = async (req, res) => {
     );
     const leaveDays = leaveDaysResult.rows[0]?.leave_days || 0;
 
-    const effectiveWorkingDays = Math.max(workingDays - leaveDays, 0);
-    const percentage = effectiveWorkingDays === 0
+    // Leaves count as absent — divide by full working days
+    const percentage = workingDays === 0
       ? 100
-      : Math.round((presentDays / effectiveWorkingDays) * 100);
+      : Math.round((presentDays / workingDays) * 100);
 
     res.json({
       from: startStr,
       to: todayStr,
       working_days: workingDays,
       leave_days: leaveDays,
-      effective_working_days: effectiveWorkingDays,
+      effective_working_days: workingDays,
       present_days: presentDays,
       percentage: Math.min(percentage, 100)
     });

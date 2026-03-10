@@ -1,24 +1,8 @@
 const pool = require("../config/db");
+const { todayIST, getWeekRangeIST } = require("../utils/istTime");
 
 /* ================= HELPER: WEEK RANGE ================= */
-const getWeekRange = () => {
-  const now = new Date();
-  const day = now.getDay(); // 0 = Sunday
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diffToMonday);
-  monday.setHours(0, 0, 0, 0);
-
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
-
-  return {
-    weekStart: monday.toISOString().split("T")[0],
-    weekEnd: sunday.toISOString().split("T")[0]
-  };
-};
+const getWeekRange = () => getWeekRangeIST();
 
 /* ================= DAILY REPORT ================= */
 exports.submitDailyReport = async (req, res) => {
@@ -30,7 +14,7 @@ exports.submitDailyReport = async (req, res) => {
       return res.status(400).json({ message: "Work details are required" });
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
 
     await pool.query(
       `INSERT INTO work_reports (user_id, report_type, report_date, title, work_done)
@@ -107,7 +91,7 @@ exports.getMyReports = async (req, res) => {
 exports.checkTodayReport = async (req, res) => {
   try {
     const userId = req.user.id;
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
 
     const result = await pool.query(
       `SELECT 1 FROM work_reports

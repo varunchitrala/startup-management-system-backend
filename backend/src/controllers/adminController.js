@@ -398,7 +398,7 @@ exports.getAllTeamLeads = async (req, res) => {
 
 exports.getAllLeaveRequests = async (req, res) => {
   try {
-    const year = new Date().getFullYear();
+    const year = new Date(Date.now() + 5.5 * 60 * 60 * 1000).getUTCFullYear();
     const result = await pool.query(`
       SELECT
         lr.id,

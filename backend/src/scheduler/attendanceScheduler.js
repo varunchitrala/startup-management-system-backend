@@ -1,16 +1,9 @@
 const cron = require("node-cron");
 const pool = require("../config/db");
-
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+const { nowIST, getWeekRangeIST } = require("../utils/istTime");
 
 function getWeekStartIST() {
-  const now = new Date(Date.now() + IST_OFFSET_MS);
-  const day = now.getUTCDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() + diffToMonday);
-  monday.setUTCHours(0, 0, 0, 0);
-  return monday.toISOString().split("T")[0];
+  return getWeekRangeIST().weekStart;
 }
 
 console.log("Attendance scheduler loaded");
@@ -28,12 +21,13 @@ cron.schedule("* * * * *", async () => {
     if (timingResult.rows.length === 0) return;
 
     const { check_in_time, check_out_time } = timingResult.rows[0];
-    const now = new Date();
+    // Use IST "now" for time comparisons
+    const now = nowIST();
 
     const toTodayTime = (timeStr) => {
       const [h, m, s] = timeStr.split(":").map(Number);
-      const d = new Date();
-      d.setHours(h, m, s || 0, 0);
+      const d = nowIST();
+      d.setUTCHours(h, m, s || 0, 0);
       return d;
     };
 
@@ -90,8 +84,7 @@ cron.schedule("* * * * *", async () => {
 
       console.log("Daily work report reminders sent");
 
-      const nowIST = new Date(Date.now() + IST_OFFSET_MS);
-      const isSaturdayIST = nowIST.getUTCDay() === 6;
+      const isSaturdayIST = nowIST().getUTCDay() === 6;
 
       if (isSaturdayIST) {
         const weekStart = getWeekStartIST();

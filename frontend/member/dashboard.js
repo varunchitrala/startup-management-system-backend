@@ -1088,9 +1088,8 @@ async function loadMyAttendancePercentage() {
           <div>
             <div style="font-weight:700; color:${color}; font-size:0.95rem;">Your Attendance (2nd – Today)</div>
             <div style="font-size:0.82rem; color:#64748b;">
-              ${data.present_days} present / ${data.effective_working_days} effective working days
+              ${data.present_days} present / ${data.effective_working_days} working days
               &nbsp;·&nbsp; ${from} – ${to}
-              ${data.leave_days > 0 ? `&nbsp;·&nbsp; ${data.leave_days} leave day(s) excluded` : ''}
             </div>
           </div>
         </div>`;

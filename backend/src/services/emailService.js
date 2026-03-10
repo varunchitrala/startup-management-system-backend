@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 const dns = require('dns');
 const pool = require('../config/db');
+const { todayIST, nowIST } = require('../utils/istTime');
 
 // Render environments can fail outbound IPv6 to Gmail SMTP (ENETUNREACH).
 // Force DNS resolution preference to IPv4 for SMTP connections.
@@ -344,7 +345,7 @@ const sendLateArrivalEmail = async (userId, checkInTime) => {
             
             <div class="info-box">
               <p><strong>Check-in Time:</strong> ${checkInTime}</p>
-              <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
+              <p><strong>Date:</strong> ${todayIST()}</p>
             </div>
             
             <p>Please ensure timely attendance. If you have any concerns, please contact HR.</p>
@@ -398,7 +399,7 @@ const sendMissingCheckoutEmail = async (userId) => {
             <p>You forgot to check out yesterday!</p>
             
             <div class="info-box">
-              <p><strong>Date:</strong> ${new Date(Date.now() - 86400000).toLocaleDateString('en-IN')}</p>
+              <p><strong>Date:</strong> ${new Date(Date.now() - 86400000 + 5.5*60*60*1000).toISOString().split('T')[0]}</p>
               <p>Please submit a regularization request or contact your manager.</p>
             </div>
             
@@ -430,7 +431,7 @@ const sendDailySummaryToAdmin = async () => {
     if (adminResult.rows.length === 0) return;
     
     // Get today's stats
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayIST();
     
     const statsResult = await pool.query(`
       SELECT 
@@ -476,7 +477,7 @@ const sendDailySummaryToAdmin = async () => {
         <div class="container">
           <div class="header">
             <h1>📊 Daily Attendance Summary</h1>
-            <p>${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p>${new Date(Date.now() + 5.5*60*60*1000).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' })}</p>
           </div>
           <div class="content">
             <h2>Today's Statistics</h2>
@@ -526,7 +527,7 @@ const sendDailySummaryToAdmin = async () => {
     
     // Send to all admins
     for (const admin of adminResult.rows) {
-      await sendEmail(admin.email, `📊 Daily Summary - ${new Date().toLocaleDateString('en-IN')}`, html);
+      await sendEmail(admin.email, `📊 Daily Summary - ${todayIST()}`, html);
     }
   } catch (error) {
     console.error('Error sending daily summary:', error);

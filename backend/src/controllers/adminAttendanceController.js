@@ -988,12 +988,12 @@ exports.exportMonthlyAttendanceExcel = async (req, res) => {
 };
 exports.getTodayAttendanceDashboard = async (req, res) => {
   try {
-    // Calculate start of percentage period: 2nd of current month
-    const now = new Date();
-    const monthStart2nd = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 2))
-      .toISOString().split('T')[0];
-    const todayStr = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
-      .toISOString().split('T')[0];
+    // Calculate start of percentage period: 2nd of current month (IST)
+    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const istYear = nowIST.getUTCFullYear();
+    const istMonth = nowIST.getUTCMonth();
+    const monthStart2nd = `${istYear}-${String(istMonth + 1).padStart(2, '0')}-02`;
+    const todayStr = nowIST.toISOString().split('T')[0];
 
     const result = await pool.query(`
       WITH period_stats AS (

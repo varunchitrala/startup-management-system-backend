@@ -1,14 +1,15 @@
 const cron = require("node-cron");
 const pool = require("../config/db");
+const { todayIST } = require("../utils/istTime");
 
 const runAttendanceAutomation = () => {
 
-  // Runs every day at 6:05 PM
+  // Runs every day at 6:05 PM IST
   cron.schedule("5 18 * * *", async () => {
     console.log("⏳ Running attendance auto processor...");
 
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todayIST();
       const holidayRes = await pool.query(
         `SELECT 1
          FROM holidays

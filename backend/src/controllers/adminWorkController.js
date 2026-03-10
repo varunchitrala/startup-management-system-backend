@@ -1,13 +1,6 @@
 const pool = require("../config/db");
-const getWeekStart = () => {
-  const now = new Date();
-  const day = now.getDay(); // 0=Sun
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diff);
-  monday.setHours(0, 0, 0, 0);
-  return monday.toISOString().split("T")[0];
-};
+const { todayIST, getWeekRangeIST } = require("../utils/istTime");
+const getWeekStart = () => getWeekRangeIST().weekStart;
 
 exports.getAllWorkReports = async (req, res) => {
   try {
@@ -70,7 +63,7 @@ exports.getAllWorkReports = async (req, res) => {
 };
 exports.getUsersMissingDailyReport = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
 
     const result = await pool.query(`
       SELECT
@@ -100,7 +93,7 @@ exports.getUsersMissingDailyReport = async (req, res) => {
 };
 exports.getTodayCompliance = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
 
     const result = await pool.query(`
       SELECT

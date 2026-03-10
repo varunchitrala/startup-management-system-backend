@@ -1,19 +1,10 @@
 const cron = require('node-cron');
 const pool = require('../config/db');
 const emailService = require('../services/emailService');
-
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+const { todayIST, nowIST, getWeekRangeIST } = require('../utils/istTime');
 
 function getWeekStartIST() {
-  const now = new Date(Date.now() + IST_OFFSET_MS);
-  const day = now.getUTCDay(); // shifted UTC day behaves like IST day
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() + diffToMonday);
-  monday.setUTCHours(0, 0, 0, 0);
-
-  return monday.toISOString().split("T")[0];
+  return getWeekRangeIST().weekStart;
 }
 
 // 📧 Daily Summary Email to Admin (Every day at 6 PM)
@@ -32,7 +23,7 @@ cron.schedule('0 18 * * *', async () => {
 cron.schedule('0 21 * * *', async () => {
   console.log('⏰ Running: Missing checkout reminder');
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayIST();
 
     // Find users who checked in but didn't check out
     const result = await pool.query(`
@@ -60,7 +51,7 @@ cron.schedule('0 21 * * *', async () => {
 cron.schedule('50 17 * * 1-6', async () => {
   console.log('⏰ Running: Manual checkout reminder notifications');
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayIST();
 
     const result = await pool.query(`
       INSERT INTO notifications (user_id, message, is_read, created_at)
@@ -95,7 +86,7 @@ cron.schedule('50 17 * * 1-6', async () => {
 cron.schedule('30 16,17 * * 1-6', async () => {
   console.log('⏰ Running: Daily report reminder notifications');
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayIST();
 
     await pool.query(`
       INSERT INTO notifications (user_id, message, is_read, created_at)
@@ -123,8 +114,7 @@ cron.schedule('30 16,17 * * 1-6', async () => {
     `, [today]);
 
     // Saturday-only weekly reminder for LEAD and MEMBER
-    const nowIST = new Date(Date.now() + IST_OFFSET_MS);
-    const isSaturdayIST = nowIST.getUTCDay() === 6;
+    const isSaturdayIST = nowIST().getUTCDay() === 6;
 
     if (isSaturdayIST) {
       const weekStart = getWeekStartIST();
@@ -247,7 +237,7 @@ console.log('✅ Email scheduler initialized');
 cron.schedule('0 19 * * *', async () => {
   console.log('⏰ Running: Auto-checkout with penalty system (7 PM)');
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayIST();
     const currentMonth = today.slice(0, 7); // YYYY-MM
 
     const checkedIn = await pool.query(`
@@ -310,7 +300,7 @@ cron.schedule('0 19 * * *', async () => {
           penaltyMsg = `🚨 PENALTY: Missed checkout #${missedCount} this month (exceeded 5 warnings). 1 day leave has been deducted. Check-in is BLOCKED until you submit the report.`;
 
           // Deduct from leave balance
-          const year = new Date().getFullYear();
+          const year = nowIST().getUTCFullYear();
           await pool.query(
             `UPDATE leave_balances
              SET used = used + 1,
