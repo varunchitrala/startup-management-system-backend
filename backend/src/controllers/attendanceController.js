@@ -1182,25 +1182,8 @@ exports.getMyOverallAttendancePercentage = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Use the user's first attendance record as start date (more accurate than created_at)
-    // Falls back to created_at if no attendance exists yet
-    const userRes = await pool.query(
-      `SELECT
-         u.created_at,
-         MIN(a.date) AS first_attendance
-       FROM users u
-       LEFT JOIN attendance a ON a.user_id = u.id
-       WHERE u.id = $1
-       GROUP BY u.created_at`,
-      [userId]
-    );
-    if (!userRes.rows.length) return res.status(404).json({ message: 'User not found' });
-
-    const row = userRes.rows[0];
-    // Use first attendance date if available, otherwise fall back to account creation date
-    const startStr = row.first_attendance
-      ? row.first_attendance.toISOString().split('T')[0]
-      : new Date(row.created_at).toISOString().split('T')[0];
+    // Overall % always starts from company attendance start date: 2nd March 2026
+    const startStr = '2026-03-02';
 
     const todayStr = todayIST();
 
