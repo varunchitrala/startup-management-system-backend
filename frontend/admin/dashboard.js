@@ -397,64 +397,83 @@ async function loadAdminProjectMembers(projectId) {
   }
 }
 async function loadTodayAttendance() {
-  // Use the dashboard endpoint which includes attendance_percentage
-  const data = await apiRequest(
-    `${API_BASE}/api/admin/attendance/today`
-  );
-
   const tbody = document.getElementById("attendanceTableBody");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
-  if (!data || data.length === 0) {
+  try {
+    // Use the dashboard endpoint which includes attendance_percentage.
+    const raw = await apiRequest(`${API_BASE}/api/admin/attendance/today`);
+
+    // Support both array and wrapped payload response shapes.
+    const data = Array.isArray(raw)
+      ? raw
+      : (
+        (Array.isArray(raw?.rows) && raw.rows) ||
+        (Array.isArray(raw?.data) && raw.data) ||
+        (Array.isArray(raw?.attendance) && raw.attendance) ||
+        (Array.isArray(raw?.data?.rows) && raw.data.rows) ||
+        []
+      );
+
+    if (!Array.isArray(data) || data.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center">
+            No attendance data for today
+          </td>
+        </tr>`;
+      return;
+    }
+
+    data.forEach(row => {
+      const tr = document.createElement("tr");
+
+      const statusColors = {
+        PRESENT: 'bg-success',
+        CHECKED_IN: 'bg-primary',
+        ABSENT: 'bg-danger',
+        LATE: 'bg-warning text-dark',
+        ON_LEAVE: 'bg-info',
+        HOLIDAY: 'bg-secondary',
+        MISSED_CHECKOUT: 'bg-danger'
+      };
+      const badgeClass = statusColors[row.status] || 'bg-secondary';
+      const statusLabel = row.status === 'MISSED_CHECKOUT' ? 'Missed Checkout' : row.status;
+
+      // Color-code monthly attendance percentage.
+      const pct = row.attendance_percentage ?? 100;
+      const pctColor = pct >= 75 ? '#15803d' : pct >= 50 ? '#b45309' : '#dc2626';
+      const pctDisplay = `<span style="font-weight:700; color:${pctColor}">${pct}%</span>`;
+
+      // Color-code overall (all-time) attendance percentage.
+      const ovPct = row.overall_percentage ?? 100;
+      const ovPctColor = ovPct >= 75 ? '#15803d' : ovPct >= 50 ? '#b45309' : '#dc2626';
+      const ovPctDisplay = `<span style="font-weight:700; color:${ovPctColor}">${ovPct}%</span>`;
+
+      tr.innerHTML = `
+        <td>${row.user_id}</td>
+        <td>${row.name}</td>
+        <td>${row.role}</td>
+        <td>${fmtIST(row.check_in)}</td>
+        <td>${fmtIST(row.check_out)}</td>
+        <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
+        <td class="text-center">${pctDisplay}</td>
+        <td class="text-center">${ovPctDisplay}</td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("loadTodayAttendance failed:", err);
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" class="text-center">
-          No attendance data for today
+        <td colspan="8" class="text-center text-danger">
+          Failed to load attendance data
         </td>
       </tr>`;
-    return;
   }
-
-  data.forEach(row => {
-    const tr = document.createElement("tr");
-
-    const statusColors = {
-      PRESENT: 'bg-success',
-      CHECKED_IN: 'bg-primary',
-      ABSENT: 'bg-danger',
-      LATE: 'bg-warning text-dark',
-      ON_LEAVE: 'bg-info',
-      HOLIDAY: 'bg-secondary',
-      MISSED_CHECKOUT: 'bg-danger'
-    };
-    const badgeClass = statusColors[row.status] || 'bg-secondary';
-    const statusLabel = row.status === 'MISSED_CHECKOUT' ? 'Missed Checkout ⚠️' : row.status;
-
-    // Color-code monthly attendance percentage
-    const pct = row.attendance_percentage ?? 100;
-    const pctColor = pct >= 75 ? '#15803d' : pct >= 50 ? '#b45309' : '#dc2626';
-    const pctDisplay = `<span style="font-weight:700; color:${pctColor}">${pct}%</span>`;
-
-    // Color-code overall (all-time) attendance percentage
-    const ovPct = row.overall_percentage ?? 100;
-    const ovPctColor = ovPct >= 75 ? '#15803d' : ovPct >= 50 ? '#b45309' : '#dc2626';
-    const ovPctDisplay = `<span style="font-weight:700; color:${ovPctColor}">${ovPct}%</span>`;
-
-    tr.innerHTML = `
-      <td>${row.user_id}</td>
-      <td>${row.name}</td>
-      <td>${row.role}</td>
-      <td>${fmtIST(row.check_in)}</td>
-      <td>${fmtIST(row.check_out)}</td>
-      <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
-      <td class="text-center">${pctDisplay}</td>
-      <td class="text-center">${ovPctDisplay}</td>
-    `;
-
-    tbody.appendChild(tr);
-  });
 }
-
 /***********************
  * EXPOSE TO HTML
  ***********************/
@@ -1934,3 +1953,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
