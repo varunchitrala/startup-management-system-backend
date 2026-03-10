@@ -346,7 +346,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
         SELECT COUNT(*)::int AS working_days
         FROM (
           SELECT d::date AS day
-          FROM generate_series($3::date, $4::date, interval '1 day') d
+          FROM generate_series($2::date, $3::date, interval '1 day') d
           WHERE EXTRACT(DOW FROM d::date) <> 0
             AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
         ) wd
@@ -369,7 +369,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
           SELECT COUNT(DISTINCT att2.date)::int
           FROM attendance att2
           WHERE att2.user_id = u.id
-            AND att2.date BETWEEN $3 AND $4
+            AND att2.date BETWEEN $2 AND $3
             AND att2.check_in IS NOT NULL
             AND att2.check_out IS NOT NULL
         ) AS period_present,
@@ -381,7 +381,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
             FROM leave_requests lr2
             WHERE lr2.user_id = u.id AND lr2.status = 'APPROVED'
           ) lrd
-          WHERE lrd.lday BETWEEN $3 AND $4
+          WHERE lrd.lday BETWEEN $2 AND $3
         ) AS period_leave,
         pw.working_days AS period_working_days,
         -- Overall: working days from company start (2026-03-02)
@@ -389,7 +389,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
           SELECT COUNT(*)::int
           FROM (
             SELECT d::date AS day
-            FROM generate_series('2026-03-02'::date, $4::date, interval '1 day') d
+            FROM generate_series('2026-03-02'::date, $3::date, interval '1 day') d
             WHERE EXTRACT(DOW FROM d::date) <> 0
               AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
           ) wd
@@ -399,7 +399,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
           SELECT COUNT(DISTINCT att3.date)::int
           FROM attendance att3
           WHERE att3.user_id = u.id
-            AND att3.date BETWEEN '2026-03-02'::date AND $4::date
+            AND att3.date BETWEEN '2026-03-02'::date AND $3::date
             AND att3.check_in IS NOT NULL
             AND att3.check_out IS NOT NULL
         ) AS overall_present,
@@ -411,7 +411,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
             FROM leave_requests lr3
             WHERE lr3.user_id = u.id AND lr3.status = 'APPROVED'
           ) lrd3
-          WHERE lrd3.lday BETWEEN '2026-03-02'::date AND $4::date
+          WHERE lrd3.lday BETWEEN '2026-03-02'::date AND $3::date
         ) AS overall_leave
       FROM users u
       CROSS JOIN day_meta dm
@@ -430,7 +430,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
         AND lr.status = 'APPROVED'
         AND $1 BETWEEN lr.from_date AND lr.to_date
       ORDER BY u.name
-    `, [date, null, periodStart, periodEnd]);
+    `, [date, periodStart, periodEnd]);
 
     // ── Summary counts ──
     const totalResult = await pool.query("SELECT COUNT(*)::int AS total FROM users");
