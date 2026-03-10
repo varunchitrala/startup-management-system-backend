@@ -1182,8 +1182,11 @@ exports.getMyOverallAttendancePercentage = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Overall % always starts from company attendance start date: 2nd March 2026
-    const startStr = '2026-03-02';
+    // Overall % starts from 2026-03-02 for existing users, or their own created_at for new users
+    const userRes = await pool.query('SELECT created_at FROM users WHERE id = $1', [userId]);
+    if (!userRes.rows.length) return res.status(404).json({ message: 'User not found' });
+    const createdDate = new Date(userRes.rows[0].created_at).toISOString().split('T')[0];
+    const startStr = createdDate > '2026-03-02' ? createdDate : '2026-03-02';
 
     const todayStr = todayIST();
 

@@ -1454,6 +1454,68 @@ async function loadMyAttendanceHistory() {
   }
 }
 
+/* ================= ATTENDANCE PERCENTAGE CARD ================= */
+async function loadMyAttendancePercentage() {
+  try {
+    const [monthRes, overallRes] = await Promise.all([
+      fetch(`${API_BASE}/api/attendance/my-percentage`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API_BASE}/api/attendance/my-overall-percentage`, { headers: { Authorization: `Bearer ${token}` } })
+    ]);
+
+    const container = document.getElementById('attendancePercentageCard');
+    if (!container) return;
+
+    let html = '';
+
+    if (monthRes.ok) {
+      const data = await monthRes.json();
+      const pct = data.percentage;
+      const from = new Date(data.from).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+      const to = new Date(data.to).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+      const color = pct >= 75 ? '#15803d' : pct >= 50 ? '#b45309' : '#dc2626';
+      const bg = pct >= 75 ? '#dcfce7' : pct >= 50 ? '#fef3c7' : '#fee2e2';
+      const emoji = pct >= 75 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
+      html += `
+        <div style="background:${bg}; border:2px solid ${color}; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
+          <div style="font-size:2.2rem; font-weight:800; color:${color};">${emoji} ${pct}%</div>
+          <div>
+            <div style="font-weight:700; color:${color}; font-size:0.95rem;">Monthly Attendance (2nd – Today)</div>
+            <div style="font-size:0.82rem; color:#64748b;">
+              ${data.present_days} present / ${data.effective_working_days} working days
+              &nbsp;·&nbsp; ${from} – ${to}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    if (overallRes.ok) {
+      const ov = await overallRes.json();
+      const opct = ov.percentage;
+      const ofrom = new Date(ov.from).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+      const oto = new Date(ov.to).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+      const ocolor = opct >= 75 ? '#1d4ed8' : opct >= 50 ? '#b45309' : '#dc2626';
+      const obg = opct >= 75 ? '#dbeafe' : opct >= 50 ? '#fef3c7' : '#fee2e2';
+      const oemoji = opct >= 75 ? '🔵' : opct >= 50 ? '🟡' : '🔴';
+      html += `
+        <div style="background:${obg}; border:2px solid ${ocolor}; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+          <div style="font-size:2.2rem; font-weight:800; color:${ocolor};">${oemoji} ${opct}%</div>
+          <div>
+            <div style="font-weight:700; color:${ocolor}; font-size:0.95rem;">Overall Attendance (Since Joining)</div>
+            <div style="font-size:0.82rem; color:#64748b;">
+              ${ov.present_days} present / ${ov.effective_working_days} working days
+              &nbsp;·&nbsp; ${ofrom} – ${oto}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    container.innerHTML = html;
+    container.style.display = 'block';
+  } catch (err) {
+    console.error('Attendance percentage error:', err);
+  }
+}
+
 /* ================= NOTIFICATIONS ================= */
 
 async function loadNotifications() {
