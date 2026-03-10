@@ -1099,7 +1099,7 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
         attendance_percentage: pct,
         overall_percentage: ovPct,
         overall_present: ovPDays,
-        overall_working_days: ovEffDays,
+        overall_working_days: ovWDays,
         joined_date: r.joined_date,
         period_from: monthStart2nd,
         period_to: todayStr
