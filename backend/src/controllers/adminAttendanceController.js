@@ -255,26 +255,26 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
           ) lrd
           WHERE lrd.lday BETWEEN $2 AND $3
         ) AS period_leave,
-        -- Overall: working days since joining to requested date
+        -- Overall: working days from company start (2026-03-02)
         (
           SELECT COUNT(*)::int
           FROM (
             SELECT d::date AS day
-            FROM generate_series(u.created_at::date, $3::date, interval '1 day') d
+            FROM generate_series('2026-03-02'::date, $3::date, interval '1 day') d
             WHERE EXTRACT(DOW FROM d::date) <> 0
               AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
           ) wd
         ) AS overall_working_days,
-        -- Overall: present days since joining
+        -- Overall: present days from company start
         (
           SELECT COUNT(DISTINCT att3.date)::int
           FROM attendance att3
           WHERE att3.user_id = u.id
-            AND att3.date BETWEEN u.created_at::date AND $3::date
+            AND att3.date BETWEEN '2026-03-02'::date AND $3::date
             AND att3.check_in IS NOT NULL
             AND att3.check_out IS NOT NULL
         ) AS overall_present,
-        -- Overall: leave days since joining
+        -- Overall: leave days from company start
         (
           SELECT COUNT(DISTINCT lday)::int
           FROM (
@@ -282,7 +282,7 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
             FROM leave_requests lr3
             WHERE lr3.user_id = u.id AND lr3.status = 'APPROVED'
           ) lrd3
-          WHERE lrd3.lday BETWEEN u.created_at::date AND $3::date
+          WHERE lrd3.lday BETWEEN '2026-03-02'::date AND $3::date
         ) AS overall_leave
       FROM users u
       CROSS JOIN day_meta dm
@@ -384,26 +384,26 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
           WHERE lrd.lday BETWEEN $3 AND $4
         ) AS period_leave,
         pw.working_days AS period_working_days,
-        -- Overall: working days since joining
+        -- Overall: working days from company start (2026-03-02)
         (
           SELECT COUNT(*)::int
           FROM (
             SELECT d::date AS day
-            FROM generate_series(u.created_at::date, $4::date, interval '1 day') d
+            FROM generate_series('2026-03-02'::date, $4::date, interval '1 day') d
             WHERE EXTRACT(DOW FROM d::date) <> 0
               AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
           ) wd
         ) AS overall_working_days,
-        -- Overall: present days since joining
+        -- Overall: present days from company start
         (
           SELECT COUNT(DISTINCT att3.date)::int
           FROM attendance att3
           WHERE att3.user_id = u.id
-            AND att3.date BETWEEN u.created_at::date AND $4::date
+            AND att3.date BETWEEN '2026-03-02'::date AND $4::date
             AND att3.check_in IS NOT NULL
             AND att3.check_out IS NOT NULL
         ) AS overall_present,
-        -- Overall: leave days since joining
+        -- Overall: leave days from company start
         (
           SELECT COUNT(DISTINCT lday)::int
           FROM (
@@ -411,7 +411,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
             FROM leave_requests lr3
             WHERE lr3.user_id = u.id AND lr3.status = 'APPROVED'
           ) lrd3
-          WHERE lrd3.lday BETWEEN u.created_at::date AND $4::date
+          WHERE lrd3.lday BETWEEN '2026-03-02'::date AND $4::date
         ) AS overall_leave
       FROM users u
       CROSS JOIN day_meta dm
