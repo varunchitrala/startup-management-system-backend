@@ -1287,7 +1287,16 @@ async function exportDailyExcel() {
       }
     });
 
-    if (!res.ok) throw new Error("Export failed");
+    if (!res.ok) {
+      let details = "";
+      try {
+        const errJson = await res.json();
+        details = errJson?.message || JSON.stringify(errJson);
+      } catch {
+        details = await res.text();
+      }
+      throw new Error(`Export failed (${res.status})${details ? `: ${details}` : ""}`);
+    }
 
     const blob = await res.blob();
     const link = document.createElement("a");
@@ -1297,8 +1306,8 @@ async function exportDailyExcel() {
     link.click();
 
   } catch (err) {
-    console.error(err);
-    alert("Daily Excel export failed");
+    console.error("Daily Excel export failed:", err);
+    alert(err.message || "Daily Excel export failed");
   }
 }
 const geoToggle = document.getElementById("geoToggle");
