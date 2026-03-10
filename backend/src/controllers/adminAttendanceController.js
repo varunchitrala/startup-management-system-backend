@@ -1041,26 +1041,37 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
           WHERE lrd.day BETWEEN $1 AND $2
         ) AS period_leave,
         ps.working_days AS period_working_days,
-        -- Overall: working days since joining
+        -- Overall start: first attendance date (falls back to created_at if none)
+        COALESCE(
+          (SELECT MIN(a2.date) FROM attendance a2 WHERE a2.user_id = u.id),
+          u.created_at::date
+        ) AS overall_start_date,
+        -- Overall: working days since first attendance
         (
           SELECT COUNT(*)::int
           FROM (
             SELECT d::date AS day
-            FROM generate_series(u.created_at::date, $2::date, interval '1 day') d
+            FROM generate_series(
+              COALESCE((SELECT MIN(a2.date) FROM attendance a2 WHERE a2.user_id = u.id), u.created_at::date),
+              $2::date,
+              interval '1 day'
+            ) d
             WHERE EXTRACT(DOW FROM d::date) <> 0
               AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
           ) wd
         ) AS overall_working_days,
-        -- Overall: present days since joining
+        -- Overall: present days since first attendance
         (
           SELECT COUNT(DISTINCT att3.date)::int
           FROM attendance att3
           WHERE att3.user_id = u.id
-            AND att3.date BETWEEN u.created_at::date AND $2::date
+            AND att3.date BETWEEN
+              COALESCE((SELECT MIN(a2.date) FROM attendance a2 WHERE a2.user_id = u.id), u.created_at::date)
+              AND $2::date
             AND att3.check_in IS NOT NULL
             AND att3.check_out IS NOT NULL
         ) AS overall_present,
-        -- Overall: leave days since joining
+        -- Overall: leave days since first attendance
         (
           SELECT COUNT(DISTINCT day)::int
           FROM (
@@ -1068,9 +1079,14 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
             FROM leave_requests lr3
             WHERE lr3.user_id = u.id AND lr3.status = 'APPROVED'
           ) lrd3
-          WHERE lrd3.day BETWEEN u.created_at::date AND $2::date
+          WHERE lrd3.day BETWEEN
+            COALESCE((SELECT MIN(a2.date) FROM attendance a2 WHERE a2.user_id = u.id), u.created_at::date)
+            AND $2::date
         ) AS overall_leave,
-        u.created_at::date AS joined_date
+        COALESCE(
+          (SELECT MIN(a2.date) FROM attendance a2 WHERE a2.user_id = u.id),
+          u.created_at::date
+        ) AS joined_date
       FROM users u
       CROSS JOIN period_stats ps
       LEFT JOIN attendance a
