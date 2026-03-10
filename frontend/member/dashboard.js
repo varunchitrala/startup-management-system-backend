@@ -371,13 +371,24 @@ function renderMemberRoadmap(project) {
 
   project.steps.forEach(step => {
     const li = document.createElement("li");
-    li.className = "list-group-item";
+    li.className = `list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom ${step.is_completed ? 'bg-light text-muted' : ''}`;
+    li.style.transition = "background-color 0.2s ease";
+    li.onmouseover = () => { if (!step.is_completed) li.style.backgroundColor = "#f8f9fa"; };
+    li.onmouseout = () => { if (!step.is_completed) li.style.backgroundColor = "transparent"; };
 
     li.innerHTML = `
-      <input type="checkbox"
-        ${step.is_completed ? "checked" : ""}
-        onchange="updateStep(${step.id}, this.checked)">
-      ${step.step_title}
+      <div class="d-flex align-items-center gap-3">
+        <input class="form-check-input mt-0 fs-5" type="checkbox"
+          ${step.is_completed ? "checked" : ""}
+          onchange="updateStep(${step.id}, this.checked)" style="cursor: pointer;">
+        <div>
+          <span class="fw-semibold ${step.is_completed ? 'text-decoration-line-through' : ''}">${step.step_title}</span>
+          <br>
+          <span class="badge ${step.is_completed ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'} mt-1">
+            ${step.is_completed ? '<i class="bi bi-check2-all me-1"></i>Completed' : '<i class="bi bi-hourglass-split me-1"></i>In Progress'}
+          </span>
+        </div>
+      </div>
     `;
 
     stepsList.appendChild(li);
@@ -492,24 +503,38 @@ async function loadMyProjectStats() {
         activeDiv.innerHTML = `<div class="text-muted small text-center py-2">No active projects</div>`;
       } else {
         activeDiv.innerHTML = `
-          <h6 class="fw-bold text-uppercase text-muted small mb-2">
-            <i class="bi bi-lightning-charge text-warning"></i> Active Projects
+          <h6 class="fw-bold text-uppercase text-muted small mb-3 mt-4" style="letter-spacing: 0.5px;">
+            <i class="bi bi-lightning-charge-fill text-warning me-2"></i> Active Projects
           </h6>` +
           data.active_projects.map(p => `
-            <div class="border rounded p-3 mb-2 bg-light">
-              <div class="d-flex justify-content-between align-items-start">
-                <strong class="text-primary">${p.project_name}</strong>
-                <span class="badge bg-info text-dark">${p.days_elapsed} day${p.days_elapsed > 1 ? "s" : ""}</span>
+            <div class="project-item flex-column align-items-stretch" style="padding: 18px; border-radius: var(--radius-lg); border: 1px solid var(--border-light); background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 16px; transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.05)';">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="member-avatar bg-primary-subtle text-primary fw-bold" style="width:36px; height:36px; font-size:14px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                    ${p.project_name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div class="fw-bold text-dark fs-6 mb-1">${p.project_name}</div>
+                    <div class="d-flex gap-2">
+                      <span class="badge bg-info-subtle text-info border border-info-subtle">
+                        <i class="bi bi-clock-history me-1"></i>${p.days_elapsed} day${p.days_elapsed > 1 ? "s" : ""}
+                      </span>
+                      ${p.member_count ? `
+                      <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                        <i class="bi bi-people me-1"></i>${p.member_count} mem
+                      </span>` : ""}
+                    </div>
+                  </div>
+                </div>
               </div>
-              ${p.team_lead_name ? `<div class="small text-muted mt-1">Lead: ${p.team_lead_name}</div>` : ""}
-              ${p.member_count ? `<div class="small text-muted">Members: ${p.member_count}</div>` : ""}
-              <div class="progress mt-2" style="height:6px;">
-                <div class="progress-bar bg-success" style="width:${p.progress}%"></div>
+              ${p.team_lead_name ? `<div class="small text-muted mt-2 mb-2"><i class="bi bi-person-badge me-1"></i> Lead: <strong>${p.team_lead_name}</strong></div>` : ""}
+              <div class="d-flex align-items-center gap-2 mt-2">
+                <div class="progress w-100 bg-secondary-subtle rounded-pill" style="height: 6px;">
+                  <div class="progress-bar bg-primary" role="progressbar" style="width: ${p.progress}%"></div>
+                </div>
+                <span class="small fw-bold text-muted">${p.progress}%</span>
               </div>
-              <div class="d-flex justify-content-between mt-1">
-                <span class="small text-muted">Roadmap: ${p.progress}%</span>
-                <span class="small text-muted">${p.completed_steps}/${p.total_steps} steps</span>
-              </div>
+              <div class="small text-muted mt-2 text-end">${p.completed_steps}/${p.total_steps} steps</div>
             </div>
           `).join("");
       }
@@ -522,16 +547,23 @@ async function loadMyProjectStats() {
         compDiv.innerHTML = `<div class="text-muted small text-center py-2">No completed projects yet</div>`;
       } else {
         compDiv.innerHTML = `
-          <h6 class="fw-bold text-uppercase text-muted small mb-2">
-            <i class="bi bi-check-circle text-success"></i> Completed Projects
+          <h6 class="fw-bold text-uppercase text-muted small mb-3 mt-4" style="letter-spacing: 0.5px;">
+            <i class="bi bi-check-circle-fill text-success me-2"></i> Completed Projects
           </h6>` +
           data.completed_projects.map(p => `
-            <div class="border rounded p-2 mb-2" style="background:#f0fdf4;">
+            <div class="project-item flex-column align-items-stretch" style="padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-light); background: #f8fafc; margin-bottom: 12px;">
               <div class="d-flex justify-content-between align-items-center">
-                <span class="fw-bold text-success">${p.project_name}</span>
-                <span class="badge bg-success">${p.days_taken} day${p.days_taken > 1 ? "s" : ""}</span>
+                <div class="d-flex align-items-center gap-3">
+                  <div class="member-avatar bg-success-subtle text-success fw-bold" style="width:36px; height:36px; font-size:14px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                    ${p.project_name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div class="fw-bold text-success fs-6 mb-1">${p.project_name}</div>
+                    ${p.team_lead_name ? `<div class="small text-muted">Lead: ${p.team_lead_name}</div>` : ""}
+                  </div>
+                </div>
+                <span class="badge bg-success shadow-sm px-3 py-2 rounded-pill"><i class="bi bi-check2-all me-1"></i>${p.days_taken} day${p.days_taken > 1 ? "s" : ""}</span>
               </div>
-              ${p.team_lead_name ? `<div class="small text-muted">Lead: ${p.team_lead_name}</div>` : ""}
             </div>
           `).join("");
       }

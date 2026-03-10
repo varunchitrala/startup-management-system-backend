@@ -56,43 +56,70 @@ async function loadRoadmap(projectId) {
       return;
     }
 
-    data.steps.forEach(step => {
+    data.steps.forEach((step, index) => {
       const li = document.createElement("li");
-      li.className =
-        "list-group-item d-flex justify-content-between align-items-center";
+      li.className = "d-flex justify-content-between align-items-center p-3 mb-2 bg-white border rounded shadow-sm transition-all";
+      li.style.transition = "all 0.2s ease";
+
+      li.onmouseenter = () => { li.style.transform = "translateY(-2px)"; li.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; };
+      li.onmouseleave = () => { li.style.transform = "none"; li.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)"; };
 
       const left = document.createElement("div");
+      left.className = "d-flex align-items-center gap-3 w-100";
+
+      const checkboxWrap = document.createElement("div");
+      checkboxWrap.className = "form-check m-0 d-flex align-items-center";
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.className = "form-check-input me-2";
+      checkbox.className = "form-check-input fs-5" + (step.is_completed ? " border-success bg-success" : "");
+      checkbox.style.cursor = "pointer";
       checkbox.checked = step.is_completed;
 
       checkbox.onchange = async () => {
         await updateStep(step.id, checkbox.checked, projectId);
       };
 
-      left.appendChild(checkbox);
+      checkboxWrap.appendChild(checkbox);
+      left.appendChild(checkboxWrap);
 
-      const span = document.createElement("span");
-      span.className = step.is_completed ? "text-decoration-line-through text-muted" : "fw-bold";
-      span.innerText = step.step_title;
-      left.appendChild(span);
+      const spanWrap = document.createElement("div");
+      spanWrap.className = "d-flex flex-column";
 
-      const center = document.createElement("small");
-      center.className = "text-muted ms-auto pe-3";
-      center.style.minWidth = "120px";
-      center.style.textAlign = "right";
-      if (step.updated_by) center.innerHTML = `<i class="bi bi-person-check text-success"></i> ${step.updated_by}`;
+      const titleSpan = document.createElement("span");
+      titleSpan.className = step.is_completed ? "text-decoration-line-through text-muted" : "fw-bold text-dark fs-6";
+      titleSpan.innerText = step.step_title;
+
+      const badgeSpan = document.createElement("span");
+      badgeSpan.className = "badge mt-1 rounded-pill " + (step.is_completed ? "bg-success-subtle text-success" : "bg-primary-subtle text-primary");
+      badgeSpan.style.width = "fit-content";
+      badgeSpan.innerText = step.is_completed ? "Completed" : "In Progress";
+
+      spanWrap.appendChild(titleSpan);
+      spanWrap.appendChild(badgeSpan);
+      left.appendChild(spanWrap);
+
+      const center = document.createElement("div");
+      center.className = "text-muted ms-auto pe-4 d-flex align-items-center gap-2";
+      center.style.minWidth = "140px";
+      center.style.justifyContent = "flex-end";
+      if (step.updated_by) center.innerHTML = `<div class="d-flex align-items-center bg-light px-2 py-1 rounded border"><i class="bi bi-person-check-fill text-success me-2"></i><span class="small fw-semibold text-dark">${step.updated_by}</span></div>`;
 
       const deleteBtn = document.createElement("button");
-      deleteBtn.className = "btn btn-sm btn-outline-danger border-0";
+      deleteBtn.className = "btn btn-sm btn-outline-danger border-0 rounded-circle";
+      deleteBtn.style.width = "32px";
+      deleteBtn.style.height = "32px";
       deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+      deleteBtn.title = "Remove Milestone";
       deleteBtn.onclick = () => deleteStep(step.id, projectId);
 
+      const rightDiv = document.createElement("div");
+      rightDiv.className = "d-flex align-items-center gap-2";
+      rightDiv.appendChild(center);
+      rightDiv.appendChild(deleteBtn);
+
       li.appendChild(left);
-      li.appendChild(center);
-      li.appendChild(deleteBtn);
+      li.appendChild(rightDiv);
       roadmapSteps.appendChild(li);
     });
 
@@ -485,16 +512,26 @@ async function loadProjects() {
 
       // Project list item with status
       const item = document.createElement("div");
-      item.className = `list-group-item d-flex justify-content-between align-items-center ${isCompleted ? 'bg-light' : ''}`;
+      item.className = `list-group-item d-flex justify-content-between align-items-center rounded mb-2 shadow-sm border ${isCompleted ? 'bg-light' : 'bg-white'}`;
       item.style.cursor = isCompleted ? 'default' : 'pointer';
+      if (!isCompleted) {
+        item.style.transition = "all 0.2s ease";
+        item.onmouseenter = () => { item.style.transform = "translateY(-2px)"; item.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; };
+        item.onmouseleave = () => { item.style.transform = "none"; item.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)"; };
+      }
 
       const leftSide = document.createElement("div");
-      leftSide.className = "d-flex align-items-center gap-2";
+      leftSide.className = "d-flex align-items-center gap-3";
       leftSide.innerHTML = `
-        <span class="${isCompleted ? 'text-muted' : ''}">${p.project_name}</span>
-        <span class="badge ${isCompleted ? 'bg-success' : 'bg-primary'}" style="font-size:10px;">
-          ${isCompleted ? '✅ COMPLETED' : 'ACTIVE'}
-        </span>
+        <div class="rounded-circle d-flex align-items-center justify-content-center ${isCompleted ? 'bg-secondary text-white' : 'bg-primary text-white'}" style="width: 32px; height: 32px; font-weight: bold; flex-shrink: 0;">
+          ${p.project_name.charAt(0).toUpperCase()}
+        </div>
+        <div class="d-flex flex-column">
+          <span class="${isCompleted ? 'text-muted fw-medium fs-6' : 'fw-bold text-dark fs-6'}">${p.project_name}</span>
+          <span class="badge ${isCompleted ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'} mt-1 rounded-pill" style="font-size:10px; width: fit-content; padding: 4px 8px;">
+            ${isCompleted ? '<i class="bi bi-check-circle-fill me-1"></i> COMPLETED' : '<i class="bi bi-activity me-1"></i> ACTIVE'}
+          </span>
+        </div>
       `;
 
       const rightSide = document.createElement("div");
@@ -615,23 +652,33 @@ async function loadMembers() {
 
     if (!members || members.length === 0) {
       container.innerHTML =
-        `<div class="text-muted">No members available</div>`;
+        `<div class="text-muted text-center py-4"><i class="bi bi-people d-block fs-1 opacity-50 mb-2"></i>No members available</div>`;
       return;
     }
 
     members.forEach(member => {
       const div = document.createElement("div");
-      div.className = "form-check mb-1";
+      div.className = "form-check mb-2 d-flex align-items-center p-3 bg-white border rounded shadow-sm transition-all";
+      div.style.transition = "all 0.2s ease";
+      div.onmouseenter = () => { div.style.transform = "translateY(-1px)"; div.style.boxShadow = "0 4px 6px rgba(0,0,0,0.05)"; };
+      div.onmouseleave = () => { div.style.transform = "none"; div.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)"; };
 
       div.innerHTML = `
         <input
-          class="form-check-input"
+          class="form-check-input fs-5 me-3"
           type="checkbox"
           value="${member.id}"
           id="member_${member.id}"
+          style="cursor: pointer; margin-top: 0;"
         />
-        <label class="form-check-label" for="member_${member.id}">
-          ${member.name} (${member.user_id})
+        <label class="form-check-label d-flex align-items-center flex-grow-1" for="member_${member.id}" style="cursor: pointer;">
+          <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-weight: bold;">
+            ${member.name.charAt(0).toUpperCase()}
+          </div>
+          <div class="d-flex flex-column">
+            <span class="fw-bold text-dark fs-6">${member.name}</span>
+            <span class="small text-muted" style="font-size: 11px; letter-spacing: 0.5px;">ID: ${member.user_id}</span>
+          </div>
         </label>
       `;
 

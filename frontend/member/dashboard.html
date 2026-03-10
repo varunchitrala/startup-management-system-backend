@@ -12,134 +12,220 @@
 
   <style>
     :root {
-      --bg-app: #f4f5f7;
+      --bg-app: #f1f5f9;
       --bg-panel: #ffffff;
-      --nav-bg: #172b4d;
-      --text-main: #172b4d;
-      --text-muted: #5e6c84;
-      --border-color: #dfe1e6;
-      --primary: #0052cc;
-      --primary-hover: #0047b3;
-      --danger: #de350b;
-      --success: #00875a;
-      --warning: #ffab00;
+      --nav-bg: rgba(255, 255, 255, 0.85);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+
+      /* Premium Gradients and Colors */
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #e0e7ff;
+      --danger: #e11d48;
+      --danger-hover: #be123c;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --info: #0ea5e9;
+
       --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     body {
       background-color: var(--bg-app);
       font-family: var(--font-family);
       color: var(--text-main);
-      font-size: 14px;
+      font-size: 14.5px;
       margin: 0;
-      padding-top: 56px;
+      padding-top: 72px;
       /* Space for fixed topnav */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    /* --- TOP NAVIGATION (Global Context) --- */
+    /* --- TOP NAVIGATION (Glassmorphism Context) --- */
     .topnav {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      height: 56px;
+      height: 64px;
       background-color: var(--nav-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      padding: 0 32px;
       z-index: 1030;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 1px 0 var(--border-color), 0 4px 20px rgba(0, 0, 0, 0.03);
     }
 
     .topnav-brand {
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 16px;
-      letter-spacing: 0.5px;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.5px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+    }
+
+    .topnav-brand i {
+      background: linear-gradient(135deg, var(--primary), var(--info));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 22px;
     }
 
     .topnav-tools {
       display: flex;
       align-items: center;
-      gap: 20px;
-      color: #ffffff;
+      gap: 24px;
+      color: var(--text-main);
     }
 
     /* --- SUB NAVIGATION (Module Routing) --- */
     .subnav {
-      background: var(--bg-panel);
-      border-bottom: 1px solid var(--border-color);
-      padding: 0 24px;
+      background: transparent;
+      padding: 16px 32px;
       display: flex;
-      gap: 24px;
+      gap: 28px;
+      max-width: 1600px;
+      margin: 0 auto;
     }
 
     .subnav a {
       color: var(--text-muted);
       text-decoration: none;
-      font-weight: 500;
-      padding: 14px 0;
-      border-bottom: 2px solid transparent;
-      transition: all 0.2s;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      transition: var(--transition);
     }
 
     .subnav a:hover {
-      color: var(--text-main);
+      color: var(--primary);
+      background-color: var(--primary-light);
     }
 
     .subnav a.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--info));
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
     }
 
     /* --- LAYOUT GRID --- */
     .container-app {
-      padding: 24px;
+      padding: 0 32px 32px 32px;
       max-width: 1600px;
       margin: 0 auto;
+    }
+
+    .grid-2-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .grid-3-col {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
     }
 
     /* --- ENTERPRISE PANELS --- */
     .panel {
       background: var(--bg-panel);
       border: 1px solid var(--border-color);
-      border-radius: 3px;
-      box-shadow: 0 1px 1px rgba(9, 30, 66, 0.05);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
       margin-bottom: 24px;
       display: flex;
       flex-direction: column;
+      transition: var(--transition);
+      overflow: hidden;
+    }
+
+    .panel:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
     }
 
     .panel-header {
-      padding: 12px 20px;
+      padding: 18px 24px;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background-color: #fafbfc;
+      background-color: transparent;
     }
 
     .panel-title {
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 16px;
+      font-weight: 700;
       margin: 0;
       color: var(--text-main);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    .panel-title i {
+      color: var(--primary);
     }
 
     .panel-body {
-      padding: 20px;
+      padding: 24px;
       flex-grow: 1;
     }
 
     .panel-body-flush {
       padding: 0;
+    }
+
+    /* --- STATS CARDS --- */
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+      transition: var(--transition);
+      flex: 1;
+    }
+
+    .stat-card:hover {
+      background: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     /* --- TABLES (Data Dense) --- */
@@ -150,180 +236,180 @@
     .table-enterprise {
       width: 100%;
       margin: 0;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
     }
 
     .table-enterprise th {
-      background: #fafbfc;
+      background: #f8fafc;
       color: var(--text-muted);
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
-      padding: 10px 16px;
-      border-bottom: 2px solid var(--border-color);
+      letter-spacing: 0.5px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border-color);
       text-align: left;
     }
 
     .table-enterprise td {
-      padding: 10px 16px;
+      padding: 16px 24px;
       border-bottom: 1px solid var(--border-color);
       vertical-align: middle;
       color: var(--text-main);
-      font-size: 13px;
+      font-size: 14px;
+      transition: background-color 0.2s;
     }
 
-    .table-enterprise tbody tr:hover {
-      background-color: #ebecf0;
+    .table-enterprise tbody tr:hover td {
+      background-color: #f1f5f9;
+    }
+
+    .table-enterprise tbody tr:last-child td {
+      border-bottom: none;
     }
 
     /* --- FORMS & BUTTONS --- */
     .form-label {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-      text-transform: uppercase;
+      color: var(--text-main);
+      margin-bottom: 6px;
     }
 
     .form-control,
     .form-select {
-      border-radius: 3px;
-      border: 2px solid #dfe1e6;
-      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      padding: 10px 14px;
       font-size: 14px;
-      transition: border-color 0.2s;
-      background-color: #fafbfc;
+      color: var(--text-main);
+      transition: var(--transition);
+      background-color: #fff;
+      box-shadow: var(--shadow-sm);
     }
 
     .form-control:focus,
     .form-select:focus {
       border-color: var(--primary);
-      background-color: #fff;
-      box-shadow: none;
+      box-shadow: 0 0 0 4px var(--primary-light);
+      outline: none;
+    }
+
+    .form-control::placeholder {
+      color: #94a3b8;
     }
 
     .btn-sys {
-      border-radius: 3px;
-      font-weight: 500;
-      font-size: 13px;
-      padding: 6px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 20px;
       border: none;
-      transition: 0.2s;
+      transition: var(--transition);
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: var(--shadow-sm);
     }
 
     .btn-sys-primary {
-      background: var(--primary);
+      background: linear-gradient(135deg, var(--primary), var(--info));
       color: white;
     }
 
     .btn-sys-primary:hover {
-      background: var(--primary-hover);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      transform: translateY(-1px);
     }
 
     .btn-sys-default {
-      background: rgba(9, 30, 66, 0.04);
+      background: #fff;
       color: var(--text-main);
+      border: 1px solid var(--border-color);
     }
 
     .btn-sys-default:hover {
-      background: rgba(9, 30, 66, 0.08);
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
     }
 
-    /* Layout Utilities */
-    .grid-2-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
+    .btn-sys-danger {
+      background: #fff;
+      color: var(--danger);
+      border: 1px solid var(--danger);
     }
 
-    .grid-3-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 24px;
+    .btn-sys-danger:hover {
+      background: var(--danger);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+      transform: translateY(-1px);
     }
 
-    /* Responsive Utilities */
-    @media (max-width: 992px) {
-      .grid-sidebar-layout {
-        grid-template-columns: 1fr;
-      }
-
-      .grid-3-col {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .topnav {
-        padding: 0 12px;
-      }
-
-      .metric-group {
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .grid-2-col {
-        grid-template-columns: 1fr;
-      }
-
-      .topnav-brand {
-        font-size: 14px;
-      }
-
-      .topnav-tools {
-        gap: 12px;
-      }
-
-      .geo-switch label {
-        display: none;
-      }
-
-      .subnav {
-        overflow-x: auto;
-        white-space: nowrap;
-        padding: 0 16px;
-      }
-
-      .container-app {
-        padding: 16px;
-      }
+    .status-tag {
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     /* --- NOTIFICATIONS --- */
     .notif-bell {
       position: relative;
       cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f1f5f9;
+      transition: var(--transition);
+    }
+
+    .notif-bell:hover {
+      background: #e2e8f0;
+    }
+
+    .notif-bell i {
+      font-size: 18px;
+      color: var(--text-main);
     }
 
     .notif-badge {
       position: absolute;
-      top: -6px;
-      right: -6px;
-      background: #ef4444;
+      top: -2px;
+      right: -2px;
+      background: var(--danger);
       color: white;
-      font-size: 10px;
-      font-weight: 700;
-      min-width: 18px;
-      height: 18px;
-      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 800;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 4px;
+      padding: 0 5px;
+      border: 2px solid var(--bg-panel);
       display: none;
     }
 
     .notif-dropdown {
       position: absolute;
       right: 0;
-      top: 44px;
-      width: 340px;
+      top: 52px;
+      width: 360px;
       background: white;
       border: 1px solid var(--border-color);
-      border-radius: 3px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
       z-index: 999;
       display: none;
       max-height: 420px;
@@ -333,49 +419,66 @@
 
     .notif-dropdown.open {
       display: block;
+      animation: slideDown 0.2s ease-out forwards;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .notif-header {
-      padding: 14px 16px 10px;
+      padding: 16px 20px;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 15px;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: #f8fafc;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
 
     .notif-item {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--bg-app);
-      font-size: 13px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: var(--transition);
     }
 
     .notif-item:hover {
-      background: var(--bg-app);
+      background: #f8fafc;
     }
 
     .notif-item.unread {
-      background: #eff6ff;
-      border-left: 3px solid var(--primary);
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
     }
 
     .notif-item .notif-time {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
-      margin-top: 3px;
+      margin-top: 6px;
+      font-weight: 500;
     }
 
     .notif-empty {
-      padding: 24px;
+      padding: 32px;
       text-align: center;
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 500;
     }
 
-    /* Roadmap list styling used to be list-group list-group-flush inside border rounded bg-white overflow-hidden */
+    /* Roadmap List Styling */
     .roadmap-list {
       list-style-type: none;
       padding-left: 0;
@@ -383,34 +486,56 @@
     }
 
     .roadmap-list li {
-      padding: 12px 20px;
+      padding: 16px 24px;
       border-bottom: 1px solid var(--border-color);
-      font-size: 13px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: var(--transition);
+    }
+
+    .roadmap-list li:hover {
+      background-color: #f8fafc;
     }
 
     .roadmap-list li:last-child {
       border-bottom: none;
     }
 
+    .list-group-pro .list-group-item {
+      border: none;
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 24px;
+      font-size: 15px;
+      transition: var(--transition);
+    }
+
+    .list-group-pro .list-group-item:hover {
+      background-color: #f8fafc;
+    }
+
+    .list-group-pro .list-group-item:last-child {
+      border-bottom: none;
+    }
+
     /* --- CHECKOUT REMINDER BANNER --- */
     #checkoutReminderBanner {
-      display: none;
       position: sticky;
-      top: 56px;
+      top: 64px;
       z-index: 1020;
-      background: linear-gradient(90deg, #b45309 0%, #d97706 50%, #b45309 100%);
+      background: linear-gradient(90deg, #ea580c 0%, #f97316 50%, #ea580c 100%);
       background-size: 200% auto;
-      animation: bannerSlide 2.5s linear infinite;
+      animation: bannerSlide 3s linear infinite;
       color: #ffffff;
-      padding: 10px 24px;
-      font-size: 13px;
+      padding: 12px 32px;
+      font-size: 14px;
       font-weight: 600;
       display: none;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      border-bottom: 2px solid #92400e;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+      gap: 16px;
+      box-shadow: var(--shadow-md);
     }
 
     #checkoutReminderBanner.visible {
@@ -430,12 +555,12 @@
     .banner-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .banner-icon {
-      font-size: 18px;
-      animation: pulse-icon 1s ease-in-out infinite alternate;
+      font-size: 20px;
+      animation: pulse-icon 1.5s ease-in-out infinite alternate;
     }
 
     @keyframes pulse-icon {
@@ -444,25 +569,134 @@
       }
 
       to {
-        transform: scale(1.3);
+        transform: scale(1.2);
       }
     }
 
     .banner-scroll-btn {
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.6);
       color: white;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 3px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
       cursor: pointer;
       white-space: nowrap;
-      transition: background 0.2s;
+      transition: var(--transition);
+      backdrop-filter: blur(4px);
     }
 
     .banner-scroll-btn:hover {
-      background: rgba(255, 255, 255, 0.35);
+      background: white;
+      color: #ea580c;
+    }
+
+    /* Custom Scrollbar for better aesthetics */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Responsive Utilities */
+    @media (max-width: 992px) {
+
+      .grid-2-col,
+      .grid-3-col {
+        grid-template-columns: 1fr;
+      }
+
+      .container-app {
+        padding: 0 16px 16px 16px;
+      }
+
+      .topnav {
+        padding: 0 16px;
+      }
+
+      .subnav {
+        padding: 12px 16px;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding-top: 60px;
+      }
+
+      .topnav {
+        height: 56px;
+        padding: 0 12px;
+      }
+
+      .topnav-brand {
+        font-size: 16px;
+      }
+
+      .topnav-tools {
+        gap: 12px;
+      }
+
+      .stat-card {
+        min-width: 100%;
+      }
+
+      .form-control,
+      .form-select,
+      .btn-sys {
+        font-size: 13px;
+      }
+
+      .panel {
+        border-radius: 12px;
+      }
+
+      .panel-header {
+        padding: 14px 16px;
+      }
+
+      .panel-body {
+        padding: 16px;
+      }
+
+      .notif-dropdown {
+        width: 100vw;
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 56px;
+        border-radius: 0 0 16px 16px;
+        border-left: none;
+        border-right: none;
+      }
+
+      #checkoutReminderBanner {
+        top: 56px;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px 16px;
+        gap: 10px;
+      }
+
+      .table-enterprise th,
+      .table-enterprise td {
+        padding: 12px 16px;
+      }
     }
   </style>
 </head>
@@ -471,8 +705,8 @@
 
   <header class="topnav">
     <div class="topnav-brand">
-      <i class="bi bi-hdd-network"></i> <span class="d-none d-sm-inline">SUN Nexus | Member Console</span><span
-        class="d-sm-none">Member</span>
+      <i class="bi bi-hexagon-fill"></i> <span class="d-none d-sm-inline">SUN Nexus</span><span
+        class="d-sm-none">Nexus</span> <span style="font-weight: 400; color: var(--text-muted);">|</span> Member Console
     </div>
     <div class="topnav-tools">
 
@@ -483,7 +717,7 @@
         <div class="notif-dropdown" id="notifDropdown">
           <div class="notif-header">
             <span>Notifications</span>
-            <span class="text-primary small fw-normal" style="cursor:pointer" onclick="markAllRead(event)">Mark all
+            <span class="text-primary small fw-semibold" style="cursor:pointer" onclick="markAllRead(event)">Mark all
               read</span>
           </div>
           <div id="notifList">
@@ -493,16 +727,18 @@
       </div>
 
       <div class="d-flex align-items-center gap-2 border-start border-secondary ps-3 ms-2">
-        <i class="bi bi-person-circle fs-5"></i>
-        <span class="d-none d-sm-inline" style="font-size: 13px; font-weight: 500;">Team Member</span>
-        <button class="btn btn-sm btn-link text-white ms-2" onclick="logout()" title="Logout"><i
-            class="bi bi-box-arrow-right"></i></button>
+        <i class="bi bi-person-circle fs-5" style="color: var(--primary);"></i>
+        <span class="d-none d-sm-inline" style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">Team
+          Member</span>
+        <button class="btn btn-sm btn-link ms-2" style="color: var(--text-muted);" onclick="logout()" title="Logout"><i
+            class="bi bi-box-arrow-right fs-5"></i></button>
       </div>
     </div>
   </header>
 
   <nav class="subnav">
-    <a href="dashboard.html" class="active" id="welcomeText">Operations Dashboard</a>
+    <a href="dashboard.html" class="active" id="welcomeText" style="display: flex; gap: 8px; align-items: center;"><i
+        class="bi bi-person-workspace"></i> Operations Dashboard</a>
   </nav>
 
   <!-- 🔔 Checkout Reminder Banner (shown when CHECKED_IN + no daily report) -->
@@ -522,35 +758,36 @@
 
     <div class="grid-2-col">
 
-      <div class="panel">
+      <div class="panel mb-0">
         <div class="panel-header">
           <h2 class="panel-title"><i class="bi bi-terminal"></i> My Status Console</h2>
         </div>
-        <div class="panel-body text-center">
-          <h3 id="statusText" class="mb-1 fw-bold text-success">STATUS: -</h3>
-          <p class="text-muted small mb-3">Daily Attendance</p>
-          <div class="d-flex gap-2">
-            <button id="checkInBtn" class="btn-sys btn-sys-primary flex-fill">Check In</button>
-            <button id="checkOutBtn" class="btn-sys btn-sys-default flex-fill border text-danger">Check Out</button>
+        <div class="panel-body text-center d-flex flex-column justify-content-center py-5">
+          <h3 id="statusText" class="mb-2 fw-bolder text-success fs-1">STATUS: -</h3>
+          <p class="text-muted small mb-4 fw-medium text-uppercase" style="letter-spacing: 1px;">Daily Attendance</p>
+          <div class="d-flex w-100 gap-3 mt-auto">
+            <button id="checkInBtn" class="btn-sys btn-sys-primary flex-fill py-3 fs-6">Check In</button>
+            <button id="checkOutBtn" class="btn-sys btn-sys-danger flex-fill py-3 fs-6">Check Out</button>
           </div>
           <div id="message" class="mt-3 small fw-bold text-primary"></div>
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel mb-0">
         <div class="panel-header">
           <h2 class="panel-title"><i class="bi bi-journal-code"></i> Submit Protocol (Work Report)</h2>
-          <span class="status-tag border">Today</span>
+          <span class="status-tag border text-primary bg-primary-subtle">Today</span>
         </div>
         <div class="panel-body d-flex flex-column">
-          <h5 id="projectTitle" class="mb-2 text-primary fw-bold" style="font-size:14px;"></h5>
-          <label class="form-label">Activity Log</label>
-          <textarea id="memberWorkDone" class="form-control mb-3 flex-grow-1"
-            style="min-height: 80px; font-family: monospace;"
+          <h5 id="projectTitle" class="mb-3 text-primary fw-bold" style="font-size:15px;"></h5>
+          <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Activity
+            Log</label>
+          <textarea id="memberWorkDone" class="form-control mb-4 flex-grow-1 fs-6"
+            style="min-height: 120px; font-family: monospace; resize: none; background: #f8fafc;"
             placeholder="• Describe task 1&#10;• Describe task 2"></textarea>
-          <div class="d-flex justify-content-between align-items-center mt-auto">
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-light">
             <div id="memberWorkMessage" class="small text-muted fw-bold"></div>
-            <button class="btn-sys btn-sys-primary" onclick="submitMemberDailyReport()">Commit Report</button>
+            <button class="btn-sys btn-sys-primary px-4 py-2" onclick="submitMemberDailyReport()">Commit Report</button>
           </div>
         </div>
       </div>
@@ -558,35 +795,43 @@
     </div>
 
     <!-- Project Context -->
-    <div class="panel">
+    <div class="panel mt-4">
       <div class="panel-header">
         <h2 class="panel-title"><i class="bi bi-kanban"></i> Project Context</h2>
       </div>
       <div class="panel-body">
         <div class="grid-2-col">
           <div class="border-end pe-4">
-            <label class="form-label">SELECT PROJECT</label>
-            <select id="memberProjectSelect" class="form-select form-select-sm mb-3">
+            <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">SELECT
+              PROJECT</label>
+            <select id="memberProjectSelect" class="form-select form-select-lg fs-6 bg-light mb-3">
               <option value="">Select context...</option>
             </select>
-            <div class="text-muted small bg-light p-2 rounded border">
-              Select a project to view team telemetry and active milestones.
+            <div class="text-muted small bg-light p-3 rounded border">
+              <i class="bi bi-info-circle me-2 text-primary"></i>Select a project to view team telemetry and active
+              milestones.
             </div>
           </div>
 
           <div>
-            <div class="d-flex justify-content-between mb-1">
-              <span class="form-label">Completion Status</span>
-              <span class="status-tag border text-primary">Live</span>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label text-muted text-uppercase m-0"
+                style="font-size: 11px; letter-spacing: 0.5px;">Completion Status</label>
+              <span class="status-tag border text-primary bg-primary-subtle">Live</span>
             </div>
-            <div class="progress mb-4 rounded-0" style="height: 10px;">
-              <div id="memberProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+            <div class="progress mb-4 rounded-pill bg-secondary-subtle" style="height: 10px; overflow: hidden;">
+              <div id="memberProgressBar" class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+                role="progressbar" style="width: 0%"></div>
             </div>
 
-            <label class="form-label">Roadmap Nodes</label>
-            <div class="border rounded bg-white">
-              <ul id="memberRoadmapSteps" class="roadmap-list list-unstyled">
-                <li class="text-muted text-center py-4">No project selected</li>
+            <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Roadmap
+              Nodes</label>
+            <div class="border rounded bg-light" style="max-height: 250px; overflow-y: auto;">
+              <ul id="memberRoadmapSteps" class="roadmap-list list-unstyled m-0 p-0">
+                <li class="text-center text-muted py-5 d-flex flex-column align-items-center bg-white">
+                  <i class="bi bi-list-task fs-1 mb-2 opacity-50"></i>
+                  No project selected
+                </li>
               </ul>
             </div>
           </div>
@@ -595,24 +840,25 @@
     </div>
 
     <!-- ===== MY PROJECT PORTFOLIO STATS ===== -->
-    <div class="panel">
+    <div class="panel mt-4">
       <div class="panel-header">
         <h2 class="panel-title"><i class="bi bi-bar-chart-line"></i> My Project Portfolio</h2>
-        <span id="myProjectStatusBadge" class="badge bg-secondary">Loading...</span>
+        <span id="myProjectStatusBadge"
+          class="badge bg-secondary-subtle text-secondary rounded-pill px-3">Loading...</span>
       </div>
       <div class="panel-body">
-        <div class="d-flex gap-2 flex-wrap mb-3">
-          <div class="text-center p-2 rounded border flex-fill bg-light">
-            <div class="fw-bold fs-4 text-primary" id="activeProjectCount">—</div>
-            <div class="small fw-semibold text-muted text-uppercase">Active</div>
+        <div class="d-flex gap-3 flex-wrap mb-4">
+          <div class="stat-card">
+            <div class="stat-value text-primary" id="activeProjectCount">—</div>
+            <div class="stat-label">Active Active</div>
           </div>
-          <div class="text-center p-2 rounded border flex-fill bg-light">
-            <div class="fw-bold fs-4 text-success" id="completedProjectCount">—</div>
-            <div class="small fw-semibold text-muted text-uppercase">Completed</div>
+          <div class="stat-card">
+            <div class="stat-value text-success" id="completedProjectCount">—</div>
+            <div class="stat-label">Completed</div>
           </div>
-          <div class="text-center p-2 rounded border flex-fill bg-light">
-            <div class="fw-bold fs-4 text-dark" id="totalProjectCount">—</div>
-            <div class="small fw-semibold text-muted text-uppercase">Total</div>
+          <div class="stat-card">
+            <div class="stat-value text-dark" id="totalProjectCount">—</div>
+            <div class="stat-label">Total Assigned</div>
           </div>
         </div>
 
@@ -625,25 +871,31 @@
       <!-- ===== APPLY LEAVE ===== -->
       <div class="panel mb-0">
         <div class="panel-header">
-          <h2 class="panel-title"><i class="bi bi-file-earmark-plus"></i> Apply Leave</h2>
+          <h2 class="panel-title"><i class="bi bi-calendar-event"></i> Apply Leave</h2>
         </div>
         <div class="panel-body">
-          <div class="row g-2 mb-3">
+          <div class="row g-3 mb-4">
             <div class="col-6">
-              <label class="form-label">From Date</label>
-              <input type="date" id="leaveFromDate" class="form-control form-control-sm">
+              <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">From
+                Date</label>
+              <input type="date" id="leaveFromDate" class="form-control text-muted">
             </div>
             <div class="col-6">
-              <label class="form-label">To Date</label>
-              <input type="date" id="leaveToDate" class="form-control form-control-sm">
+              <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">To
+                Date</label>
+              <input type="date" id="leaveToDate" class="form-control text-muted">
             </div>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Reason</label>
-            <textarea id="leaveReason" class="form-control form-control-sm" rows="3"></textarea>
+          <div class="mb-4">
+            <label class="form-label text-muted text-uppercase"
+              style="font-size: 11px; letter-spacing: 0.5px;">Reason</label>
+            <textarea id="leaveReason" class="form-control" rows="3" style="resize:none;"
+              placeholder="Detail your reason for leave..."></textarea>
           </div>
-          <button class="btn-sys btn-sys-primary w-100" onclick="applyLeave()">Submit Request</button>
-          <div id="leaveMessage" class="mt-2 text-center small fw-bold"></div>
+          <button class="btn-sys btn-sys-primary w-100 py-3" onclick="applyLeave()">
+            <i class="bi bi-send me-2"></i> Submit Request
+          </button>
+          <div id="leaveMessage" class="mt-3 text-center small fw-bold"></div>
         </div>
       </div>
 
@@ -651,33 +903,34 @@
       <div class="panel mb-0" id="leaveBalanceCard">
         <div class="panel-header">
           <h2 class="panel-title"><i class="bi bi-calendar-check text-success"></i> My Leave Balance <span
-              id="leaveBalanceYear" class="ms-1 fw-normal text-muted"></span></h2>
+              id="leaveBalanceYear" class="ms-1 fw-normal text-muted" style="font-size:13px;"></span></h2>
         </div>
         <div class="panel-body" id="leaveBalanceStats">
-          <div class="d-flex gap-2 flex-wrap mb-3">
-            <div class="text-center p-2 rounded border flex-fill bg-light">
-              <div class="fw-bold fs-4 text-secondary" id="lbQuota">—</div>
-              <div class="small fw-semibold text-muted text-uppercase">Quota</div>
+          <div class="d-flex gap-3 flex-wrap mb-4">
+            <div class="stat-card">
+              <div class="stat-value text-secondary" id="lbQuota">—</div>
+              <div class="stat-label">Total Quota</div>
             </div>
-            <div class="text-center p-2 rounded border flex-fill bg-light">
-              <div class="fw-bold fs-4 text-danger" id="lbUsed">—</div>
-              <div class="small fw-semibold text-muted text-uppercase">Used</div>
+            <div class="stat-card">
+              <div class="stat-value text-danger" id="lbUsed">—</div>
+              <div class="stat-label">Used Leave</div>
             </div>
-            <div class="text-center p-2 rounded border flex-fill bg-light">
-              <div class="fw-bold fs-4 text-success" id="lbRemaining">—</div>
-              <div class="small fw-semibold text-muted text-uppercase">Remaining</div>
+            <div class="stat-card">
+              <div class="stat-value text-success" id="lbRemaining">—</div>
+              <div class="stat-label">Remaining</div>
             </div>
-            <div class="text-center p-2 rounded border flex-fill bg-light">
-              <div class="fw-bold fs-4 text-warning" id="lbPending">—</div>
-              <div class="small fw-semibold text-muted text-uppercase">Pending</div>
+            <div class="stat-card">
+              <div class="stat-value text-warning" id="lbPending">—</div>
+              <div class="stat-label">Pending Approval</div>
             </div>
           </div>
-          <div class="progress rounded-0 mt-3" style="height:10px;">
+          <div class="progress rounded-pill bg-light mt-4" style="height:10px; overflow: hidden;">
             <div id="lbProgressBar" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
-            <div id="lbPendingBar" class="progress-bar bg-warning" role="progressbar" style="width:0%"></div>
+            <div id="lbPendingBar" class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
+              role="progressbar" style="width:0%"></div>
             <div id="lbUsedBar" class="progress-bar bg-danger" role="progressbar" style="width:0%"></div>
           </div>
-          <div class="d-flex justify-content-between small fw-bold text-muted mt-2">
+          <div class="d-flex justify-content-between small fw-bold text-muted mt-3">
             <span>🟢 Rem &nbsp;🟡 Pen &nbsp;🔴 Usd</span>
           </div>
         </div>
@@ -691,7 +944,7 @@
       </div>
       <div class="panel-body-flush table-responsive" style="max-height: 250px;">
         <table class="table-enterprise">
-          <thead class="sticky-top bg-light">
+          <thead class="sticky-top bg-light shadow-sm">
             <tr>
               <th>Applied On</th>
               <th>From</th>
@@ -713,14 +966,14 @@
     <div class="panel mt-4">
       <div class="panel-header">
         <h2 class="panel-title"><i class="bi bi-calendar3"></i> My Attendance Analytics</h2>
-        <input type="month" id="attendanceMonthPicker" class="form-control form-control-sm w-auto"
+        <input type="month" id="attendanceMonthPicker" class="form-control form-control-sm w-auto shadow-sm"
           onchange="loadMyAttendanceHistory()">
       </div>
       <!-- Attendance Percentage Card (shown for current month) -->
-      <div id="attendancePercentageCard" style="display:none; padding:12px 20px 0;"></div>
+      <div id="attendancePercentageCard" style="display:none; padding:16px 24px 0;"></div>
       <div class="panel-body-flush table-responsive" style="max-height:350px;">
         <table class="table-enterprise">
-          <thead class="sticky-top bg-light">
+          <thead class="sticky-top bg-light shadow-sm">
             <tr>
               <th>Date</th>
               <th>Day</th>
@@ -739,7 +992,8 @@
           </tbody>
         </table>
       </div>
-      <div id="attendanceSummaryBar" class="bg-light border-top p-2 small fw-bold text-muted d-flex gap-3 flex-wrap">
+      <div id="attendanceSummaryBar"
+        class="bg-light border-top p-3 small fw-bold text-muted d-flex gap-4 flex-wrap align-items-center">
       </div>
     </div>
 
@@ -747,11 +1001,11 @@
     <div class="panel mt-4">
       <div class="panel-header">
         <h2 class="panel-title"><i class="bi bi-journal-text"></i> Archive: My Work Reports <span id="workReportCount"
-            class="badge bg-secondary ms-2 fw-normal"></span></h2>
+            class="badge bg-secondary-subtle text-secondary rounded-pill px-3 ms-2 fw-normal"></span></h2>
       </div>
       <div class="panel-body-flush table-responsive" style="max-height:350px;">
         <table class="table-enterprise">
-          <thead class="sticky-top bg-light">
+          <thead class="sticky-top bg-light shadow-sm">
             <tr>
               <th>Date</th>
               <th style="width:25%;">Context/Title</th>
@@ -771,31 +1025,36 @@
     <div class="panel mt-4">
       <div class="panel-header">
         <h2 class="panel-title"><i class="bi bi-journal-richtext text-primary"></i> Weekly Skills & Project Update</h2>
-        <span class="status-tag border" id="weekRangeLabel">This Week</span>
+        <span class="status-tag border bg-primary-subtle text-primary" id="weekRangeLabel">This Week</span>
       </div>
       <div class="panel-body">
-        <div id="weeklyAlreadySubmitted" class="alert alert-info small fw-bold" style="display:none;">
-          ✅ You've already submitted this week's report.
+        <div id="weeklyAlreadySubmitted" class="alert alert-info small fw-bold"
+          style="display:none; border-left: 4px solid var(--info);">
+          <i class="bi bi-check-circle-fill me-2"></i> You've already submitted this week's report.
         </div>
         <div id="weeklyReportForm">
-          <div class="mb-3">
-            <label class="form-label">SKILLS LEARNED THIS WEEK</label>
-            <textarea id="weeklySkillsLearned" class="form-control" rows="3"
+          <div class="mb-4">
+            <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">SKILLS
+              LEARNED THIS WEEK</label>
+            <textarea id="weeklySkillsLearned" class="form-control" rows="3" style="resize:none;"
               placeholder="• New technology or tool learned&#10;• Concepts studied&#10;• Training completed"></textarea>
           </div>
-          <div class="mb-3">
-            <label class="form-label">PROJECT UPDATE</label>
-            <textarea id="weeklyProjectUpdate" class="form-control" rows="3"
+          <div class="mb-4">
+            <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">PROJECT
+              UPDATE</label>
+            <textarea id="weeklyProjectUpdate" class="form-control" rows="3" style="resize:none;"
               placeholder="• Tasks completed on the project&#10;• Blockers or challenges faced&#10;• Planned for next week"></textarea>
           </div>
-          <div class="mb-3">
-            <label class="form-label">WORK DONE (SUMMARY)</label>
-            <textarea id="weeklyWorkDone" class="form-control" rows="2"
+          <div class="mb-4">
+            <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">WORK
+              DONE (SUMMARY)</label>
+            <textarea id="weeklyWorkDone" class="form-control" rows="2" style="resize:none;"
               placeholder="Brief summary of overall work done this week"></textarea>
           </div>
           <div class="d-flex justify-content-between align-items-center">
             <div id="weeklyReportMessage" class="small fw-bold"></div>
-            <button class="btn-sys btn-sys-primary" onclick="submitWeeklyReport()">Submit Weekly Report</button>
+            <button class="btn-sys btn-sys-primary px-4 py-2" onclick="submitWeeklyReport()">Submit Weekly
+              Report</button>
           </div>
         </div>
       </div>
@@ -805,11 +1064,12 @@
     <div class="panel mt-4">
       <div class="panel-header">
         <h2 class="panel-title"><i class="bi bi-journal-bookmark"></i> Archive: My Weekly Reports <span
-            id="weeklyReportCount" class="badge bg-secondary ms-2 fw-normal"></span></h2>
+            id="weeklyReportCount"
+            class="badge bg-secondary-subtle text-secondary rounded-pill px-3 ms-2 fw-normal"></span></h2>
       </div>
       <div class="panel-body-flush table-responsive" style="max-height:400px;">
         <table class="table-enterprise">
-          <thead class="sticky-top bg-light">
+          <thead class="sticky-top bg-light shadow-sm">
             <tr>
               <th>Week</th>
               <th>Skills Learned</th>
@@ -833,22 +1093,23 @@
       </div>
       <div class="panel-body" style="max-width:420px;">
         <div class="mb-3">
-          <label class="form-label">Current Password</label>
-          <input type="password" id="cpCurrent" class="form-control form-control-sm"
-            placeholder="Enter current password">
+          <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Current
+            Password</label>
+          <input type="password" id="cpCurrent" class="form-control" placeholder="Enter current password">
         </div>
         <div class="mb-3">
-          <label class="form-label">New Password</label>
-          <input type="password" id="cpNew" class="form-control form-control-sm" placeholder="Min 6 characters">
+          <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">New
+            Password</label>
+          <input type="password" id="cpNew" class="form-control" placeholder="Min 6 characters">
         </div>
-        <div class="mb-3">
-          <label class="form-label">Confirm New Password</label>
-          <input type="password" id="cpConfirm" class="form-control form-control-sm"
-            placeholder="Re-enter new password">
+        <div class="mb-4">
+          <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Confirm
+            New Password</label>
+          <input type="password" id="cpConfirm" class="form-control" placeholder="Re-enter new password">
         </div>
-        <button class="btn-sys btn-sys-primary bg-danger text-white border-0" onclick="changePassword()">Enforce New
+        <button class="btn-sys btn-sys-danger text-white w-100 py-3" onclick="changePassword()">Enforce New
           Policy</button>
-        <div id="cpMessage" class="mt-3 small fw-bold"></div>
+        <div id="cpMessage" class="mt-3 small fw-bold text-center"></div>
       </div>
     </div>
 
@@ -857,30 +1118,35 @@
   <!-- ===== MISSED CHECKOUT MODAL ===== -->
   <div class="modal fade" id="missedCheckoutModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header bg-danger text-white">
+      <div class="modal-content" style="border-radius: var(--radius-lg); border: none; box-shadow: var(--shadow-lg);">
+        <div class="modal-header bg-danger text-white border-0"
+          style="border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
           <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> Pending Action: Missed Checkout</h5>
         </div>
-        <div class="modal-body">
-          <div class="alert alert-warning small mb-3">
+        <div class="modal-body p-4">
+          <div class="alert alert-warning small mb-4 border-0" style="background-color: #fef08a; color: #854d0e;">
             You were auto-checked out on <strong id="mcDateText">...</strong>. You must submit your work report for that
             day to unlock your dashboard.
           </div>
           <input type="hidden" id="mcId">
-          <div class="mb-3">
-            <label class="form-label">Detailed Work Done</label>
-            <textarea id="mcWorkDone" class="form-control" rows="3"
+          <div class="mb-4">
+            <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Detailed
+              Work Done</label>
+            <textarea id="mcWorkDone" class="form-control" rows="3" style="resize:none;"
               placeholder="Please describe what you worked on that day"></textarea>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Reason for Missing Checkout</label>
-            <textarea id="mcLateReason" class="form-control" rows="2"
+          <div class="mb-4">
+            <label class="form-label text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Reason
+              for Missing Checkout</label>
+            <textarea id="mcLateReason" class="form-control" rows="2" style="resize:none;"
               placeholder="Forgot, power outage, left in a hurry, etc"></textarea>
           </div>
           <div id="mcMessage" class="fw-bold text-center mt-2"></div>
         </div>
-        <div class="modal-footer border-0 bg-light">
-          <button type="button" class="btn btn-danger w-100 fw-bold" onclick="submitMissedCheckout()">Submit Compliance
+        <div class="modal-footer border-0 p-4 pt-0">
+          <button type="button" class="btn btn-danger w-100 fw-bold py-3 rounded-pill shadow-sm"
+            style="transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.98)'"
+            onmouseup="this.style.transform='scale(1)'" onclick="submitMissedCheckout()">Submit Compliance
             Report</button>
         </div>
       </div>
