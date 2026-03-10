@@ -298,15 +298,11 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
     result.rows.forEach(r => {
       const status = r.status || (r.is_holiday ? "HOLIDAY" : "ABSENT");
       const wDays = r.period_working_days || 0;
-      const lDays = r.period_leave || 0;
       const pDays = r.period_present || 0;
-      const effDays = Math.max(wDays - lDays, 0);
-      const attPct = effDays === 0 ? 100 : Math.min(Math.round((pDays / effDays) * 100), 100);
+      const attPct = wDays === 0 ? 100 : Math.min(Math.round((pDays / wDays) * 100), 100);
       const ovWDays = r.overall_working_days || 0;
-      const ovLDays = r.overall_leave || 0;
       const ovPDays = r.overall_present || 0;
-      const ovEffDays = Math.max(ovWDays - ovLDays, 0);
-      const ovPct = ovEffDays === 0 ? 100 : Math.min(Math.round((ovPDays / ovEffDays) * 100), 100);
+      const ovPct = ovWDays === 0 ? 100 : Math.min(Math.round((ovPDays / ovWDays) * 100), 100);
       csv += `${r.user_id},"${r.name}",${r.role},${r.check_in || ""},${r.check_out || ""},${status},${attPct}%,${ovPct}%\n`;
     });
 
@@ -609,18 +605,15 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
       else if (r.check_in && !r.check_out) status = "CHECKED_IN";
 
       // Compute per-user monthly attendance percentage (2nd to date)
+      // Leaves count as absent — not subtracted from denominator
       const wDays = r.period_working_days || 0;
-      const lDays = r.period_leave || 0;
       const pDays = r.period_present || 0;
-      const effDays = Math.max(wDays - lDays, 0);
-      const attPct = effDays === 0 ? 100 : Math.min(Math.round((pDays / effDays) * 100), 100);
+      const attPct = wDays === 0 ? 100 : Math.min(Math.round((pDays / wDays) * 100), 100);
 
       // Compute overall attendance percentage (since joining)
       const ovWDays = r.overall_working_days || 0;
-      const ovLDays = r.overall_leave || 0;
       const ovPDays = r.overall_present || 0;
-      const ovEffDays = Math.max(ovWDays - ovLDays, 0);
-      const ovPct = ovEffDays === 0 ? 100 : Math.min(Math.round((ovPDays / ovEffDays) * 100), 100);
+      const ovPct = ovWDays === 0 ? 100 : Math.min(Math.round((ovPDays / ovWDays) * 100), 100);
 
       const rowValues = [
         r.name || "",
@@ -1093,17 +1086,13 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
     const rows = result.rows.map(r => {
       // Monthly % (2nd to today)
       const workDays = r.period_working_days || 0;
-      const leaveDays = r.period_leave || 0;
       const presentDays = r.period_present || 0;
-      const effectiveDays = Math.max(workDays - leaveDays, 0);
-      const pct = effectiveDays === 0 ? 100 : Math.min(Math.round((presentDays / effectiveDays) * 100), 100);
+      const pct = workDays === 0 ? 100 : Math.min(Math.round((presentDays / workDays) * 100), 100);
 
       // Overall % (since joining)
       const ovWDays = r.overall_working_days || 0;
-      const ovLDays = r.overall_leave || 0;
       const ovPDays = r.overall_present || 0;
-      const ovEffDays = Math.max(ovWDays - ovLDays, 0);
-      const ovPct = ovEffDays === 0 ? 100 : Math.min(Math.round((ovPDays / ovEffDays) * 100), 100);
+      const ovPct = ovWDays === 0 ? 100 : Math.min(Math.round((ovPDays / ovWDays) * 100), 100);
 
       return {
         ...r,
