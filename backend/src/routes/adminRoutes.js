@@ -74,8 +74,9 @@ const {
   exportDailyAttendanceExcel
 } = require("../controllers/adminAttendanceController");
 const {
-  getTodayAttendanceDashboard, allowLateCheckIn
-} = require("../controllers/attendanceController");
+  getTodayAttendanceDashboard
+} = require("../controllers/adminAttendanceController");
+const { allowLateCheckIn } = require("../controllers/attendanceController");
 const {
   getTodayAttendanceList
 } = require("../controllers/attendanceController");
