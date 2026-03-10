@@ -190,6 +190,45 @@ async function loadMyStatus() {
     console.error("Status load error:", err);
   }
 }
+
+/* ================= MY ATTENDANCE PERCENTAGE (2nd of month) ================= */
+async function loadMyAttendancePercentage() {
+  try {
+    const res = await fetch(`${API_BASE}/api/attendance/my-percentage`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const container = document.getElementById('attendancePercentageContainer');
+    if (!container) return;
+
+    const pct = data.percentage ?? 0;
+    const color = pct >= 75 ? '#15803d' : pct >= 50 ? '#b45309' : '#dc2626';
+    const from = data.from || '';
+    const to = data.to || '';
+
+    container.innerHTML = `
+      <div style="display:flex; align-items:center; gap:14px; padding:10px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:12px;">
+        <div style="width:52px; height:52px; border-radius:50%; background:conic-gradient(${color} ${pct * 3.6}deg, #e2e8f0 0deg); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <div style="width:38px; height:38px; border-radius:50%; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
+            <span style="font-size:0.78rem; font-weight:800; color:${color};">${pct}%</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:700; color:${color}; font-size:0.95rem;">Your Attendance (2nd – Today)</div>
+          <div style="font-size:0.82rem; color:#64748b;">
+            ${data.present_days} present / ${data.effective_working_days} effective working days
+            &nbsp;·&nbsp; ${from} – ${to}
+            ${data.leave_days > 0 ? `&nbsp;·&nbsp; ${data.leave_days} leave day(s) excluded` : ''}
+          </div>
+        </div>
+      </div>`;
+    container.style.display = 'block';
+  } catch (err) {
+    console.error('Attendance percentage error:', err);
+  }
+}
 checkInBtn.onclick = () => {
 
   if (!navigator.geolocation) {
@@ -859,6 +898,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadProjects();
   loadMembers();
   loadMyStatus();
+  loadMyAttendancePercentage();
   loadMyProjectStats();
   loadNotifications();
   setInterval(loadNotifications, 60000);

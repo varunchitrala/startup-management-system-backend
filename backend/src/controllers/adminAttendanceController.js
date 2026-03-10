@@ -209,11 +209,25 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
       return res.status(400).json({ message: "Date is required" });
     }
 
+    // Period: 2nd of the month of the requested date → requested date
+    const [ey, em, ed] = date.split('-').map(Number);
+    const periodStart = `${ey}-${String(em).padStart(2,'0')}-02`;
+    const periodEnd = date;
+
     const result = await pool.query(`
       WITH day_meta AS (
         SELECT EXISTS (
           SELECT 1 FROM holidays WHERE holiday_date = $1::date
         ) OR EXTRACT(DOW FROM $1::date) = 0 AS is_holiday
+      ),
+      period_working AS (
+        SELECT COUNT(*)::int AS working_days
+        FROM (
+          SELECT d::date AS day
+          FROM generate_series($2::date, $3::date, interval '1 day') d
+          WHERE EXTRACT(DOW FROM d::date) <> 0
+            AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
+        ) wd
       )
       SELECT
         u.user_id,
@@ -222,20 +236,78 @@ exports.exportDailyAttendanceCSV = async (req, res) => {
         a.check_in,
         a.check_out,
         a.status,
-        dm.is_holiday
+        dm.is_holiday,
+        pw.working_days AS period_working_days,
+        (
+          SELECT COUNT(DISTINCT att2.date)::int
+          FROM attendance att2
+          WHERE att2.user_id = u.id
+            AND att2.date BETWEEN $2 AND $3
+            AND att2.check_in IS NOT NULL
+            AND att2.check_out IS NOT NULL
+        ) AS period_present,
+        (
+          SELECT COUNT(DISTINCT lday)::int
+          FROM (
+            SELECT generate_series(lr2.from_date, lr2.to_date, interval '1 day')::date AS lday
+            FROM leave_requests lr2
+            WHERE lr2.user_id = u.id AND lr2.status = 'APPROVED'
+          ) lrd
+          WHERE lrd.lday BETWEEN $2 AND $3
+        ) AS period_leave,
+        -- Overall: working days since joining to requested date
+        (
+          SELECT COUNT(*)::int
+          FROM (
+            SELECT d::date AS day
+            FROM generate_series(u.created_at::date, $3::date, interval '1 day') d
+            WHERE EXTRACT(DOW FROM d::date) <> 0
+              AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
+          ) wd
+        ) AS overall_working_days,
+        -- Overall: present days since joining
+        (
+          SELECT COUNT(DISTINCT att3.date)::int
+          FROM attendance att3
+          WHERE att3.user_id = u.id
+            AND att3.date BETWEEN u.created_at::date AND $3::date
+            AND att3.check_in IS NOT NULL
+            AND att3.check_out IS NOT NULL
+        ) AS overall_present,
+        -- Overall: leave days since joining
+        (
+          SELECT COUNT(DISTINCT lday)::int
+          FROM (
+            SELECT generate_series(lr3.from_date, lr3.to_date, interval '1 day')::date AS lday
+            FROM leave_requests lr3
+            WHERE lr3.user_id = u.id AND lr3.status = 'APPROVED'
+          ) lrd3
+          WHERE lrd3.lday BETWEEN u.created_at::date AND $3::date
+        ) AS overall_leave
       FROM users u
       CROSS JOIN day_meta dm
+      CROSS JOIN period_working pw
       LEFT JOIN attendance a
         ON a.user_id = u.id
         AND a.date = $1
       ORDER BY u.id
-    `, [date]);
+    `, [date, periodStart, periodEnd]);
 
-    let csv = "User ID,Name,Role,Check In,Check Out,Status\n";
+    let csv = `User ID,Name,Role,Check In,Check Out,Status,Att % (2nd-${date}),Overall %\n`;
 
     result.rows.forEach(r => {
       const status = r.status || (r.is_holiday ? "HOLIDAY" : "ABSENT");
-      csv += `${r.user_id},${r.name},${r.role},${r.check_in || ""},${r.check_out || ""},${status}\n`;
+      const wDays = r.period_working_days || 0;
+      const lDays = r.period_leave || 0;
+      const pDays = r.period_present || 0;
+      const effDays = Math.max(wDays - lDays, 0);
+      const attPct = effDays === 0 ? 100 : Math.min(Math.round((pDays / effDays) * 100), 100);
+      const ovWDays = r.overall_working_days || 0;
+      const ovLDays = r.overall_leave || 0;
+      const ovPDays = r.overall_present || 0;
+      const ovEffDays = Math.max(ovWDays - ovLDays, 0);
+      const ovPct = ovEffDays === 0 ? 100 : Math.min(Math.round((ovPDays / ovEffDays) * 100), 100);
+      csv += `${r.user_id},"${r.name}",${r.role},${r.check_in || ""},${r.check_out || ""},${status},${attPct}%,${ovPct}%\n`;
     });
 
     res.setHeader("Content-Type", "text/csv");
@@ -262,14 +334,29 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
       return res.status(400).json({ message: "Date is required" });
     }
 
+    // ── Attendance % period: 2nd of the month of the requested date → requested date ──
+    const [dy, dm2, dd] = date.split('-').map(Number);
+    const periodStart = `${dy}-${String(dm2).padStart(2,'0')}-02`;
+    const periodEnd = date;
+
     // ── Query: attendance + work reports + shifts + leave ──
     const result = await pool.query(`
       WITH day_meta AS (
         SELECT EXISTS (
           SELECT 1 FROM holidays WHERE holiday_date = $1::date
         ) OR EXTRACT(DOW FROM $1::date) = 0 AS is_holiday
+      ),
+      period_working AS (
+        SELECT COUNT(*)::int AS working_days
+        FROM (
+          SELECT d::date AS day
+          FROM generate_series($3::date, $4::date, interval '1 day') d
+          WHERE EXTRACT(DOW FROM d::date) <> 0
+            AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
+        ) wd
       )
       SELECT
+        u.id AS user_db_id,
         u.name,
         a.date AS att_date,
         a.check_in,
@@ -280,9 +367,59 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
         s.check_in_time AS shift_start,
         wr.work_done,
         wr.created_at AS submitted_at,
-        lr.id AS leave_id
+        lr.id AS leave_id,
+        -- present days in period
+        (
+          SELECT COUNT(DISTINCT att2.date)::int
+          FROM attendance att2
+          WHERE att2.user_id = u.id
+            AND att2.date BETWEEN $3 AND $4
+            AND att2.check_in IS NOT NULL
+            AND att2.check_out IS NOT NULL
+        ) AS period_present,
+        -- leave days in period
+        (
+          SELECT COUNT(DISTINCT lday)::int
+          FROM (
+            SELECT generate_series(lr2.from_date, lr2.to_date, interval '1 day')::date AS lday
+            FROM leave_requests lr2
+            WHERE lr2.user_id = u.id AND lr2.status = 'APPROVED'
+          ) lrd
+          WHERE lrd.lday BETWEEN $3 AND $4
+        ) AS period_leave,
+        pw.working_days AS period_working_days,
+        -- Overall: working days since joining
+        (
+          SELECT COUNT(*)::int
+          FROM (
+            SELECT d::date AS day
+            FROM generate_series(u.created_at::date, $4::date, interval '1 day') d
+            WHERE EXTRACT(DOW FROM d::date) <> 0
+              AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
+          ) wd
+        ) AS overall_working_days,
+        -- Overall: present days since joining
+        (
+          SELECT COUNT(DISTINCT att3.date)::int
+          FROM attendance att3
+          WHERE att3.user_id = u.id
+            AND att3.date BETWEEN u.created_at::date AND $4::date
+            AND att3.check_in IS NOT NULL
+            AND att3.check_out IS NOT NULL
+        ) AS overall_present,
+        -- Overall: leave days since joining
+        (
+          SELECT COUNT(DISTINCT lday)::int
+          FROM (
+            SELECT generate_series(lr3.from_date, lr3.to_date, interval '1 day')::date AS lday
+            FROM leave_requests lr3
+            WHERE lr3.user_id = u.id AND lr3.status = 'APPROVED'
+          ) lrd3
+          WHERE lrd3.lday BETWEEN u.created_at::date AND $4::date
+        ) AS overall_leave
       FROM users u
       CROSS JOIN day_meta dm
+      CROSS JOIN period_working pw
       LEFT JOIN attendance a
         ON a.user_id = u.id
         AND a.date = $1
@@ -297,7 +434,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
         AND lr.status = 'APPROVED'
         AND $1 BETWEEN lr.from_date AND lr.to_date
       ORDER BY u.name
-    `, [date]);
+    `, [date, null, periodStart, periodEnd]);
 
     // ── Summary counts ──
     const totalResult = await pool.query("SELECT COUNT(*)::int AS total FROM users");
@@ -325,12 +462,12 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
       : "No shifts configured";
 
     // ── Date display (parse string directly to avoid UTC timezone shift) ──
-    const [yyyy, mm, dd] = date.split("-").map(Number);
+    const [yyyy, mm, day] = date.split("-").map(Number);
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const dayNum = dd;
+    const dayNum = day;
     const suffix = [11, 12, 13].includes(dayNum) ? "th" : { 1: "st", 2: "nd", 3: "rd" }[dayNum % 10] || "th";
-    const dayOfWeek = new Date(Date.UTC(yyyy, mm - 1, dd, 12, 0, 0)).getUTCDay();
+    const dayOfWeek = new Date(Date.UTC(yyyy, mm - 1, day, 12, 0, 0)).getUTCDay();
     const dateDisplay = dayNum + suffix + " " + months[mm - 1] + " & " + dayNames[dayOfWeek];
 
     // ── Helper: format UTC timestamp to IST HH:MM:SS ──
@@ -383,10 +520,12 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
       { width: 12 }, // D - Check-Out
       { width: 42 }, // E - Work Summary
       { width: 20 }, // F - Submitted
+      { width: 18 }, // G - Att % (Month)
+      { width: 18 }, // H - Overall %
     ];
 
     // ═══════ ROW 1: Company Title ═══════
-    sheet.mergeCells("A1:F1");
+    sheet.mergeCells("A1:H1");
     const titleCell = sheet.getCell("A1");
     titleCell.value = "SUN NEXUS SOLUTIONS Daily Report";
     titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: DARK_BLUE } };
@@ -402,7 +541,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
     summaryHeader.alignment = { horizontal: "center", vertical: "middle" };
     summaryHeader.border = thinBorder;
     sheet.getCell("D" + summaryStart).border = thinBorder;
-    sheet.mergeCells("D" + summaryStart + ":F" + summaryStart);
+    sheet.mergeCells("D" + summaryStart + ":H" + summaryStart);
 
     // ═══════ Summary Rows ═══════
     const summaryData = [
@@ -425,7 +564,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
       labelCell.alignment = { horizontal: "right", vertical: "middle" };
       labelCell.border = thinBorder;
 
-      sheet.mergeCells("D" + rowIdx + ":F" + rowIdx);
+      sheet.mergeCells("D" + rowIdx + ":H" + rowIdx);
       const valCell = sheet.getCell("D" + rowIdx);
       valCell.value = item[1];
       valCell.font = { name: "Calibri", size: 11, bold: true, color: { argb: BLUE_HEADER } };
@@ -435,7 +574,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
 
     // ═══════ Section Title: Daily Attendance Report Overview ═══════
     const sectionTitleRow = summaryStart + summaryData.length + 2;
-    sheet.mergeCells("A" + sectionTitleRow + ":F" + sectionTitleRow);
+    sheet.mergeCells("A" + sectionTitleRow + ":H" + sectionTitleRow);
     const sectionTitle = sheet.getCell("A" + sectionTitleRow);
     sectionTitle.value = "Daily Attendance Report Overview";
     sectionTitle.font = { name: "Calibri", size: 13, bold: true, color: { argb: BLACK } };
@@ -445,7 +584,7 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
 
     // ═══════ Table Header ═══════
     const headerRowNum = sectionTitleRow + 1;
-    const headers = ["Student Name", "Date", "Check-In", "Check-Out", "Work Summary", "Submitted"];
+    const headers = ["Student Name", "Date", "Check-In", "Check-Out", "Work Summary", "Submitted", `Att %\n(2nd–${date})`, "Overall %\n(Since Joining)"];
     const hRow = sheet.getRow(headerRowNum);
     headers.forEach((h, i) => {
       const cell = hRow.getCell(i + 1);
@@ -469,25 +608,47 @@ exports.exportDailyAttendanceExcel = async (req, res) => {
       else if (r.check_in && r.check_out) status = "PRESENT";
       else if (r.check_in && !r.check_out) status = "CHECKED_IN";
 
+      // Compute per-user monthly attendance percentage (2nd to date)
+      const wDays = r.period_working_days || 0;
+      const lDays = r.period_leave || 0;
+      const pDays = r.period_present || 0;
+      const effDays = Math.max(wDays - lDays, 0);
+      const attPct = effDays === 0 ? 100 : Math.min(Math.round((pDays / effDays) * 100), 100);
+
+      // Compute overall attendance percentage (since joining)
+      const ovWDays = r.overall_working_days || 0;
+      const ovLDays = r.overall_leave || 0;
+      const ovPDays = r.overall_present || 0;
+      const ovEffDays = Math.max(ovWDays - ovLDays, 0);
+      const ovPct = ovEffDays === 0 ? 100 : Math.min(Math.round((ovPDays / ovEffDays) * 100), 100);
+
       const rowValues = [
         r.name || "",
         date,
         fmtIST(r.check_in),
         fmtIST(r.check_out),
         r.work_done || "No work summary",
-        fmtSubmitted(r.submitted_at)
+        fmtSubmitted(r.submitted_at),
+        attPct + "%",
+        ovPct + "%"
       ];
 
       rowValues.forEach((val, ci) => {
         const cell = row.getCell(ci + 1);
         cell.value = val;
-        // Student Name = bold + blue, rest = blue
+        // Student Name = bold + blue, percentage = colored by value, rest = blue
         if (ci === 0) {
           cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: DATA_BLUE } };
+        } else if (ci === 6 || ci === 7) {
+          // Attendance % color: green >=75, orange 50-74, red <50
+          const pctVal = parseInt(val) || 0;
+          const pctColor = pctVal >= 75 ? "15803D" : pctVal >= 50 ? "B45309" : "DC2626";
+          cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: pctColor } };
+          cell.alignment = { horizontal: "center", vertical: "middle" };
         } else {
           cell.font = { name: "Calibri", size: 10, color: { argb: DATA_BLUE } };
         }
-        cell.alignment = { vertical: "middle", wrapText: (ci === 4 || ci === 5) };
+        if (ci !== 6 && ci !== 7) cell.alignment = { vertical: "middle", wrapText: (ci === 4 || ci === 5) };
         cell.border = thinBorder;
       });
 
@@ -834,7 +995,24 @@ exports.exportMonthlyAttendanceExcel = async (req, res) => {
 };
 exports.getTodayAttendanceDashboard = async (req, res) => {
   try {
+    // Calculate start of percentage period: 2nd of current month
+    const now = new Date();
+    const monthStart2nd = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 2))
+      .toISOString().split('T')[0];
+    const todayStr = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+      .toISOString().split('T')[0];
+
     const result = await pool.query(`
+      WITH period_stats AS (
+        -- Working days from 2nd of month to today
+        SELECT COUNT(*)::int AS working_days
+        FROM (
+          SELECT d::date AS day
+          FROM generate_series($1::date, $2::date, interval '1 day') d
+          WHERE EXTRACT(DOW FROM d::date) <> 0
+            AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
+        ) wd
+      )
       SELECT
         u.id,
         u.user_id,
@@ -842,7 +1020,6 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
         u.role,
         a.check_in,
         a.check_out,
-
         CASE
           WHEN a.status = 'HOLIDAY' THEN 'HOLIDAY'
           WHEN lr.id IS NOT NULL THEN 'ON_LEAVE'
@@ -850,23 +1027,97 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
           WHEN a.check_in IS NOT NULL AND a.check_out IS NOT NULL THEN 'PRESENT'
           WHEN a.check_in IS NOT NULL AND a.check_out IS NULL THEN 'CHECKED_IN'
           ELSE 'ABSENT'
-        END AS status
-
+        END AS status,
+        -- Present days in period
+        (
+          SELECT COUNT(DISTINCT att.date)::int
+          FROM attendance att
+          WHERE att.user_id = u.id
+            AND att.date BETWEEN $1 AND $2
+            AND att.check_in IS NOT NULL
+            AND att.check_out IS NOT NULL
+        ) AS period_present,
+        -- Leave days in period
+        (
+          SELECT COUNT(DISTINCT day)::int
+          FROM (
+            SELECT generate_series(lr2.from_date, lr2.to_date, interval '1 day')::date AS day
+            FROM leave_requests lr2
+            WHERE lr2.user_id = u.id AND lr2.status = 'APPROVED'
+          ) lrd
+          WHERE lrd.day BETWEEN $1 AND $2
+        ) AS period_leave,
+        ps.working_days AS period_working_days,
+        -- Overall: working days since joining
+        (
+          SELECT COUNT(*)::int
+          FROM (
+            SELECT d::date AS day
+            FROM generate_series(u.created_at::date, $2::date, interval '1 day') d
+            WHERE EXTRACT(DOW FROM d::date) <> 0
+              AND NOT EXISTS (SELECT 1 FROM holidays h WHERE h.holiday_date = d::date)
+          ) wd
+        ) AS overall_working_days,
+        -- Overall: present days since joining
+        (
+          SELECT COUNT(DISTINCT att3.date)::int
+          FROM attendance att3
+          WHERE att3.user_id = u.id
+            AND att3.date BETWEEN u.created_at::date AND $2::date
+            AND att3.check_in IS NOT NULL
+            AND att3.check_out IS NOT NULL
+        ) AS overall_present,
+        -- Overall: leave days since joining
+        (
+          SELECT COUNT(DISTINCT day)::int
+          FROM (
+            SELECT generate_series(lr3.from_date, lr3.to_date, interval '1 day')::date AS day
+            FROM leave_requests lr3
+            WHERE lr3.user_id = u.id AND lr3.status = 'APPROVED'
+          ) lrd3
+          WHERE lrd3.day BETWEEN u.created_at::date AND $2::date
+        ) AS overall_leave,
+        u.created_at::date AS joined_date
       FROM users u
-
+      CROSS JOIN period_stats ps
       LEFT JOIN attendance a
         ON a.user_id = u.id
         AND a.date = CURRENT_DATE
-
       LEFT JOIN leave_requests lr
         ON lr.user_id = u.id
         AND lr.status = 'APPROVED'
         AND CURRENT_DATE BETWEEN lr.from_date AND lr.to_date
-
       ORDER BY u.id
-    `);
+    `, [monthStart2nd, todayStr]);
 
-    res.json(result.rows);
+    const rows = result.rows.map(r => {
+      // Monthly % (2nd to today)
+      const workDays = r.period_working_days || 0;
+      const leaveDays = r.period_leave || 0;
+      const presentDays = r.period_present || 0;
+      const effectiveDays = Math.max(workDays - leaveDays, 0);
+      const pct = effectiveDays === 0 ? 100 : Math.min(Math.round((presentDays / effectiveDays) * 100), 100);
+
+      // Overall % (since joining)
+      const ovWDays = r.overall_working_days || 0;
+      const ovLDays = r.overall_leave || 0;
+      const ovPDays = r.overall_present || 0;
+      const ovEffDays = Math.max(ovWDays - ovLDays, 0);
+      const ovPct = ovEffDays === 0 ? 100 : Math.min(Math.round((ovPDays / ovEffDays) * 100), 100);
+
+      return {
+        ...r,
+        attendance_percentage: pct,
+        overall_percentage: ovPct,
+        overall_present: ovPDays,
+        overall_working_days: ovEffDays,
+        joined_date: r.joined_date,
+        period_from: monthStart2nd,
+        period_to: todayStr
+      };
+    });
+
+    res.json(rows);
 
   } catch (err) {
     console.error("Admin attendance dashboard error:", err);

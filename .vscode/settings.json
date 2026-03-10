@@ -10,5 +10,6 @@
             "database": "startup_system",
             "username": "startup_system"
         }
-    ]
+    ],
+    "postman.settings.dotenv-detection-notification-visibility": false
 }

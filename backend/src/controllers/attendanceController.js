@@ -1130,6 +1130,165 @@ exports.addHoliday = async (req, res) => {
   }
 };
 
+/* ================= MY ATTENDANCE PERCENTAGE (from 2nd of current month) ================= */
+exports.getMyAttendancePercentage = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Period: 2nd of the current month → today
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-indexed
+    const startDate = new Date(Date.UTC(year, month, 2));
+    const today = new Date(Date.UTC(year, now.getMonth(), now.getDate()));
+
+    const startStr = startDate.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+
+    // Count total working days (non-Sunday, non-holiday) in the period
+    const workingDaysResult = await pool.query(
+      `SELECT COUNT(*)::int AS working_days
+       FROM (
+         SELECT d::date AS day
+         FROM generate_series($1::date, $2::date, interval '1 day') d
+         WHERE EXTRACT(DOW FROM d::date) <> 0
+           AND NOT EXISTS (
+             SELECT 1 FROM holidays h WHERE h.holiday_date = d::date
+           )
+       ) wd`,
+      [startStr, todayStr]
+    );
+    const workingDays = workingDaysResult.rows[0]?.working_days || 0;
+
+    // Count days the user was PRESENT (fully checked out)
+    const presentResult = await pool.query(
+      `SELECT COUNT(DISTINCT date)::int AS present_days
+       FROM attendance
+       WHERE user_id = $1
+         AND date BETWEEN $2 AND $3
+         AND check_in IS NOT NULL
+         AND check_out IS NOT NULL`,
+      [userId, startStr, todayStr]
+    );
+    const presentDays = presentResult.rows[0]?.present_days || 0;
+
+    // Count approved leave days in the period (these should not count as absent)
+    const leaveDaysResult = await pool.query(
+      `SELECT COUNT(DISTINCT day)::int AS leave_days
+       FROM (
+         SELECT generate_series(from_date, to_date, interval '1 day')::date AS day
+         FROM leave_requests
+         WHERE user_id = $1
+           AND status = 'APPROVED'
+       ) lr
+       WHERE day BETWEEN $2 AND $3`,
+      [userId, startStr, todayStr]
+    );
+    const leaveDays = leaveDaysResult.rows[0]?.leave_days || 0;
+
+    // Effective working days = total working days minus approved leave days
+    const effectiveWorkingDays = Math.max(workingDays - leaveDays, 0);
+
+    const percentage = effectiveWorkingDays === 0
+      ? 100
+      : Math.round((presentDays / effectiveWorkingDays) * 100);
+
+    res.json({
+      from: startStr,
+      to: todayStr,
+      working_days: workingDays,
+      leave_days: leaveDays,
+      effective_working_days: effectiveWorkingDays,
+      present_days: presentDays,
+      percentage: Math.min(percentage, 100)
+    });
+
+  } catch (err) {
+    console.error('Attendance percentage error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/* ================= MY OVERALL ATTENDANCE PERCENTAGE (from joining date) ================= */
+exports.getMyOverallAttendancePercentage = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user joining date
+    const userRes = await pool.query(
+      `SELECT created_at FROM users WHERE id = $1`,
+      [userId]
+    );
+    if (!userRes.rows.length) return res.status(404).json({ message: 'User not found' });
+
+    const joinDate = new Date(userRes.rows[0].created_at);
+    const startStr = joinDate.toISOString().split('T')[0];
+
+    const now = new Date();
+    const todayStr = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+      .toISOString().split('T')[0];
+
+    // Total working days since joining (no Sundays, no holidays)
+    const workingDaysResult = await pool.query(
+      `SELECT COUNT(*)::int AS working_days
+       FROM (
+         SELECT d::date AS day
+         FROM generate_series($1::date, $2::date, interval '1 day') d
+         WHERE EXTRACT(DOW FROM d::date) <> 0
+           AND NOT EXISTS (
+             SELECT 1 FROM holidays h WHERE h.holiday_date = d::date
+           )
+       ) wd`,
+      [startStr, todayStr]
+    );
+    const workingDays = workingDaysResult.rows[0]?.working_days || 0;
+
+    // Present days (fully checked out)
+    const presentResult = await pool.query(
+      `SELECT COUNT(DISTINCT date)::int AS present_days
+       FROM attendance
+       WHERE user_id = $1
+         AND date BETWEEN $2 AND $3
+         AND check_in IS NOT NULL
+         AND check_out IS NOT NULL`,
+      [userId, startStr, todayStr]
+    );
+    const presentDays = presentResult.rows[0]?.present_days || 0;
+
+    // Approved leave days since joining
+    const leaveDaysResult = await pool.query(
+      `SELECT COUNT(DISTINCT day)::int AS leave_days
+       FROM (
+         SELECT generate_series(from_date, to_date, interval '1 day')::date AS day
+         FROM leave_requests
+         WHERE user_id = $1 AND status = 'APPROVED'
+       ) lr
+       WHERE day BETWEEN $2 AND $3`,
+      [userId, startStr, todayStr]
+    );
+    const leaveDays = leaveDaysResult.rows[0]?.leave_days || 0;
+
+    const effectiveWorkingDays = Math.max(workingDays - leaveDays, 0);
+    const percentage = effectiveWorkingDays === 0
+      ? 100
+      : Math.round((presentDays / effectiveWorkingDays) * 100);
+
+    res.json({
+      from: startStr,
+      to: todayStr,
+      working_days: workingDays,
+      leave_days: leaveDays,
+      effective_working_days: effectiveWorkingDays,
+      present_days: presentDays,
+      percentage: Math.min(percentage, 100)
+    });
+
+  } catch (err) {
+    console.error('Overall attendance percentage error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 exports.deleteHoliday = async (req, res) => {
   try {
     const { id } = req.params;

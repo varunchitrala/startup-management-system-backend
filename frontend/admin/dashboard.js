@@ -397,17 +397,18 @@ async function loadAdminProjectMembers(projectId) {
   }
 }
 async function loadTodayAttendance() {
+  // Use the dashboard endpoint which includes attendance_percentage
   const data = await apiRequest(
-    `${API_BASE}/api/admin/attendance/today/list`
+    `${API_BASE}/api/admin/attendance/today`
   );
 
   const tbody = document.getElementById("attendanceTableBody");
   tbody.innerHTML = "";
 
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="text-center">
+        <td colspan="8" class="text-center">
           No attendance data for today
         </td>
       </tr>`;
@@ -429,6 +430,16 @@ async function loadTodayAttendance() {
     const badgeClass = statusColors[row.status] || 'bg-secondary';
     const statusLabel = row.status === 'MISSED_CHECKOUT' ? 'Missed Checkout ⚠️' : row.status;
 
+    // Color-code monthly attendance percentage
+    const pct = row.attendance_percentage ?? 100;
+    const pctColor = pct >= 75 ? '#15803d' : pct >= 50 ? '#b45309' : '#dc2626';
+    const pctDisplay = `<span style="font-weight:700; color:${pctColor}">${pct}%</span>`;
+
+    // Color-code overall (all-time) attendance percentage
+    const ovPct = row.overall_percentage ?? 100;
+    const ovPctColor = ovPct >= 75 ? '#15803d' : ovPct >= 50 ? '#b45309' : '#dc2626';
+    const ovPctDisplay = `<span style="font-weight:700; color:${ovPctColor}">${ovPct}%</span>`;
+
     tr.innerHTML = `
       <td>${row.user_id}</td>
       <td>${row.name}</td>
@@ -436,7 +447,8 @@ async function loadTodayAttendance() {
       <td>${fmtIST(row.check_in)}</td>
       <td>${fmtIST(row.check_out)}</td>
       <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
-      
+      <td class="text-center">${pctDisplay}</td>
+      <td class="text-center">${ovPctDisplay}</td>
     `;
 
     tbody.appendChild(tr);

@@ -556,6 +556,7 @@ document.addEventListener("DOMContentLoaded", () => {
   checkWeeklyReportStatus();
   setWeekRangeLabel();
   updateCheckoutBanner();
+  loadMyAttendancePercentage(); // Show attendance % card on load
 
   // Set month picker to current month and auto-load
   const picker = document.getElementById("attendanceMonthPicker");
@@ -1051,9 +1052,52 @@ async function loadMyAttendanceHistory() {
       totalOT > 0 ? `<span>💪 OT: <strong style="color:#15803d;">${totalOT} min</strong></span>` : "",
     ].filter(Boolean).join(`<span class='mx-1'>·</span>`);
 
+    // Load and show attendance percentage (only when viewing current month)
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    if (month === currentMonth) {
+      loadMyAttendancePercentage();
+    }
   } catch (err) {
     console.error("Attendance history error:", err);
     tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Failed to load</td></tr>`;
+  }
+}
+
+/* ================= ATTENDANCE PERCENTAGE CARD ================= */
+async function loadMyAttendancePercentage() {
+  try {
+    const res = await fetch(`${API_BASE}/api/attendance/my-percentage`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const pct = data.percentage;
+    const from = new Date(data.from).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+    const to = new Date(data.to).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+
+    const color = pct >= 75 ? '#15803d' : pct >= 50 ? '#b45309' : '#dc2626';
+    const bg = pct >= 75 ? '#dcfce7' : pct >= 50 ? '#fef3c7' : '#fee2e2';
+    const emoji = pct >= 75 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
+
+    const container = document.getElementById('attendancePercentageCard');
+    if (container) {
+      container.innerHTML = `
+        <div style="background:${bg}; border:2px solid ${color}; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+          <div style="font-size:2.2rem; font-weight:800; color:${color};">${emoji} ${pct}%</div>
+          <div>
+            <div style="font-weight:700; color:${color}; font-size:0.95rem;">Your Attendance (2nd – Today)</div>
+            <div style="font-size:0.82rem; color:#64748b;">
+              ${data.present_days} present / ${data.effective_working_days} effective working days
+              &nbsp;·&nbsp; ${from} – ${to}
+              ${data.leave_days > 0 ? `&nbsp;·&nbsp; ${data.leave_days} leave day(s) excluded` : ''}
+            </div>
+          </div>
+        </div>`;
+      container.style.display = 'block';
+    }
+  } catch (err) {
+    console.error('Attendance percentage error:', err);
   }
 }
 
