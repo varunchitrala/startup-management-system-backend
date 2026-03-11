@@ -509,8 +509,8 @@ async function loadRoadmapProgress(projectId) {
 
     if (!data.steps || data.steps.length === 0) {
       stepsList.innerHTML =
-        `<li class="list-group-item text-muted">
-          No roadmap steps created
+        `<li class="list-group-item text-muted border-0 bg-transparent text-center py-3">
+          <i class="bi bi-inbox fs-4 d-block mb-1 text-light"></i> No roadmap steps created
         </li>`;
       return;
     }
@@ -518,13 +518,13 @@ async function loadRoadmapProgress(projectId) {
     data.steps.forEach(step => {
       const li = document.createElement("li");
       li.className =
-        "list-group-item d-flex justify-content-between align-items-center";
+        "list-group-item d-flex justify-content-between align-items-center rounded-3 mb-2 border-0 shadow-sm";
+      li.style.cssText = "background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); transition: all 0.2s;";
 
       li.innerHTML = `
-        <span>${step.step_title}</span>
-        <span class="badge ${step.is_completed ? "bg-success" : "bg-secondary"
-        }">
-          ${step.is_completed ? "Completed" : "Pending"}
+        <span class="fw-semibold text-dark"><i class="bi bi-signpost-fill text-primary me-2"></i> ${step.step_title}</span>
+        <span class="badge ${step.is_completed ? "bg-success" : "bg-warning text-dark"} rounded-pill px-3 py-2 shadow-sm">
+          ${step.is_completed ? '<i class="bi bi-check-circle me-1"></i> Completed' : '<i class="bi bi-hourglass-split me-1"></i> Pending'}
         </span>
       `;
 
