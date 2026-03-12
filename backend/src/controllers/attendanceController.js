@@ -70,6 +70,25 @@ async function seedDayAttendance(date) {
   return fallbackStatus;
 }
 
+/**
+ * Convert a UTC timestamp from the DB into "HH:MM AM/PM" in IST.
+ * We manually add 5h30m to avoid relying on Intl/ICU timezone support
+ * which may be missing on Render.com's Node.js runtime.
+ */
+function formatUTCtoIST(raw) {
+  if (!raw) return null;
+  const utcMs = new Date(raw).getTime();
+  // IST = UTC + 5:30 = UTC + 19800 seconds
+  const istMs = utcMs + (5 * 60 + 30) * 60 * 1000;
+  const d = new Date(istMs);
+  const h = d.getUTCHours();
+  const m = d.getUTCMinutes();
+  const period = h < 12 ? 'AM' : 'PM';
+  const displayHour = h % 12 === 0 ? 12 : h % 12;
+  const displayMin = String(m).padStart(2, '0');
+  return `${String(displayHour).padStart(2, '0')}:${displayMin} ${period}`;
+}
+
 // User check-in
 exports.checkIn = async (req, res) => {
   try {
@@ -260,7 +279,6 @@ exports.checkIn = async (req, res) => {
     );
 
     // 🔹 Late Arrival Email Check
-    // Ensure emailService is properly imported at the top of your controller
     const shiftStart = buildTimeIST(selectedShift.check_in_time);
 
     if (nowISTVal > shiftStart) {
@@ -308,7 +326,6 @@ exports.checkOut = async (req, res) => {
     }
 
     // Daily report rule for all users:
-    // checkout is blocked until today's daily report is submitted.
     const dailyReportResult = await pool.query(
       `SELECT 1
        FROM work_reports
@@ -343,7 +360,6 @@ exports.checkOut = async (req, res) => {
     }
 
     // Saturday rule for LEAD and MEMBER:
-    // weekly report must be submitted before checkout.
     const istNow = getIstNowShifted();
     const isSaturdayIST = istNow.getUTCDay() === 6;
     const isLeadOrMember = userRole === "LEAD" || userRole === "MEMBER";
@@ -392,7 +408,6 @@ exports.checkOut = async (req, res) => {
     let overtimeMinutes = 0;
     let shiftEndTimeFormatted = null;
 
-    // Fetch the shift's check_out_time if the attendance record has a shift_id
     if (record.shift_id) {
       const shiftResult = await pool.query(
         `SELECT check_out_time, name FROM shifts WHERE id = $1`,
@@ -403,29 +418,20 @@ exports.checkOut = async (req, res) => {
         const shift = shiftResult.rows[0];
         const [h, m, s] = shift.check_out_time.split(":").map(Number);
 
-        // Build shift end time in IST
-        // nowIST_CO is already a "fake-UTC" date shifted +5:30, so setUTCHours with IST
-        // hours keeps everything in the same shifted frame for correct diff calculation.
+        // Build shift end time in IST-shifted frame for correct diff
         const shiftEnd = new Date(nowIST_CO);
         shiftEnd.setUTCHours(h, m, s || 0, 0);
 
-        // Calculate difference in minutes
         const diffMs = nowIST_CO.getTime() - shiftEnd.getTime();
         const diffMinutes = Math.round(diffMs / 60000);
 
         if (diffMinutes < 0) {
-          // Checked out BEFORE shift end → early checkout
           earlyMinutes = Math.abs(diffMinutes);
         } else if (diffMinutes > 0) {
-          // Checked out AFTER shift end → overtime
           overtimeMinutes = diffMinutes;
         }
 
-        // FIX: Format shift end time directly from the IST hours/minutes stored in DB.
-        // Do NOT use a Date object with timeZone:'UTC' — that would display the raw hour
-        // values as UTC and show the wrong time (e.g. 14:30 IST shown as "02:30 PM" instead
-        // of the intended IST display, or worse introduce a 5:30 offset).
-        // Instead, format h/m directly into a 12-hour AM/PM string.
+        // Format shift end time directly from IST hours stored in DB
         const period = h < 12 ? 'AM' : 'PM';
         const displayHour = h % 12 === 0 ? 12 : h % 12;
         const displayMin = String(m).padStart(2, '0');
@@ -433,7 +439,7 @@ exports.checkOut = async (req, res) => {
       }
     }
 
-    // Update attendance with checkout time and early/overtime info
+    // Update attendance with checkout time
     await pool.query(
       `UPDATE attendance
        SET check_out = NOW(),
@@ -454,7 +460,6 @@ exports.checkOut = async (req, res) => {
       return `${mins} minutes`;
     };
 
-    // Get user name for admin notifications
     let userName = '';
     if (earlyMinutes > 0) {
       const userRes = await pool.query(`SELECT name FROM users WHERE id = $1`, [userId]);
@@ -462,25 +467,21 @@ exports.checkOut = async (req, res) => {
     }
 
     if (earlyMinutes > 0 && shiftEndTimeFormatted) {
-      // Notify member about early checkout
       const memberMsg = `⚠️ You checked out ${formatMinutes(earlyMinutes)} before your shift ends (Shift ends: ${shiftEndTimeFormatted})`;
       await pool.query(
         `INSERT INTO notifications (user_id, message, is_read, created_at) VALUES ($1, $2, false, NOW())`,
         [userId, memberMsg]
       );
 
-      // Notify all admins about early checkout
       const adminMsg = `⚠️ ${userName} checked out ${formatMinutes(earlyMinutes)} early (Shift ends: ${shiftEndTimeFormatted})`;
       await pool.query(
         `INSERT INTO notifications (user_id, message, is_read, created_at)
          SELECT id, $1, false, NOW() FROM users WHERE role = 'ADMIN'`,
         [adminMsg]
       );
-
     }
 
     if (overtimeMinutes > 0 && shiftEndTimeFormatted) {
-      // Notify member about overtime
       const memberMsg = `💪 You worked ${formatMinutes(overtimeMinutes)} of overtime today (Shift ended: ${shiftEndTimeFormatted})`;
       await pool.query(
         `INSERT INTO notifications (user_id, message, is_read, created_at) VALUES ($1, $2, false, NOW())`,
@@ -488,7 +489,6 @@ exports.checkOut = async (req, res) => {
       );
     }
 
-    // Build response message
     let responseMsg = "Checked out successfully";
     if (earlyMinutes > 0 && shiftEndTimeFormatted) {
       responseMsg += `. ⚠️ You left ${formatMinutes(earlyMinutes)} early (Shift ends: ${shiftEndTimeFormatted})`;
@@ -908,22 +908,10 @@ exports.getMyAttendanceHistory = async (req, res) => {
     );
 
     const formattedRows = result.rows.map(r => {
-      const formatTime = (dateStr) => {
-        if (!dateStr) return null;
-        // The postgres driver parses 'timestamp' as UTC if local timezone is UTC,
-        // or provides a Date object representing the absolute time.
-        return new Date(dateStr).toLocaleTimeString('en-IN', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-          timeZone: 'Asia/Kolkata'
-        });
-      };
-
       return {
         ...r,
-        check_in: formatTime(r.check_in),
-        check_out: formatTime(r.check_out)
+        check_in: formatUTCtoIST(r.check_in),
+        check_out: formatUTCtoIST(r.check_out)
       };
     });
 
@@ -1001,10 +989,9 @@ exports.getMyLeaveBalance = async (req, res) => {
       [userId, year]
     );
 
-    // Calculate totals
     const approvedLeaves = parseInt(approvedResult.rows[0].used_days, 10);
     const adminLeaves = parseInt(adminLeaveResult.rows[0].admin_leave_days, 10);
-    const used = approvedLeaves + adminLeaves; // ✅ FIXED: Now includes admin leaves
+    const used = approvedLeaves + adminLeaves;
     const pending = parseInt(pendingResult.rows[0].pending_days, 10);
     const remaining = Math.max(0, QUOTA - used);
 
@@ -1014,7 +1001,6 @@ exports.getMyLeaveBalance = async (req, res) => {
       remaining,
       pending,
       year,
-      // Optional: Include breakdown for transparency/debugging
       breakdown: {
         from_leave_requests: approvedLeaves,
         from_admin_leaves: adminLeaves
@@ -1112,10 +1098,8 @@ exports.getMyAttendancePercentage = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Period: 2nd of the current month → today (IST)
     const { startStr, todayStr } = getMonthPeriodIST();
 
-    // Count total working days (Mon–Sat, non-holiday) in the period
     const workingDaysResult = await pool.query(
       `SELECT COUNT(*)::int AS working_days
        FROM (
@@ -1130,7 +1114,6 @@ exports.getMyAttendancePercentage = async (req, res) => {
     );
     const workingDays = workingDaysResult.rows[0]?.working_days || 0;
 
-    // Count days the user was PRESENT (fully checked out)
     const presentResult = await pool.query(
       `SELECT COUNT(DISTINCT date)::int AS present_days
        FROM attendance
@@ -1142,7 +1125,6 @@ exports.getMyAttendancePercentage = async (req, res) => {
     );
     const presentDays = presentResult.rows[0]?.present_days || 0;
 
-    // Count approved leave days in the period (these should not count as absent)
     const leaveDaysResult = await pool.query(
       `SELECT COUNT(DISTINCT day)::int AS leave_days
        FROM (
@@ -1156,7 +1138,6 @@ exports.getMyAttendancePercentage = async (req, res) => {
     );
     const leaveDays = leaveDaysResult.rows[0]?.leave_days || 0;
 
-    // Leaves count as absent — divide by full working days
     const percentage = workingDays === 0
       ? 100
       : Math.round((presentDays / workingDays) * 100);
@@ -1182,7 +1163,6 @@ exports.getMyOverallAttendancePercentage = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Overall % starts from 2026-03-02 for existing users, or their own created_at for new users
     const userRes = await pool.query('SELECT created_at FROM users WHERE id = $1', [userId]);
     if (!userRes.rows.length) return res.status(404).json({ message: 'User not found' });
     const createdDate = new Date(userRes.rows[0].created_at).toISOString().split('T')[0];
@@ -1190,7 +1170,6 @@ exports.getMyOverallAttendancePercentage = async (req, res) => {
 
     const todayStr = todayIST();
 
-    // Total working days since joining (Mon–Sat, no holidays)
     const workingDaysResult = await pool.query(
       `SELECT COUNT(*)::int AS working_days
        FROM (
@@ -1205,7 +1184,6 @@ exports.getMyOverallAttendancePercentage = async (req, res) => {
     );
     const workingDays = workingDaysResult.rows[0]?.working_days || 0;
 
-    // Present days (fully checked out)
     const presentResult = await pool.query(
       `SELECT COUNT(DISTINCT date)::int AS present_days
        FROM attendance
@@ -1217,7 +1195,6 @@ exports.getMyOverallAttendancePercentage = async (req, res) => {
     );
     const presentDays = presentResult.rows[0]?.present_days || 0;
 
-    // Approved leave days since joining
     const leaveDaysResult = await pool.query(
       `SELECT COUNT(DISTINCT day)::int AS leave_days
        FROM (
@@ -1230,7 +1207,6 @@ exports.getMyOverallAttendancePercentage = async (req, res) => {
     );
     const leaveDays = leaveDaysResult.rows[0]?.leave_days || 0;
 
-    // Leaves count as absent — divide by full working days
     const percentage = workingDays === 0
       ? 100
       : Math.round((presentDays / workingDays) * 100);
