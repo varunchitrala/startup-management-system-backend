@@ -404,6 +404,8 @@ exports.checkOut = async (req, res) => {
         const [h, m, s] = shift.check_out_time.split(":").map(Number);
 
         // Build shift end time in IST
+        // nowIST_CO is already a "fake-UTC" date shifted +5:30, so setUTCHours with IST
+        // hours keeps everything in the same shifted frame for correct diff calculation.
         const shiftEnd = new Date(nowIST_CO);
         shiftEnd.setUTCHours(h, m, s || 0, 0);
 
@@ -419,14 +421,15 @@ exports.checkOut = async (req, res) => {
           overtimeMinutes = diffMinutes;
         }
 
-        // Format shift end time for display (e.g. "06:00 PM")
-        const displayDate = new Date(Date.UTC(2000, 0, 1, h, m, s || 0));
-        shiftEndTimeFormatted = displayDate.toLocaleTimeString('en-IN', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-          timeZone: 'UTC'
-        });
+        // FIX: Format shift end time directly from the IST hours/minutes stored in DB.
+        // Do NOT use a Date object with timeZone:'UTC' — that would display the raw hour
+        // values as UTC and show the wrong time (e.g. 14:30 IST shown as "02:30 PM" instead
+        // of the intended IST display, or worse introduce a 5:30 offset).
+        // Instead, format h/m directly into a 12-hour AM/PM string.
+        const period = h < 12 ? 'AM' : 'PM';
+        const displayHour = h % 12 === 0 ? 12 : h % 12;
+        const displayMin = String(m).padStart(2, '0');
+        shiftEndTimeFormatted = `${String(displayHour).padStart(2, '0')}:${displayMin} ${period}`;
       }
     }
 
