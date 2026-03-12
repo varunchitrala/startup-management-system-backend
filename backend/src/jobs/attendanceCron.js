@@ -2,11 +2,19 @@ const cron = require("node-cron");
 const pool = require("../config/db");
 const { todayIST } = require("../utils/istTime");
 
+/**
+ * IMPORTANT: The auto-checkout with penalty logic lives in
+ * src/scheduler/emailScheduler.js (7:00 PM IST).
+ *
+ * This cron only seeds missing attendance rows (ABSENT/HOLIDAY)
+ * for users who never checked in at all. It runs at 11:30 PM IST
+ * (well after the penalty job) so it never interferes.
+ */
 const runAttendanceAutomation = () => {
 
-  // Runs every day at 6:05 PM IST
-  cron.schedule("5 18 * * *", async () => {
-    console.log("⏳ Running attendance auto processor...");
+  // Runs every day at 11:30 PM IST — just ensures all users have a row
+  cron.schedule("30 23 * * *", async () => {
+    console.log("⏳ Running attendance row seeder (ABSENT/HOLIDAY fallback)...");
 
     try {
       const today = todayIST();
@@ -20,33 +28,8 @@ const runAttendanceAutomation = () => {
       );
       const fallbackStatus = holidayRes.rows.length > 0 ? "HOLIDAY" : "ABSENT";
 
-      // 1️⃣ Auto force checkout users still checked in
-      // Also normalize status to PRESENT and notify affected users.
-      const forcedCheckoutResult = await pool.query(`
-        WITH forced AS (
-          UPDATE attendance
-          SET check_out = NOW(),
-              force_checked_out = true,
-              status = CASE
-                WHEN status IN ('CHECKED_IN', 'LATE') THEN 'PRESENT'
-                ELSE status
-              END
-          WHERE date = $1
-            AND check_in IS NOT NULL
-            AND check_out IS NULL
-          RETURNING user_id
-        )
-        INSERT INTO notifications (user_id, message, is_read, created_at)
-        SELECT f.user_id,
-               'Auto checkout applied: You were checked out by system at end of day.',
-               FALSE,
-               NOW()
-        FROM forced f
-        RETURNING user_id
-      `, [today]);
-
-      // 2️⃣ Ensure all users have attendance record
-      await pool.query(`
+      // Ensure all users have an attendance record for today
+      const result = await pool.query(`
         INSERT INTO attendance (user_id, date, status)
         SELECT u.id, $1, $2
         FROM users u
@@ -57,12 +40,12 @@ const runAttendanceAutomation = () => {
         )
       `, [today, fallbackStatus]);
 
-      console.log(`✅ Attendance automation completed (forced checkouts: ${forcedCheckoutResult.rowCount})`);
+      console.log(`✅ Attendance row seeder done (${result.rowCount} rows inserted as ${fallbackStatus})`);
 
     } catch (err) {
-      console.error("❌ Cron automation error:", err);
+      console.error("❌ Attendance row seeder error:", err);
     }
-  });
+  }, { timezone: "Asia/Kolkata" });
 
 };
 

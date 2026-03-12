@@ -1695,49 +1695,4 @@ async function changePassword() {
   }
 }
 
-/* ================= MISSED CHECKOUT SUBMISSION ================= */
-async function submitMissedCheckout() {
-  const mcId = document.getElementById("mcId").value;
-  const workDone = document.getElementById("mcWorkDone").value.trim();
-  const lateReason = document.getElementById("mcLateReason").value.trim();
-  const msgDiv = document.getElementById("mcMessage");
 
-  if (!workDone || !lateReason) {
-    msgDiv.innerHTML = `<div class="alert alert-danger py-2">Please fill both fields.</div>`;
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/api/work/submit-missed`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ id: mcId, work_done: workDone, late_reason: lateReason })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      msgDiv.innerHTML = `<div class="alert alert-danger py-2">${data.message || "Submission failed"}</div>`;
-      return;
-    }
-
-    msgDiv.innerHTML = `<div class="alert alert-success py-2">Compliance report submitted</div>`;
-
-    setTimeout(() => {
-      // Hide modal
-      if (missedCheckoutModalInstance) missedCheckoutModalInstance.hide();
-      document.getElementById("mcWorkDone").value = "";
-      document.getElementById("mcLateReason").value = "";
-      // Refresh to see if there are more
-      checkPendingMissed();
-      loadMyWorkReports();
-    }, 1500);
-
-  } catch (err) {
-    console.error("Submit missed checkout error:", err);
-    msgDiv.innerHTML = `<div class="alert alert-danger py-2">Submission failed</div>`;
-  }
-}

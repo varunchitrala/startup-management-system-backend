@@ -1,5 +1,4 @@
 const pool = require("../config/db");
-const emailService = require('../services/emailService');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
@@ -49,7 +48,6 @@ exports.changePassword = async (req, res) => {
     const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
 
-    // Basic validation
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: "Both fields are required" });
     }
@@ -62,7 +60,6 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ message: "New password must be different from current password" });
     }
 
-    // Fetch user
     const result = await pool.query(
       "SELECT id, password FROM users WHERE id = $1",
       [userId]
@@ -74,16 +71,13 @@ exports.changePassword = async (req, res) => {
 
     const user = result.rows[0];
 
-    // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Current password is incorrect" });
     }
 
-    // Hash new password
     const hashed = await bcrypt.hash(newPassword, 10);
 
-    // Save
     await pool.query(
       "UPDATE users SET password = $1 WHERE id = $2",
       [hashed, userId]
@@ -95,31 +89,25 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 exports.register = async (req, res) => {
   try {
     const { user_id, name, email, role } = req.body;
-
-    // ... existing validation ...
 
     // Generate temporary password
     const temporaryPassword = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
-    const result = await pool.query(
+    await pool.query(
       `INSERT INTO users (user_id, name, email, password, role)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
       [user_id, name, email, hashedPassword, role]
     );
 
-    const newUserId = result.rows[0].id;
-
-    // ✅ SEND WELCOME EMAIL WITH CREDENTIALS
-    await emailService.sendWelcomeEmail(newUserId, temporaryPassword);
-
     res.json({
-      message: "User registered successfully. Welcome email sent.",
-      temporary_password: temporaryPassword // Only show in development
+      message: "User registered successfully.",
+      temporary_password: temporaryPassword
     });
 
   } catch (err) {

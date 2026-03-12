@@ -1,11 +1,5 @@
 const pool = require("../config/db");
 
-const emailService = require('../services/emailService');
-// User applies leave
-
-// Admin - view all leave requests
-
-
 // Admin - approve or reject leave
 exports.updateLeaveStatus = async (req, res) => {
   try {
@@ -31,13 +25,12 @@ exports.updateLeaveStatus = async (req, res) => {
 
     const leaveRequest = leaveResult.rows[0];
 
-    // Update status (only columns that exist in the table)
     await pool.query(
       `UPDATE leave_requests SET status = $1 WHERE id = $2`,
       [status, leaveId]
     );
 
-    // Build notification with reason
+    // Build in-app notification with reason
     const emoji = status === "APPROVED" ? "\u2705" : "\u274c";
     let notifMessage;
     if (status === "REJECTED" && rejection_reason && rejection_reason.trim()) {
@@ -51,17 +44,6 @@ exports.updateLeaveStatus = async (req, res) => {
        VALUES ($1, $2, false, NOW())`,
       [leaveRequest.user_id, notifMessage]
     );
-
-    // Try email — never crash the endpoint if it fails
-    try {
-      if (status === "APPROVED") {
-        await emailService.sendLeaveApprovedEmail(leaveRequest.user_id, leaveRequest);
-      } else {
-        await emailService.sendLeaveRejectedEmail(leaveRequest.user_id, leaveRequest, rejection_reason);
-      }
-    } catch (emailErr) {
-      console.warn("Email notification failed (non-fatal):", emailErr.message);
-    }
 
     res.json({ message: `Leave ${status.toLowerCase()} successfully` });
   } catch (err) {
