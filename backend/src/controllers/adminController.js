@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { nowIST } = require('../utils/istTime');
 
 const bcrypt = require("bcrypt");
 const emailService = require("../services/emailService");
@@ -398,7 +399,7 @@ exports.getAllTeamLeads = async (req, res) => {
 
 exports.getAllLeaveRequests = async (req, res) => {
   try {
-    const year = new Date(Date.now() + 5.5 * 60 * 60 * 1000).getUTCFullYear();
+    const year = nowIST().getUTCFullYear();
     const result = await pool.query(`
       SELECT
         lr.id,

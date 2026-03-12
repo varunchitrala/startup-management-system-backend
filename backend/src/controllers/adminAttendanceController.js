@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { todayIST, nowIST } = require('../utils/istTime');
 
 
 exports.forceCheckoutAll = async (req, res) => {
@@ -8,7 +9,7 @@ exports.forceCheckoutAll = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
 
     // Force checkout everyone who is checked in but not checked out
     const result = await pool.query(
@@ -83,7 +84,7 @@ exports.getTodayAttendance = async (req, res) => {
 };
 exports.getDashboardSummary = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
 
     // total users
     const totalUsers = await pool.query(
@@ -989,11 +990,11 @@ exports.exportMonthlyAttendanceExcel = async (req, res) => {
 exports.getTodayAttendanceDashboard = async (req, res) => {
   try {
     // Calculate start of percentage period: 2nd of current month (IST)
-    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
-    const istYear = nowIST.getUTCFullYear();
-    const istMonth = nowIST.getUTCMonth();
+    const nowISTVal = nowIST();
+    const istYear = nowISTVal.getUTCFullYear();
+    const istMonth = nowISTVal.getUTCMonth();
     const monthStart2nd = `${istYear}-${String(istMonth + 1).padStart(2, '0')}-02`;
-    const todayStr = nowIST.toISOString().split('T')[0];
+    const todayStr = nowISTVal.toISOString().split('T')[0];
 
     const result = await pool.query(`
       WITH period_stats AS (
@@ -1116,7 +1117,7 @@ exports.getTodayAttendanceDashboard = async (req, res) => {
 
 exports.autoProcessAttendance = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
     const holidayRes = await pool.query(
       `SELECT 1
        FROM holidays

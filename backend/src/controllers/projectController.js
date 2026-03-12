@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { nowIST } = require('../utils/istTime');
 
 
 // Admin: create project
@@ -704,7 +705,7 @@ exports.getMyProjectStats = async (req, res) => {
     const activeResult = await pool.query(activeQuery, [userId]);
     const completedResult = await pool.query(completedQuery, [userId]);
 
-    const now = new Date();
+    const now = nowIST();
     const activeProjects = activeResult.rows.map(p => {
       const created = new Date(p.created_at);
       const daysElapsed = Math.max(1, Math.ceil((now - created) / (1000 * 60 * 60 * 24)));

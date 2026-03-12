@@ -9,13 +9,14 @@ const pool = new Pool({
   },
 });
 
-// 🔥 FORCE search_path to public for every new connection
+// 🔥 FORCE search_path and timezone for every new connection
 pool.on("connect", async (client) => {
   try {
     await client.query("SET search_path TO public");
-    console.log("✅ search_path set to public");
+    await client.query("SET timezone = 'Asia/Kolkata'");
+    console.log("✅ search_path=public, timezone=Asia/Kolkata");
   } catch (err) {
-    console.error("❌ Failed to set search_path:", err.message);
+    console.error("❌ Failed to set session config:", err.message);
   }
 });
 

@@ -79,7 +79,7 @@ exports.checkIn = async (req, res) => {
     const userRole = req.user.role; // e.g. 'ADMIN', 'LEAD', 'MEMBER'
     const isAdmin = userRole === "ADMIN";
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
     const { holiday, isSunday, isNonWorking } = await getNonWorkingMetaByDate(today);
 
     if (isNonWorking) {
@@ -90,10 +90,8 @@ exports.checkIn = async (req, res) => {
       });
     }
 
-    // Convert current server time (UTC) to IST for shift comparisons
-    // Render.com runs in UTC; shift times are entered as IST by the admin
-    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-    const nowIST = new Date(Date.now() + IST_OFFSET_MS);
+    // Use IST for shift comparisons (Render.com runs in UTC)
+    const nowISTVal = nowIST();
 
     const latitude = parseFloat(req.body.latitude);
     const longitude = parseFloat(req.body.longitude);
@@ -198,16 +196,16 @@ exports.checkIn = async (req, res) => {
     // Build shift window times in IST (same timezone the admin used when entering times)
     function buildTimeIST(timeString) {
       const [h, m, s] = timeString.split(":");
-      const t = new Date(nowIST);
+      const t = new Date(nowISTVal);
       t.setUTCHours(Number(h), Number(m), Number(s || 0), 0);
       return t;
     }
 
-    const shift1Last = buildTimeIST(shift1.last_checkin_time);
-    const shift2Last = buildTimeIST(shift2.last_checkin_time);
+    const shift1Last = buildTimeIST(shift1.last_checkin_time, nowISTVal);
+    const shift2Last = buildTimeIST(shift2.last_checkin_time, nowISTVal);
 
     console.log(`🕐 Server UTC now: ${new Date().toISOString()}`);
-    console.log(`🕐 IST now: ${nowIST.toISOString()}`);
+    console.log(`🕐 IST now: ${nowISTVal.toISOString()}`);
     console.log(`🕐 Shift1 last check-in (IST): ${shift1.last_checkin_time} → ${shift1Last.toISOString()}`);
     console.log(`🕐 Shift2 last check-in (IST): ${shift2.last_checkin_time} → ${shift2Last.toISOString()}`);
 
@@ -216,9 +214,9 @@ exports.checkIn = async (req, res) => {
     if (isAdmin) {
       // Admin gets auto-assigned to whichever shift window is closest/current
       // If both windows passed, assign to shift2 (latest) — no blocking
-      if (nowIST <= shift1Last) {
+      if (nowISTVal <= shift1Last) {
         selectedShift = shift1;
-      } else if (nowIST <= shift2Last) {
+      } else if (nowISTVal <= shift2Last) {
         selectedShift = shift2;
       } else {
         // Admin can still check in even after all windows — assign to nearest shift
@@ -226,9 +224,9 @@ exports.checkIn = async (req, res) => {
         console.log("👑 Admin checking in after shift windows — assigning to shift2");
       }
     } else {
-      if (nowIST <= shift1Last) {
+      if (nowISTVal <= shift1Last) {
         selectedShift = shift1;
-      } else if (nowIST <= shift2Last) {
+      } else if (nowISTVal <= shift2Last) {
         selectedShift = shift2;
       }
     }
@@ -265,8 +263,8 @@ exports.checkIn = async (req, res) => {
     // Ensure emailService is properly imported at the top of your controller
     const shiftStart = buildTimeIST(selectedShift.check_in_time);
 
-    if (nowIST > shiftStart) {
-      const checkInTime = nowIST.toLocaleTimeString('en-IN', {
+    if (nowISTVal > shiftStart) {
+      const checkInTime = nowISTVal.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
@@ -287,7 +285,7 @@ exports.checkOut = async (req, res) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
 
     const result = await pool.query(
       `SELECT * FROM attendance
@@ -388,8 +386,7 @@ exports.checkOut = async (req, res) => {
     }
 
     // ===== Early Checkout / Overtime Detection =====
-    const IST_OFFSET_MS_CO = 5.5 * 60 * 60 * 1000;
-    const nowIST_CO = new Date(Date.now() + IST_OFFSET_MS_CO);
+    const nowIST_CO = nowIST();
 
     let earlyMinutes = 0;
     let overtimeMinutes = 0;
@@ -515,7 +512,7 @@ exports.checkOut = async (req, res) => {
 exports.getMyTodayStatus = async (req, res) => {
   try {
     const userId = req.user.id;
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
     const { isNonWorking } = await getNonWorkingMetaByDate(today);
 
     const result = await pool.query(`
@@ -684,7 +681,7 @@ exports.allowLateCheckIn = async (req, res) => {
 
 exports.autoCreateTodayAttendance = async () => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIST();
     const status = await seedDayAttendance(today);
     console.log(`✅ Today attendance auto-created with fallback status: ${status}`);
 
@@ -842,7 +839,7 @@ exports.applyLeave = async (req, res) => {
     ) + 1;
 
     // Check leave balance
-    const year = new Date().getFullYear();
+    const year = nowIST().getUTCFullYear();
     const balRes = await pool.query(
       `SELECT remaining FROM leave_balances WHERE user_id = $1 AND year = $2`,
       [userId, year]
@@ -888,7 +885,7 @@ exports.applyLeave = async (req, res) => {
 exports.getMyAttendanceHistory = async (req, res) => {
   try {
     const userId = req.user.id;
-    const month = req.query.month || new Date().toISOString().slice(0, 7);
+    const month = req.query.month || todayIST().slice(0, 7);
 
     const result = await pool.query(
       `SELECT
@@ -968,7 +965,7 @@ exports.getMyLeaveRequests = async (req, res) => {
 exports.getMyLeaveBalance = async (req, res) => {
   try {
     const userId = req.user.id;
-    const year = new Date().getFullYear();
+    const year = nowIST().getUTCFullYear();
     const QUOTA = 18; // Annual leave quota
 
     // 1. Count approved leave requests
