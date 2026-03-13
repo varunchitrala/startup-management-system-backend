@@ -188,6 +188,20 @@ async function sendCheckIn(position) {
 }
 
 
+/**
+ * Format a UTC timestamp (ISO string or Date) as IST time: "09:45 AM"
+ * Used wherever the backend returns raw UTC timestamps.
+ */
+function fmtIST(raw) {
+  if (!raw) return "—";
+  return new Date(raw).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata"
+  });
+}
+
 // Check Out
 checkOutBtn.onclick = async () => {
   checkOutBtn.disabled = true;
@@ -1063,8 +1077,8 @@ async function loadMyAttendanceHistory() {
         <tr>
           <td>${dateStr}</td>
           <td class="text-muted">${dayName}</td>
-          <td>${r.check_in || "—"}</td>
-          <td>${r.check_out || "—"}</td>
+          <td>${fmtIST(r.check_in)}</td>
+          <td>${fmtIST(r.check_out)}</td>
           <td><span style="background:${s.bg}; color:${s.color}; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600;">${s.label}</span></td>
           <td class="text-muted">${r.shift_name || "—"}</td>
           <td>${earlyBadge}</td>

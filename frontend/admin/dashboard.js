@@ -949,7 +949,7 @@ async function loadEarlyCheckouts() {
         <td>${r.role}</td>
         <td>${r.shift_name || "—"}</td>
         <td>${r.shift_end_time || "—"}</td>
-        <td>${r.check_out ? new Date(r.check_out).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" }) : "—"}</td>
+        <td>${fmtIST(r.check_out)}</td>
         <td><span style="background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:4px; font-weight:600;">${r.early_checkout_minutes} min</span></td>
       </tr>
     `).join("");
@@ -979,7 +979,7 @@ async function loadOvertimeToday() {
         <td>${r.role}</td>
         <td>${r.shift_name || "—"}</td>
         <td>${r.shift_end_time || "—"}</td>
-        <td>${r.check_out ? new Date(r.check_out).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" }) : "—"}</td>
+        <td>${fmtIST(r.check_out)}</td>
         <td><span style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:4px; font-weight:600;">${r.overtime_minutes} min</span></td>
       </tr>
     `).join("");

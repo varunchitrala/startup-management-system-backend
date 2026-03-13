@@ -910,8 +910,8 @@ exports.getMyAttendanceHistory = async (req, res) => {
     const formattedRows = result.rows.map(r => {
       return {
         ...r,
-        check_in: formatUTCtoIST(r.check_in),
-        check_out: formatUTCtoIST(r.check_out)
+        check_in: r.check_in,
+        check_out: r.check_out
       };
     });
 
