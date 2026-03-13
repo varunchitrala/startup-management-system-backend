@@ -18,9 +18,33 @@ function logout() {
 const statusText = document.getElementById("statusText");
 
 const messageDiv = document.getElementById("message");
+const projectTitle = document.getElementById("projectTitle");
 const checkInBtn = document.getElementById("checkInBtn");
 const checkOutBtn = document.getElementById("checkOutBtn");
-const projectTitle = document.getElementById("projectTitle");
+
+/**
+ * HELPER: Unified Premium Message Display
+ * Replaces standard Bootstrap alerts with stylized pills
+ */
+function showStatus(msg, type = "info", targetDiv = messageDiv) {
+  if (!targetDiv) return;
+  const iconMap = {
+    info: "bi-info-circle",
+    success: "bi-check2-circle",
+    error: "bi-exclamation-octagon",
+    danger: "bi-exclamation-octagon", // Map danger to error
+    warning: "bi-exclamation-triangle"
+  };
+  const icon = iconMap[type] || "bi-info-circle";
+  const pillType = type === "danger" ? "error" : type;
+
+  targetDiv.innerHTML = `
+    <div class="status-pill ${pillType}">
+      <i class="bi ${icon} fs-6"></i>
+      <span>${msg}</span>
+    </div>
+  `;
+}
 
 
 // Load status
@@ -41,14 +65,12 @@ async function loadStatus() {
 checkInBtn.onclick = () => {
 
   if (!navigator.geolocation) {
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Geolocation not supported</div>`;
+    showStatus("Geolocation not supported", "error");
     return;
   }
 
   checkInBtn.disabled = true;
-  messageDiv.innerHTML =
-    `<div class="alert alert-info">📡 Getting GPS location (wait a few seconds for best accuracy)...</div>`;
+  showStatus("📡 Getting GPS location (wait a few seconds)...", "info");
 
   let bestPosition = null;
   let readings = 0;
@@ -79,8 +101,7 @@ checkInBtn.onclick = () => {
       console.error("📍 Geolocation error:", error.code, error.message);
 
       // Fallback: try getCurrentPosition as a last resort
-      messageDiv.innerHTML =
-        `<div class="alert alert-info">📡 Retrying location with fallback method...</div>`;
+      showStatus("📡 Retrying location with fallback method...", "info");
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           if (sent) return;
@@ -91,8 +112,7 @@ checkInBtn.onclick = () => {
           if (sent) return;
           checkInBtn.disabled = false;
           console.error("📍 Fallback geolocation error:", err2.code, err2.message);
-          messageDiv.innerHTML =
-            `<div class="alert alert-danger">Location error: ${err2.message || error.message || "Permission denied"}. Please enable location and try again.</div>`;
+          showStatus(`Location error: ${err2.message || error.message || "Permission denied"}`, "error");
         },
         { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 }
       );
@@ -113,8 +133,7 @@ checkInBtn.onclick = () => {
       sendCheckIn(bestPosition);
     } else {
       // Last resort fallback: try single getCurrentPosition with relaxed settings
-      messageDiv.innerHTML =
-        `<div class="alert alert-info">📡 Still acquiring location, trying fallback...</div>`;
+      showStatus("📡 Still acquiring location, trying fallback...", "info");
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           if (sent) return;
@@ -124,8 +143,7 @@ checkInBtn.onclick = () => {
         (err) => {
           if (sent) return;
           checkInBtn.disabled = false;
-          messageDiv.innerHTML =
-            `<div class="alert alert-danger">Could not get GPS location. Please ensure location is enabled, try outdoors, and try again.</div>`;
+          showStatus("Could not get GPS location. Please ensure location is enabled.", "error");
         },
         { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
       );
@@ -140,8 +158,7 @@ async function sendCheckIn(position) {
     const accuracy = position.coords.accuracy;
 
     console.log("📍 Best GPS reading:", latitude, longitude, "Accuracy:", accuracy.toFixed(0), "m");
-    messageDiv.innerHTML =
-      `<div class="alert alert-info">📡 Checking in (GPS accuracy: ~${Math.round(accuracy)}m)...</div>`;
+    showStatus(`📡 Checking in (GPS accuracy: ~${Math.round(accuracy)}m)...`, "info");
 
     const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
       method: "POST",
@@ -157,23 +174,24 @@ async function sendCheckIn(position) {
     if (!res.ok) {
       // If blocked by missed checkout penalty, show button to open the modal
       if (res.status === 403 && data.message && data.message.includes('missed checkout')) {
-        messageDiv.innerHTML =
-          `<div class="alert alert-danger">
-            ${data.message}
-            <br><button class="btn btn-sm btn-warning mt-2 fw-bold" onclick="forceOpenMissedModal()">
+        messageDiv.innerHTML = `
+          <div class="status-pill error flex-column align-items-start gap-2 h-auto py-3 px-4" style="border-radius:16px;">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-exclamation-octagon fs-5"></i>
+              <span class="fw-bold">${data.message}</span>
+            </div>
+            <button class="btn btn-sm btn-warning mt-1 fw-bold rounded-pill px-3" onclick="forceOpenMissedModal()">
               📝 Submit Missed Report Now
             </button>
           </div>`;
       } else {
-        messageDiv.innerHTML =
-          `<div class="alert alert-danger">${data.message}</div>`;
+        showStatus(data.message, "error");
       }
       checkInBtn.disabled = false;
       return;
     }
 
-    messageDiv.innerHTML =
-      `<div class="alert alert-success">${data.message}</div>`;
+    showStatus(data.message, "success");
 
     loadStatus();
     loadMyAttendanceHistory();
@@ -181,8 +199,7 @@ async function sendCheckIn(position) {
 
   } catch (err) {
     console.error("Check-in error:", err);
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Check-in failed</div>`;
+    showStatus("Check-in failed", "error");
     checkInBtn.disabled = false;
   }
 }
@@ -214,8 +231,7 @@ checkOutBtn.onclick = async () => {
     const reportData = await reportCheck.json();
 
     if (!reportData.submitted) {
-      messageDiv.innerHTML =
-        `<div class="alert alert-warning">⚠️ Please submit your daily work report before checking out.</div>`;
+      showStatus("⚠️ Please submit your daily work report first.", "warning");
       checkOutBtn.disabled = false;
       checkOutBtn.textContent = "Check Out";
       return;
@@ -232,8 +248,7 @@ checkOutBtn.onclick = async () => {
       const weeklyData = await weeklyCheck.json();
 
       if (!weeklyData.submitted) {
-        messageDiv.innerHTML =
-          `<div class="alert alert-warning">Saturday checkout is blocked until you submit this week's weekly report.</div>`;
+        showStatus("⚠️ Saturday checkout is blocked until weekly report is submitted.", "warning");
         checkOutBtn.disabled = false;
         checkOutBtn.textContent = "Check Out";
         return;
@@ -250,15 +265,13 @@ checkOutBtn.onclick = async () => {
     const data = await res.json();
 
     if (!res.ok) {
-      messageDiv.innerHTML =
-        `<div class="alert alert-danger">${data.message}</div>`;
+      showStatus(data.message, "error");
       checkOutBtn.disabled = false;
       checkOutBtn.textContent = "Check Out";
       return;
     }
 
-    messageDiv.innerHTML =
-      `<div class="alert alert-success">${data.message}</div>`;
+    showStatus(data.message, "success");
 
     loadStatus();
     loadMyAttendanceHistory();
@@ -266,8 +279,7 @@ checkOutBtn.onclick = async () => {
 
   } catch (err) {
     console.error("Check-out error:", err);
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Check-out failed</div>`;
+    showStatus("Check-out failed", "error");
     checkOutBtn.disabled = false;
     checkOutBtn.textContent = "Check Out";
   }
@@ -282,8 +294,7 @@ async function submitMemberDailyReport() {
   const btn = event ? event.target : null;
 
   if (!workDone) {
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Please enter work details</div>`;
+    showStatus("Please enter work details", "error", messageDiv);
     return;
   }
 
@@ -304,14 +315,12 @@ async function submitMemberDailyReport() {
     const data = await res.json();
 
     if (!res.ok) {
-      messageDiv.innerHTML =
-        `<div class="alert alert-danger">${data.message}</div>`;
+      showStatus(data.message, "error", document.getElementById("memberWorkMessage"));
       if (btn) { btn.disabled = false; btn.textContent = "Commit Report"; }
       return;
     }
 
-    messageDiv.innerHTML =
-      `<div class="alert alert-success">${data.message}</div>`;
+    showStatus(data.message, "success", document.getElementById("memberWorkMessage"));
 
     document.getElementById("memberWorkDone").value = "";
     loadMyWorkReports();
@@ -320,8 +329,7 @@ async function submitMemberDailyReport() {
 
   } catch (err) {
     console.error(err);
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Submission failed</div>`;
+    showStatus("Submission failed", "error", messageDiv);
     if (btn) { btn.disabled = false; btn.textContent = "Commit Report"; }
   }
 }
@@ -431,14 +439,12 @@ async function applyLeave() {
   const messageDiv = document.getElementById("leaveMessage");
 
   if (!fromDate || !toDate || !reason) {
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">All fields are required</div>`;
+    showStatus("All fields are required", "error", messageDiv);
     return;
   }
 
   if (fromDate > toDate) {
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">From date cannot be after To date</div>`;
+    showStatus("From date cannot be after To date", "error", messageDiv);
     return;
   }
 
@@ -459,8 +465,7 @@ async function applyLeave() {
     const data = await res.json();
 
     if (!res.ok) {
-      messageDiv.innerHTML =
-        `<div class="alert alert-danger">${data.message}</div>`;
+      showStatus(data.message, "error", messageDiv);
       return;
     }
 
@@ -475,8 +480,7 @@ async function applyLeave() {
 
   } catch (err) {
     console.error(err);
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Leave submission failed</div>`;
+    showStatus("Leave submission failed", "error", messageDiv);
   }
 }
 
@@ -770,7 +774,7 @@ async function submitWeeklyReport() {
   const msgDiv = document.getElementById("weeklyReportMessage");
 
   if (!skills || !projectUpdate || !workDone) {
-    msgDiv.innerHTML = `<div class="alert alert-danger">All weekly report fields are required</div>`;
+    showStatus("All fields are required", "error", msgDiv);
     return;
   }
 
@@ -791,11 +795,11 @@ async function submitWeeklyReport() {
     const data = await res.json();
 
     if (!res.ok) {
-      msgDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+      showStatus(data.message, "error", msgDiv);
       return;
     }
 
-    msgDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+    showStatus(data.message, "success", msgDiv);
     document.getElementById("weeklySkillsLearned").value = "";
     document.getElementById("weeklyProjectUpdate").value = "";
     document.getElementById("weeklyWorkDone").value = "";
@@ -804,7 +808,7 @@ async function submitWeeklyReport() {
 
   } catch (err) {
     console.error("Weekly report error:", err);
-    msgDiv.innerHTML = `<div class="alert alert-danger">Submission failed</div>`;
+    showStatus("Submission failed", "error", msgDiv);
   }
 }
 
@@ -1315,8 +1319,8 @@ async function submitMissedCheckout() {
   const lateReason = document.getElementById("mcLateReason").value.trim();
   const msgDiv = document.getElementById("mcMessage");
 
-  if (!workDone || !lateReason) {
-    msgDiv.innerHTML = `<div class="alert alert-danger py-2">Please fill both fields.</div>`;
+  if (!workDone || lateReason === "") {
+    showStatus("Please fill both fields.", "error", msgDiv);
     return;
   }
 
@@ -1333,11 +1337,11 @@ async function submitMissedCheckout() {
     const data = await res.json();
 
     if (!res.ok) {
-      msgDiv.innerHTML = `<div class="alert alert-danger py-2">${data.message || "Submission failed"}</div>`;
+      showStatus(data.message || "Submission failed", "error", msgDiv);
       return;
     }
 
-    msgDiv.innerHTML = `<div class="alert alert-success py-2">Compliance report submitted</div>`;
+    showStatus("Compliance report submitted", "success", msgDiv);
 
     setTimeout(() => {
       // Hide modal
@@ -1351,6 +1355,6 @@ async function submitMissedCheckout() {
 
   } catch (err) {
     console.error("Submit missed checkout error:", err);
-    msgDiv.innerHTML = `<div class="alert alert-danger py-2">Submission failed</div>`;
+    showStatus("Submission failed", "error", msgDiv);
   }
 }

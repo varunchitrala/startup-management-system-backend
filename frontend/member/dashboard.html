@@ -779,6 +779,54 @@
       background: #94a3b8;
     }
 
+    /* --- PREMIUM STATUS MESSAGES --- */
+    .status-pill {
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      animation: statusSlideIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      border: 1px solid transparent;
+    }
+
+    @keyframes statusSlideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .status-pill.info { 
+      background: #f0f9ff; 
+      color: #0369a1; 
+      border-color: #e0f2fe; 
+    }
+    .status-pill.success { 
+      background: #f0fdf4; 
+      color: #15803d; 
+      border-color: #dcfce7; 
+      box-shadow: 0 4px 12px rgba(21, 128, 61, 0.08);
+    }
+    .status-pill.error { 
+      background: #fef2f2; 
+      color: #b91c1c; 
+      border-color: #fee2e2; 
+    }
+    .status-pill.warning { 
+      background: #fffbeb; 
+      color: #a16207; 
+      border-color: #fef3c7; 
+    }
+
+    #message {
+      transition: all 0.3s ease;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+    }
+
     /* Responsive Utilities */
     @media (max-width: 992px) {
 
@@ -1249,9 +1297,9 @@
         <span class="status-tag border bg-primary-subtle text-primary" id="weekRangeLabel">This Week</span>
       </div>
       <div class="panel-body">
-        <div id="weeklyAlreadySubmitted" class="alert alert-info small fw-bold"
-          style="display:none; border-left: 4px solid var(--info);">
-          <i class="bi bi-check-circle-fill me-2"></i> You've already submitted this week's report.
+        <div id="weeklyAlreadySubmitted" class="status-pill success w-100 mb-4 py-3 justify-content-center"
+          style="display:none; border-radius: 12px;">
+          <i class="bi bi-check-circle-fill me-2 fs-5"></i> You've already submitted this week's report.
         </div>
         <div id="weeklyReportForm">
           <div class="mb-4">
