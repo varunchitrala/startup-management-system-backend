@@ -316,7 +316,7 @@ async function submitMemberDailyReport() {
 
     if (!res.ok) {
       showStatus(data.message, "error", document.getElementById("memberWorkMessage"));
-      if (btn) { btn.disabled = false; btn.textContent = "Commit Report"; }
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Commit'; }
       return;
     }
 
@@ -325,12 +325,12 @@ async function submitMemberDailyReport() {
     document.getElementById("memberWorkDone").value = "";
     loadMyWorkReports();
     updateCheckoutBanner();
-    if (btn) { btn.disabled = false; btn.textContent = "Commit Report"; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Commit'; }
 
   } catch (err) {
     console.error(err);
     showStatus("Submission failed", "error", messageDiv);
-    if (btn) { btn.disabled = false; btn.textContent = "Commit Report"; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Commit'; }
   }
 }
 async function loadMemberProjects() {
@@ -343,18 +343,24 @@ async function loadMemberProjects() {
 
     const select = document.getElementById("memberProjectSelect");
     const stepsList = document.getElementById("memberRoadmapSteps");
-    const progressBar = document.getElementById("memberProgressBar");
+    const progressCircle = document.getElementById("memberProgressCircle");
+    const progressText = document.getElementById("memberProgressText");
 
-    select.innerHTML = `<option value="">Select Project</option>`;
-    stepsList.innerHTML = "";
-    progressBar.style.width = "0%";
-    progressBar.innerText = "0%";
+    select.innerHTML = `<option value="">Choose your objective...</option>`;
+    stepsList.innerHTML = `
+      <div class="text-center py-5">
+         <p class="text-muted small">Select a project to load strategic nodes...</p>
+      </div>
+    `;
+    if (progressCircle) progressCircle.style.strokeDashoffset = "264";
+    if (progressText) progressText.textContent = "0%";
 
     if (!projects.length) {
       stepsList.innerHTML = `
-        <li class="list-group-item text-muted">
-          No project assigned
-        </li>
+        <div class="text-center py-5">
+          <i class="bi bi-shield-lock fs-1 text-muted opacity-25"></i>
+          <p class="text-muted small mt-2">No projects currently assigned to your profile.</p>
+        </div>
       `;
       return;
     }
@@ -380,7 +386,12 @@ async function loadMemberProjects() {
 
 function renderMemberRoadmap(project) {
   const stepsList = document.getElementById("memberRoadmapSteps");
-  const progressBar = document.getElementById("memberProgressBar");
+  const progressCircle = document.getElementById("memberProgressCircle");
+  const progressText = document.getElementById("memberProgressText");
+  const compBadge = document.getElementById("completedNodesCount");
+  const totalBadge = document.getElementById("totalNodesCount");
+  const projectTitleBadge = document.getElementById("projectTitle");
+  const roadmapTitleBadge = document.getElementById("roadmapProjectTitle");
 
   stepsList.innerHTML = "";
 
@@ -388,32 +399,45 @@ function renderMemberRoadmap(project) {
   const completed = project.steps.filter(s => s.is_completed).length;
   const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
-  progressBar.style.width = progress + "%";
-  progressBar.innerText = progress + "%";
+  // Update Progress Circle (Circumference ~264)
+  if (progressCircle) {
+    const offset = 264 - (progress / 100) * 264;
+    progressCircle.style.strokeDashoffset = offset;
+  }
+  if (progressText) progressText.textContent = progress + "%";
+  if (compBadge) compBadge.textContent = `${completed} Done`;
+  if (totalBadge) totalBadge.textContent = `${total} Total`;
+  if (projectTitleBadge) projectTitleBadge.textContent = project.project_name;
+  if (roadmapTitleBadge) roadmapTitleBadge.textContent = project.project_name;
 
   project.steps.forEach(step => {
-    const li = document.createElement("li");
-    li.className = `list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom ${step.is_completed ? 'bg-light text-muted' : ''}`;
-    li.style.transition = "background-color 0.2s ease";
-    li.onmouseover = () => { if (!step.is_completed) li.style.backgroundColor = "#f8f9fa"; };
-    li.onmouseout = () => { if (!step.is_completed) li.style.backgroundColor = "transparent"; };
+    const item = document.createElement("div");
+    item.className = `timeline-item ${step.is_completed ? 'completed' : ''}`;
 
-    li.innerHTML = `
-      <div class="d-flex align-items-center gap-3">
-        <input class="form-check-input mt-0 fs-5" type="checkbox"
-          ${step.is_completed ? "checked" : ""}
-          onchange="updateStep(${step.id}, this.checked)" style="cursor: pointer;">
-        <div>
-          <span class="fw-semibold ${step.is_completed ? 'text-decoration-line-through' : ''}">${step.step_title}</span>
-          <br>
-          <span class="badge ${step.is_completed ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'} mt-1">
-            ${step.is_completed ? '<i class="bi bi-check2-all me-1"></i>Completed' : '<i class="bi bi-hourglass-split me-1"></i>In Progress'}
-          </span>
+    item.innerHTML = `
+      <div class="timeline-marker"></div>
+      <div class="timeline-content">
+        <div class="d-flex align-items-center gap-3">
+          <div class="form-check m-0">
+            <input class="form-check-input" type="checkbox" 
+              style="width: 20px; height: 20px; cursor: pointer; border-radius: 6px;"
+              ${step.is_completed ? "checked" : ""}
+              onchange="updateStep(${step.id}, this.checked)">
+          </div>
+          <div>
+            <div class="fw-bold text-dark ${step.is_completed ? 'text-decoration-line-through opacity-75' : ''}" style="font-size: 14px;">
+              ${step.step_title}
+            </div>
+            <div class="small text-muted" style="font-size: 11px;">
+              ${step.is_completed ? 'Objective Cleared' : 'Pending Realization'}
+            </div>
+          </div>
         </div>
+        ${step.is_completed ? '<i class="bi bi-patch-check-fill text-success fs-5"></i>' : '<i class="bi bi-circle text-light fs-5"></i>'}
       </div>
     `;
 
-    stepsList.appendChild(li);
+    stepsList.appendChild(item);
   });
 }
 
@@ -498,11 +522,9 @@ async function loadMyProjectStats() {
     const statusBadge = document.getElementById("myProjectStatusBadge");
     if (statusBadge) {
       if (data.status === "FREE") {
-        statusBadge.className = "badge bg-success";
-        statusBadge.textContent = "🟢 Free";
+        statusBadge.innerHTML = '<span class="text-success"><i class="bi bi-circle-fill me-2" style="font-size:8px;"></i>Bench Pool</span>';
       } else {
-        statusBadge.className = "badge bg-warning text-dark";
-        statusBadge.textContent = "🟠 Assigned";
+        statusBadge.innerHTML = '<span class="text-primary"><i class="bi bi-circle-fill me-2" style="font-size:8px;"></i>Operational</span>';
       }
     }
 
@@ -518,43 +540,52 @@ async function loadMyProjectStats() {
     const activeDiv = document.getElementById("activeProjectsList");
     if (activeDiv) {
       if (data.active_projects.length === 0) {
-        activeDiv.innerHTML = `<div class="text-muted small text-center py-2">No active projects</div>`;
+        activeDiv.innerHTML = `<div class="col-12 text-center py-5 text-muted small">No active deployments identified</div>`;
       } else {
-        activeDiv.innerHTML = `
-          <h6 class="fw-bold text-uppercase text-muted small mb-3 mt-4" style="letter-spacing: 0.5px;">
-            <i class="bi bi-lightning-charge-fill text-warning me-2"></i> Active Projects
-          </h6>` +
-          data.active_projects.map(p => `
-            <div class="project-item flex-column align-items-stretch" style="padding: 18px; border-radius: var(--radius-lg); border: 1px solid var(--border-light); background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 16px; transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.05)';">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="member-avatar bg-primary-subtle text-primary fw-bold" style="width:36px; height:36px; font-size:14px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
-                    ${p.project_name.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div class="fw-bold text-dark fs-6 mb-1">${p.project_name}</div>
-                    <div class="d-flex gap-2">
-                      <span class="badge bg-info-subtle text-info border border-info-subtle">
-                        <i class="bi bi-clock-history me-1"></i>${p.days_elapsed} day${p.days_elapsed > 1 ? "s" : ""}
-                      </span>
-                      ${p.member_count ? `
-                      <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                        <i class="bi bi-people me-1"></i>${p.member_count} mem
-                      </span>` : ""}
-                    </div>
-                  </div>
+        activeDiv.innerHTML = data.active_projects.map(p => `
+          <div class="col">
+            <div class="project-card h-100">
+              <div class="project-header-top">
+                <div class="project-icon-box bg-primary bg-opacity-10 text-primary">
+                  ${p.project_name.substring(0, 2).toUpperCase()}
+                </div>
+                <div class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">
+                  Live Sync
                 </div>
               </div>
-              ${p.team_lead_name ? `<div class="small text-muted mt-2 mb-2"><i class="bi bi-person-badge me-1"></i> Lead: <strong>${p.team_lead_name}</strong></div>` : ""}
-              <div class="d-flex align-items-center gap-2 mt-2">
-                <div class="progress w-100 bg-secondary-subtle rounded-pill" style="height: 6px;">
-                  <div class="progress-bar bg-primary" role="progressbar" style="width: ${p.progress}%"></div>
-                </div>
-                <span class="small fw-bold text-muted">${p.progress}%</span>
+              
+              <div class="project-info">
+                <div class="fw-extrabold text-dark fs-6 mb-1">${p.project_name}</div>
+                <div class="small text-muted mb-2"><i class="bi bi-person-circle me-1"></i> Lead: ${p.team_lead_name || 'N/A'}</div>
               </div>
-              <div class="small text-muted mt-2 text-end">${p.completed_steps}/${p.total_steps} steps</div>
+
+              <div class="stats-row">
+                <div class="project-stat-pill">
+                  <div class="stat-pill-label">Duration</div>
+                  <div class="stat-pill-value">${p.days_elapsed}d Active</div>
+                </div>
+                <div class="project-stat-pill">
+                  <div class="stat-pill-label">Team</div>
+                  <div class="stat-pill-value">${p.member_count || 1} Experts</div>
+                </div>
+              </div>
+
+              <div class="progress-section">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div class="small fw-bold text-muted text-uppercase" style="font-size: 9px;">Execution Progress</div>
+                  <div class="small fw-extrabold text-primary">${p.progress}%</div>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: ${p.progress}%"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-2" style="font-size: 10px;">
+                   <span class="text-muted">${p.completed_steps} achieved</span>
+                   <span class="text-muted">${p.total_steps} target</span>
+                </div>
+              </div>
             </div>
-          `).join("");
+          </div>
+        `).join("");
       }
     }
 
@@ -562,28 +593,32 @@ async function loadMyProjectStats() {
     const compDiv = document.getElementById("completedProjectsList");
     if (compDiv) {
       if (data.completed_projects.length === 0) {
-        compDiv.innerHTML = `<div class="text-muted small text-center py-2">No completed projects yet</div>`;
+        compDiv.innerHTML = `<div class="col-12 text-center py-5 text-muted small">Archive currently empty</div>`;
       } else {
-        compDiv.innerHTML = `
-          <h6 class="fw-bold text-uppercase text-muted small mb-3 mt-4" style="letter-spacing: 0.5px;">
-            <i class="bi bi-check-circle-fill text-success me-2"></i> Completed Projects
-          </h6>` +
-          data.completed_projects.map(p => `
-            <div class="project-item flex-column align-items-stretch" style="padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-light); background: #f8fafc; margin-bottom: 12px;">
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="member-avatar bg-success-subtle text-success fw-bold" style="width:36px; height:36px; font-size:14px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
-                    ${p.project_name.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div class="fw-bold text-success fs-6 mb-1">${p.project_name}</div>
-                    ${p.team_lead_name ? `<div class="small text-muted">Lead: ${p.team_lead_name}</div>` : ""}
-                  </div>
+        compDiv.innerHTML = data.completed_projects.map(p => `
+          <div class="col">
+            <div class="project-card h-100" style="background: rgba(16, 185, 129, 0.02); border-color: rgba(16, 185, 129, 0.1);">
+              <div class="project-header-top">
+                <div class="project-icon-box bg-success bg-opacity-10 text-success">
+                  ${p.project_name.substring(0, 2).toUpperCase()}
                 </div>
-                <span class="badge bg-success shadow-sm px-3 py-2 rounded-pill"><i class="bi bi-check2-all me-1"></i>${p.days_taken} day${p.days_taken > 1 ? "s" : ""}</span>
+                <div class="badge bg-success text-white rounded-pill shadow-sm">
+                  Completed
+                </div>
               </div>
+              
+              <div class="project-info">
+                <div class="fw-bold text-dark mb-1">${p.project_name}</div>
+                <div class="small text-muted"><i class="bi bi-calendar-check me-1"></i> Finalized in ${p.days_taken} days</div>
+              </div>
+
+               <div class="project-stat-pill" style="background: white;">
+                  <div class="stat-pill-label">Performance</div>
+                  <div class="stat-pill-value text-success"><i class="bi bi-trophy-fill me-2"></i>Mission Cleared</div>
+                </div>
             </div>
-          `).join("");
+          </div>
+        `).join("");
       }
     }
 

@@ -17,115 +17,108 @@ const statusText = document.getElementById("statusText");
 const checkInBtn = document.getElementById("checkInBtn");
 const checkOutBtn = document.getElementById("checkOutBtn");
 const messageDiv = document.getElementById("message");
+const leadProjectTitle = document.getElementById("leadProjectTitle");
+
+/* --- PREMIUM STATUS SYSTEM --- */
+function showStatus(message, type = "info", target = messageDiv) {
+  if (!target) return;
+  const icons = {
+    info: "bi-info-circle-fill",
+    success: "bi-patch-check-fill",
+    error: "bi-exclamation-octagon-fill",
+    warning: "bi-exclamation-triangle-fill"
+  };
+  target.innerHTML = `
+    <div class="status-pill ${type}">
+      <i class="bi ${icons[type] || icons.info}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  setTimeout(() => { target.innerHTML = ""; }, 5000);
+}
 
 
 /***********************
  * TEAM LEAD LOAD ROADMAP
  ***********************/
 async function loadRoadmap(projectId) {
-  try {
-    const res = await fetch(
-      `${API_BASE}/api/admin/roadmap/${projectId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    );
+  const section = document.getElementById("roadmapSection");
+  const emptyState = document.getElementById("roadmapEmptyState");
+  const stepsList = document.getElementById("roadmapSteps");
+  const progressCircle = document.getElementById("roadmapProgressCircle");
+  const progressText = document.getElementById("roadmapProgressText");
+  const compBadge = document.getElementById("completedNodesCount");
+  const totalBadge = document.getElementById("totalNodesCount");
+  const titleDisplay = document.getElementById("activeProjectTitle");
 
-    if (!res.ok) {
-      throw new Error("Failed to load roadmap");
-    }
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/roadmap/${projectId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error("Failed to load roadmap");
 
     const data = await res.json();
+    
+    if (section) section.style.display = "block";
+    if (emptyState) emptyState.style.display = "none";
+    if (stepsList) stepsList.innerHTML = "";
+    if (titleDisplay) titleDisplay.textContent = data.project_name || "Project Nodes";
 
-    const roadmapSection = document.getElementById("roadmapSection");
-    const roadmapSteps = document.getElementById("roadmapSteps");
-    const progressBar = document.getElementById("progressBar");
+    const total = data.steps ? data.steps.length : 0;
+    const completed = data.steps ? data.steps.filter(s => s.is_completed).length : 0;
+    const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
-    roadmapSection.style.display = "block";
-    roadmapSteps.innerHTML = "";
-
-    progressBar.style.width = data.progress;
-    progressBar.innerText = data.progress;
+    // Update Progress Circle (Circumference ~264)
+    if (progressCircle) {
+      const offset = 264 - (progress / 100) * 264;
+      progressCircle.style.strokeDashoffset = offset;
+    }
+    if (progressText) progressText.textContent = progress + "%";
+    if (compBadge) compBadge.textContent = `${completed} Done`;
+    if (totalBadge) totalBadge.textContent = `${total} Total`;
 
     if (!data.steps || data.steps.length === 0) {
-      roadmapSteps.innerHTML = `
-        <li class="list-group-item text-muted">
-          No roadmap steps created
-        </li>
-      `;
+      stepsList.innerHTML = `<div class="text-center py-5 text-muted small">No strategic nodes configured.</div>`;
       return;
     }
 
-    data.steps.forEach((step, index) => {
-      const li = document.createElement("li");
-      li.className = "d-flex justify-content-between align-items-center p-3 mb-2 bg-white border rounded shadow-sm transition-all";
-      li.style.transition = "all 0.2s ease";
-
-      li.onmouseenter = () => { li.style.transform = "translateY(-2px)"; li.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; };
-      li.onmouseleave = () => { li.style.transform = "none"; li.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)"; };
-
-      const left = document.createElement("div");
-      left.className = "d-flex align-items-center gap-3 w-100";
-
-      const checkboxWrap = document.createElement("div");
-      checkboxWrap.className = "form-check m-0 d-flex align-items-center";
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.className = "form-check-input fs-5" + (step.is_completed ? " border-success bg-success" : "");
-      checkbox.style.cursor = "pointer";
-      checkbox.checked = step.is_completed;
-
-      checkbox.onchange = async () => {
-        await updateStep(step.id, checkbox.checked, projectId);
-      };
-
-      checkboxWrap.appendChild(checkbox);
-      left.appendChild(checkboxWrap);
-
-      const spanWrap = document.createElement("div");
-      spanWrap.className = "d-flex flex-column";
-
-      const titleSpan = document.createElement("span");
-      titleSpan.className = step.is_completed ? "text-decoration-line-through text-muted" : "fw-bold text-dark fs-6";
-      titleSpan.innerText = step.step_title;
-
-      const badgeSpan = document.createElement("span");
-      badgeSpan.className = "badge mt-1 rounded-pill " + (step.is_completed ? "bg-success-subtle text-success" : "bg-primary-subtle text-primary");
-      badgeSpan.style.width = "fit-content";
-      badgeSpan.innerText = step.is_completed ? "Completed" : "In Progress";
-
-      spanWrap.appendChild(titleSpan);
-      spanWrap.appendChild(badgeSpan);
-      left.appendChild(spanWrap);
-
-      const center = document.createElement("div");
-      center.className = "text-muted ms-auto pe-4 d-flex align-items-center gap-2";
-      center.style.minWidth = "140px";
-      center.style.justifyContent = "flex-end";
-      if (step.updated_by) center.innerHTML = `<div class="d-flex align-items-center bg-light px-2 py-1 rounded border"><i class="bi bi-person-check-fill text-success me-2"></i><span class="small fw-semibold text-dark">${step.updated_by}</span></div>`;
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.className = "btn btn-sm btn-outline-danger border-0 rounded-circle";
-      deleteBtn.style.width = "32px";
-      deleteBtn.style.height = "32px";
-      deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
-      deleteBtn.title = "Remove Milestone";
-      deleteBtn.onclick = () => deleteStep(step.id, projectId);
-
-      const rightDiv = document.createElement("div");
-      rightDiv.className = "d-flex align-items-center gap-2";
-      rightDiv.appendChild(center);
-      rightDiv.appendChild(deleteBtn);
-
-      li.appendChild(left);
-      li.appendChild(rightDiv);
-      roadmapSteps.appendChild(li);
+    data.steps.forEach((step) => {
+      const item = document.createElement("div");
+      item.className = `timeline-item ${step.is_completed ? 'completed' : ''}`;
+      
+      item.innerHTML = `
+        <div class="timeline-marker"></div>
+        <div class="timeline-content">
+          <div class="d-flex align-items-center gap-3">
+            <div class="form-check m-0">
+              <input class="form-check-input" type="checkbox" 
+                style="width: 20px; height: 20px; cursor: pointer; border-radius: 6px;"
+                ${step.is_completed ? "checked" : ""}
+                onchange="updateStep(${step.id}, this.checked, ${projectId})">
+            </div>
+            <div>
+              <div class="fw-bold text-dark ${step.is_completed ? 'text-decoration-line-through opacity-75' : ''}" style="font-size: 14px;">
+                ${step.step_title}
+              </div>
+              <div class="small text-muted" style="font-size: 11px;">
+                ${step.is_completed ? `Cleared by ${step.updated_by || 'Unknown'}` : 'Pending Strategic Realization'}
+              </div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            ${step.is_completed ? '<i class="bi bi-patch-check-fill text-success fs-5"></i>' : '<i class="bi bi-circle text-light fs-5"></i>'}
+            <button class="btn btn-sm text-danger opacity-25 hover-opacity-100" onclick="deleteStep(${step.id}, ${projectId})">
+              <i class="bi bi-trash-fill"></i>
+            </button>
+          </div>
+        </div>
+      `;
+      stepsList.appendChild(item);
     });
 
   } catch (err) {
     console.error(err);
-    alert("Failed to load roadmap");
+    showStatus("Failed to synchronize roadmap", "error");
   }
 }
 
@@ -354,9 +347,7 @@ async function sendLeadCheckIn(position) {
     const longitude = position.coords.longitude;
     const accuracy = position.coords.accuracy;
 
-    console.log("📍 Best GPS reading:", latitude, longitude, "Accuracy:", accuracy.toFixed(0), "m");
-    messageDiv.innerHTML =
-      `<div class="alert alert-info">📡 Checking in (GPS accuracy: ~${Math.round(accuracy)}m)...</div>`;
+    showStatus(`📡 Checking in (GPS accuracy: ~${Math.round(accuracy)}m)...`, "info");
 
     const res = await fetch(`${API_BASE}/api/attendance/check-in`, {
       method: "POST",
@@ -371,32 +362,30 @@ async function sendLeadCheckIn(position) {
 
     if (!res.ok) {
       if (res.status === 403 && data.message && data.message.includes('missed checkout')) {
-        messageDiv.innerHTML =
-          `<div class="alert alert-danger">
-            ${data.message}
-            <br><button class="btn btn-sm btn-warning mt-2 fw-bold" onclick="forceOpenMissedModal()">
-              📝 Submit Missed Report Now
-            </button>
-          </div>`;
+        messageDiv.innerHTML = `
+          <div class="status-pill error">
+            <i class="bi bi-exclamation-octagon-fill"></i>
+            <span>${data.message}</span>
+          </div>
+          <br><button class="btn btn-sm btn-warning mt-2 fw-bold rounded-pill" onclick="forceOpenMissedModal()">
+            📝 Submit Missed Report Now
+          </button>
+        `;
       } else {
-        messageDiv.innerHTML =
-          `<div class="alert alert-danger">${data.message}</div>`;
+        showStatus(data.message, "error");
       }
       checkInBtn.disabled = false;
       return;
     }
 
-    messageDiv.innerHTML =
-      `<div class="alert alert-success">${data.message}</div>`;
-
+    showStatus(data.message, "success");
     loadMyStatus();
     loadMyAttendanceHistory();
     updateCheckoutBanner();
 
   } catch (err) {
     console.error("Check-in error:", err);
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Check-in failed</div>`;
+    showStatus("Check-in failed", "error");
     checkInBtn.disabled = false;
   }
 }
@@ -419,33 +408,24 @@ checkOutBtn.onclick = async () => {
   checkOutBtn.disabled = true;
   checkOutBtn.textContent = "Processing...";
   try {
-    // 🔒 Block checkout if daily work report not submitted
     const reportCheck = await fetch(`${API_BASE}/api/work/check-today`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const reportData = await reportCheck.json();
 
     if (!reportData.submitted) {
-      messageDiv.innerHTML =
-        `<div class="alert alert-warning">⚠️ Please submit your daily work report before checking out.</div>`;
+      showStatus("⚠️ Please submit your daily work report before checking out.", "warning");
       checkOutBtn.disabled = false;
       checkOutBtn.textContent = "Check Out";
       return;
     }
 
-    const istWeekday = new Date().toLocaleString("en-US", {
-      timeZone: "Asia/Kolkata",
-      weekday: "short"
-    });
+    const istWeekday = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata", weekday: "short" });
     if (istWeekday === "Sat") {
-      const weeklyCheck = await fetch(`${API_BASE}/api/work/check-weekly`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const weeklyCheck = await fetch(`${API_BASE}/api/work/check-weekly`, { headers: { Authorization: `Bearer ${token}` } });
       const weeklyData = await weeklyCheck.json();
-
       if (!weeklyData.submitted) {
-        messageDiv.innerHTML =
-          `<div class="alert alert-warning">Saturday checkout is blocked until you submit this week's weekly report.</div>`;
+        showStatus("Saturday checkout is blocked until you submit this week's weekly report.", "warning");
         checkOutBtn.disabled = false;
         checkOutBtn.textContent = "Check Out";
         return;
@@ -454,32 +434,26 @@ checkOutBtn.onclick = async () => {
 
     const res = await fetch(`${API_BASE}/api/attendance/check-out`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: { Authorization: `Bearer ${token}` }
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      messageDiv.innerHTML =
-        `<div class="alert alert-danger">${data.message}</div>`;
+      showStatus(data.message, "error");
       checkOutBtn.disabled = false;
       checkOutBtn.textContent = "Check Out";
       return;
     }
 
-    messageDiv.innerHTML =
-      `<div class="alert alert-success">${data.message}</div>`;
-
+    showStatus(data.message, "success");
     loadMyStatus();
     loadMyAttendanceHistory();
     updateCheckoutBanner();
 
   } catch (err) {
     console.error("Checkout error:", err);
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Checkout failed</div>`;
+    showStatus("Checkout failed", "error");
     checkOutBtn.disabled = false;
     checkOutBtn.textContent = "Check Out";
   }
@@ -500,107 +474,63 @@ let selectedProjectId = null;
 async function loadProjects() {
   try {
     const res = await fetch(`${API_BASE}/api/admin/my-projects`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`
-      }
+      headers: { Authorization: `Bearer ${token}` }
     });
-
     if (!res.ok) throw new Error("Failed to load projects");
 
     const projects = await res.json();
-
-    // LEFT: project list
     const list = document.getElementById("projectsList");
-    list.innerHTML = "";
-
-    // RIGHT: dropdown (only active projects)
     const select = document.getElementById("assignProjectSelect");
-    select.innerHTML = `<option value="">Select Project</option>`;
+
+    if (list) list.innerHTML = "";
+    if (select) select.innerHTML = `<option value="">Select Project</option>`;
 
     if (!projects.length) {
-      list.innerHTML = `<div class="list-group-item text-muted text-center py-4">No projects assigned</div>`;
+      if (list) list.innerHTML = `<div class="p-5 text-center text-muted small">No projects currently indexed.</div>`;
       return;
     }
 
     projects.forEach(p => {
       const isCompleted = p.status === 'COMPLETED';
 
-      // Project list item with status
       const item = document.createElement("div");
-      item.className = `list-group-item d-flex justify-content-between align-items-center rounded mb-2 shadow-sm border ${isCompleted ? 'bg-light' : 'bg-white'}`;
+      item.className = "list-group-item list-group-item-action p-3 border-0 border-bottom d-flex justify-content-between align-items-center";
       item.style.cursor = isCompleted ? 'default' : 'pointer';
-      if (!isCompleted) {
-        item.style.transition = "all 0.2s ease";
-        item.onmouseenter = () => { item.style.transform = "translateY(-2px)"; item.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; };
-        item.onmouseleave = () => { item.style.transform = "none"; item.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)"; };
-      }
 
-      const leftSide = document.createElement("div");
-      leftSide.className = "d-flex align-items-center gap-3";
-      leftSide.innerHTML = `
-        <div class="rounded-circle d-flex align-items-center justify-content-center ${isCompleted ? 'bg-secondary text-white' : 'bg-primary text-white'}" style="width: 32px; height: 32px; font-weight: bold; flex-shrink: 0;">
-          ${p.project_name.charAt(0).toUpperCase()}
+      item.innerHTML = `
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-4 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; font-weight: 800;">
+            ${p.project_name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div class="fw-bold text-dark fs-6">${p.project_name}</div>
+            <span class="badge ${isCompleted ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'} mt-1" style="font-size: 9px; letter-spacing: 0.5px;">
+              ${isCompleted ? 'ARCHIVED' : 'ACTIVE OPS'}
+            </span>
+          </div>
         </div>
-        <div class="d-flex flex-column">
-          <span class="${isCompleted ? 'text-muted fw-medium fs-6' : 'fw-bold text-dark fs-6'}">${p.project_name}</span>
-          <span class="badge ${isCompleted ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'} mt-1 rounded-pill" style="font-size:10px; width: fit-content; padding: 4px 8px;">
-            ${isCompleted ? '<i class="bi bi-check-circle-fill me-1"></i> COMPLETED' : '<i class="bi bi-activity me-1"></i> ACTIVE'}
-          </span>
-        </div>
+        ${!isCompleted ? '<i class="bi bi-chevron-right text-muted opacity-25"></i>' : ''}
       `;
-
-      const rightSide = document.createElement("div");
-      rightSide.className = "d-flex gap-2 align-items-center";
-
-      if (!isCompleted) {
-        // View Roadmap button
-        const viewBtn = document.createElement("button");
-        viewBtn.className = "btn-sys btn-sys-default border";
-        viewBtn.style.fontSize = "11px";
-        viewBtn.style.padding = "3px 10px";
-        viewBtn.textContent = "📋 Roadmap";
-        viewBtn.onclick = (e) => {
-          e.stopPropagation();
-          selectedProjectId = p.id;
-          loadRoadmap(p.id);
-        };
-        rightSide.appendChild(viewBtn);
-
-        // Mark Complete button
-        const completeBtn = document.createElement("button");
-        completeBtn.className = "btn-sys btn-sys-primary";
-        completeBtn.style.fontSize = "11px";
-        completeBtn.style.padding = "3px 10px";
-        completeBtn.style.background = "#00875a";
-        completeBtn.textContent = "✅ Mark Complete";
-        completeBtn.onclick = (e) => {
-          e.stopPropagation();
-          completeProject(p.id, p.project_name);
-        };
-        rightSide.appendChild(completeBtn);
-      }
-
-      item.appendChild(leftSide);
-      item.appendChild(rightSide);
 
       if (!isCompleted) {
         item.onclick = () => {
           selectedProjectId = p.id;
+          // Set Project Title in UI
+          const titleBadge = document.getElementById("activeProjectTitle");
+          if (titleBadge) titleBadge.textContent = p.project_name;
+          if (leadProjectTitle) leadProjectTitle.textContent = p.project_name;
+          
           loadRoadmap(p.id);
         };
-      }
-
-      list.appendChild(item);
-
-      // Dropdown option — only active projects
-      if (!isCompleted) {
+        
         const opt = document.createElement("option");
         opt.value = p.id;
         opt.textContent = p.project_name;
-        select.appendChild(opt);
+        if (select) select.appendChild(opt);
       }
-    });
 
+      if (list) list.appendChild(item);
+    });
   } catch (err) {
     console.error("loadProjects failed:", err);
   }
@@ -640,6 +570,14 @@ async function completeProject(projectId, projectName) {
   }
 }
 
+async function markProjectCompleted() {
+  if (!selectedProjectId) {
+    alert("Please select a project first.");
+    return;
+  }
+  const title = document.getElementById("activeProjectTitle")?.textContent || "this project";
+  await completeProject(selectedProjectId, title);
+}
 
 
 /***********************
@@ -827,16 +765,12 @@ async function createRoadmap() {
 }
 
 
-/***********************
- * TEAM LEAD DAILY WORK REPORT
- ***********************/
 async function submitLeadDailyReport() {
-  const workDone = document.getElementById("leadWorkDone").value.trim();
-  const messageDiv = document.getElementById("leadWorkMessage");
-
-  if (!workDone) {
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Please enter work details</div>`;
+  const text = document.getElementById("leadWorkDone").value.trim();
+  const msg = document.getElementById("leadWorkMessage");
+  
+  if (!text) {
+    showStatus("Deployment log cannot be empty", "warning", msg);
     return;
   }
 
@@ -847,30 +781,21 @@ async function submitLeadDailyReport() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({
-        work_done: workDone
-      })
+      body: JSON.stringify({ work_done: text })
     });
 
     const data = await res.json();
-
     if (!res.ok) {
-      messageDiv.innerHTML =
-        `<div class="alert alert-danger">${data.message}</div>`;
+      showStatus(data.message, "error", msg);
       return;
     }
 
-    messageDiv.innerHTML =
-      `<div class="alert alert-success">${data.message}</div>`;
-
+    showStatus("Achievement committed to project core", "success", msg);
     document.getElementById("leadWorkDone").value = "";
-    loadMyWorkReports(); // refresh archive instantly
-    updateCheckoutBanner(); // hide banner immediately
-
+    loadMyWorkReports();
+    updateCheckoutBanner();
   } catch (err) {
-    console.error(err);
-    messageDiv.innerHTML =
-      `<div class="alert alert-danger">Failed to submit report</div>`;
+    showStatus("Sync failure with project node", "error", msg);
   }
 }
 
@@ -880,74 +805,69 @@ async function loadMyProjectStats() {
     const res = await fetch(`${API_BASE}/api/admin/my-project-stats`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    if (!res.ok) return;
+    if (!res.ok) throw new Error("Stats sync failed");
+
     const data = await res.json();
-
+    const activeList = document.getElementById("activeProjectsList");
+    const completedList = document.getElementById("completedProjectsList");
     const statusBadge = document.getElementById("myProjectStatusBadge");
+
+    document.getElementById("activeProjectCount").textContent = data.active_count;
+    document.getElementById("completedProjectCount").textContent = data.completed_count;
+    document.getElementById("totalProjectCount").textContent = data.active_count + data.completed_count;
+
     if (statusBadge) {
-      if (data.status === "FREE") {
-        statusBadge.className = "badge bg-success";
-        statusBadge.textContent = "🟢 Free";
-      } else {
-        statusBadge.className = "badge bg-warning text-dark";
-        statusBadge.textContent = "🟠 Assigned";
-      }
+      statusBadge.innerHTML = data.status === "FREE" 
+        ? '<i class="bi bi-pause-circle me-2"></i> BENCH POOL' 
+        : '<i class="bi bi-activity me-2"></i> OPERATIONAL';
     }
 
-    const ac = document.getElementById("activeProjectCount");
-    const cc = document.getElementById("completedProjectCount");
-    const tc = document.getElementById("totalProjectCount");
-    if (ac) ac.textContent = data.active_count;
-    if (cc) cc.textContent = data.completed_count;
-    if (tc) tc.textContent = data.active_count + data.completed_count;
+    const renderCard = (p) => `
+      <div class="project-card h-100">
+        <div class="project-header-top">
+          <div class="project-icon-box bg-primary bg-opacity-10 text-primary">
+            ${p.project_name.charAt(0).toUpperCase()}
+          </div>
+          <span class="badge ${p.status === 'COMPLETED' ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'} border-0 px-3 py-2 rounded-pill" style="font-size: 10px;">
+            ${p.status}
+          </span>
+        </div>
+        <div>
+          <h6 class="fw-extrabold text-dark mb-1">${p.project_name}</h6>
+          <div class="small text-muted fw-bold">ID: PRJ-${p.id.toString().padStart(3, '0')}</div>
+        </div>
+        <div class="stats-row">
+          <div class="project-stat-pill">
+            <span class="stat-pill-label">Execution Time</span>
+            <span class="stat-pill-value">${p.days_elapsed || p.days_taken} Days</span>
+          </div>
+          <div class="project-stat-pill">
+            <span class="stat-pill-label">Experts</span>
+            <span class="stat-pill-value">${p.member_count || 1} Assigned</span>
+          </div>
+        </div>
+        <div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="small fw-bold text-muted">Strategic Progress</span>
+            <span class="small fw-extrabold text-primary">${p.progress || 0}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: ${p.progress || 0}%"></div>
+          </div>
+        </div>
+      </div>
+    `;
 
-    const activeDiv = document.getElementById("activeProjectsList");
-    if (activeDiv) {
-      if (data.active_projects.length === 0) {
-        activeDiv.innerHTML = `<div class="text-muted small text-center py-2">No active projects</div>`;
-      } else {
-        activeDiv.innerHTML = `
-          <h6 class="fw-bold text-uppercase text-muted small mb-2">
-            <i class="bi bi-lightning-charge text-warning"></i> Active Projects
-          </h6>` +
-          data.active_projects.map(p => `
-            <div class="border rounded p-3 mb-2 bg-light">
-              <div class="d-flex justify-content-between align-items-start">
-                <strong class="text-primary">${p.project_name}</strong>
-                <span class="badge bg-info text-dark">${p.days_elapsed} day${p.days_elapsed > 1 ? "s" : ""}</span>
-              </div>
-              <div class="small text-muted mt-1">Members: ${p.member_count || 0}</div>
-              <div class="progress mt-2" style="height:6px;">
-                <div class="progress-bar bg-success" style="width:${p.progress}%"></div>
-              </div>
-              <div class="d-flex justify-content-between mt-1">
-                <span class="small text-muted">Roadmap: ${p.progress}%</span>
-                <span class="small text-muted">${p.completed_steps}/${p.total_steps} steps</span>
-              </div>
-            </div>
-          `).join("");
-      }
+    if (activeList) {
+      activeList.innerHTML = data.active_projects.length === 0 
+        ? `<div class="p-4 text-center text-muted small w-100">No active deployments.</div>` 
+        : data.active_projects.map(renderCard).join("");
     }
-
-    const compDiv = document.getElementById("completedProjectsList");
-    if (compDiv) {
-      if (data.completed_projects.length === 0) {
-        compDiv.innerHTML = `<div class="text-muted small text-center py-2">No completed projects yet</div>`;
-      } else {
-        compDiv.innerHTML = `
-          <h6 class="fw-bold text-uppercase text-muted small mb-2">
-            <i class="bi bi-check-circle text-success"></i> Completed Projects
-          </h6>` +
-          data.completed_projects.map(p => `
-            <div class="border rounded p-2 mb-2" style="background:#f0fdf4;">
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="fw-bold text-success">${p.project_name}</span>
-                <span class="badge bg-success">${p.days_taken} day${p.days_taken > 1 ? "s" : ""}</span>
-              </div>
-              <div class="small text-muted">Members: ${p.member_count || 0}</div>
-            </div>
-          `).join("");
-      }
+    
+    if (completedList) {
+      completedList.innerHTML = data.completed_projects.length === 0 
+        ? `<div class="p-4 text-center text-muted small w-100">Legacy archive is empty.</div>` 
+        : data.completed_projects.map(renderCard).join("");
     }
 
   } catch (err) {
@@ -1045,6 +965,53 @@ window.forceOpenMissedModal = async function () {
     alert("⚠️ Could not load missed checkout data. Please refresh the page.");
   }
 };
+
+/* ================= SUBMIT MISSED CHECKOUT ================= */
+async function submitMissedCheckout() {
+  const mcId = document.getElementById("mcId").value;
+  const workDone = document.getElementById("mcWorkDone").value.trim();
+  const lateReason = document.getElementById("mcLateReason").value.trim();
+  const msgDiv = document.getElementById("mcMessage");
+
+  if (!workDone || lateReason === "") {
+    showStatus("Please fill both fields.", "error", msgDiv);
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/work/submit-missed`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ id: mcId, work_done: workDone, late_reason: lateReason })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showStatus(data.message || "Submission failed", "error", msgDiv);
+      return;
+    }
+
+    showStatus("Compliance report submitted", "success", msgDiv);
+
+    setTimeout(() => {
+      // Hide modal
+      if (missedCheckoutModalInstance) missedCheckoutModalInstance.hide();
+      document.getElementById("mcWorkDone").value = "";
+      document.getElementById("mcLateReason").value = "";
+      // Refresh to see if there are more
+      checkPendingMissed();
+      loadMyWorkReports();
+    }, 1500);
+
+  } catch (err) {
+    console.error("Submit missed checkout error:", err);
+    showStatus("Submission failed", "error", msgDiv);
+  }
+}
 
 const LEAD_LIVE_REFRESH_MS = 15000;
 
@@ -1222,14 +1189,17 @@ async function loadMyWeeklyReports() {
       const we = new Date(r.week_end).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
       const truncate = (text) => {
         if (!text) return "<span class='text-muted'>—</span>";
-        return text.length > 100 ? text.slice(0, 100) + "…" : text;
+        return text.length > 80 ? text.slice(0, 80) + "…" : text;
       };
       return `
         <tr>
-          <td class="text-nowrap">${ws} – ${we}</td>
-          <td title="${(r.skills_learned || '').replace(/"/g, '&quot;')}">${truncate(r.skills_learned)}</td>
-          <td title="${(r.project_update || '').replace(/"/g, '&quot;')}">${truncate(r.project_update)}</td>
-          <td title="${(r.work_done || '').replace(/"/g, '&quot;')}">${truncate(r.work_done)}</td>
+          <td class="ps-4">
+            <div class="fw-bold text-dark">${ws} – ${we}</div>
+            <div class="text-muted" style="font-size: 10px;">CYCLE NODE</div>
+          </td>
+          <td><span class="badge bg-primary-subtle text-primary border-0 rounded-pill px-3 py-2">${truncate(r.skills_learned)}</span></td>
+          <td><div class="small fw-medium">${truncate(r.project_update)}</div></td>
+          <td class="pe-4 text-muted small">${truncate(r.work_done)}</td>
         </tr>`;
     }).join("");
 
@@ -1259,12 +1229,12 @@ async function loadMyWorkReports() {
     const reports = await res.json();
 
     if (reports.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-3">No reports submitted yet</td></tr>`;
-      countBadge.textContent = "0 reports";
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-3">No entries found</td></tr>`;
+      countBadge.textContent = "0 Entries";
       return;
     }
 
-    countBadge.textContent = `${reports.length} report${reports.length !== 1 ? "s" : ""}`;
+    countBadge.textContent = `${reports.length} Entries`;
 
     tbody.innerHTML = reports.map(r => {
       const dateStr = new Date(r.report_date).toLocaleDateString("en-IN", {
@@ -1273,9 +1243,12 @@ async function loadMyWorkReports() {
       const workText = r.work_done.length > 120 ? r.work_done.slice(0, 120) + "…" : r.work_done;
       return `
         <tr>
-          <td class="text-nowrap">${dateStr}</td>
-          <td class="text-muted">${r.title || "—"}</td>
-          <td title="${r.work_done.replace(/"/g, '&quot;')}">${workText}</td>
+          <td class="ps-4">
+             <div class="fw-bold text-dark">${dateStr}</div>
+             <div class="text-muted" style="font-size: 10px;">DAILY REPORT</div>
+          </td>
+          <td class="fw-medium text-primary">${r.title || "Daily Report"}</td>
+          <td class="pe-4 text-muted small">${workText}</td>
         </tr>`;
     }).join("");
 
@@ -1306,9 +1279,15 @@ async function loadMyLeaveBalance() {
     const pendPct = Math.round((pending / quota) * 100);
     const usedPct = Math.round((used / quota) * 100);
 
-    document.getElementById("lbProgressBar").style.width = `${remPct}%`;
-    document.getElementById("lbPendingBar").style.width = `${pendPct}%`;
-    document.getElementById("lbUsedBar").style.width = `${usedPct}%`;
+    const bar = document.getElementById("lbProgressBar");
+    const pBar = document.getElementById("lbPendingBar");
+    const uBar = document.getElementById("lbUsedBar");
+    const uPct = document.getElementById("utilPct");
+
+    if (bar) bar.style.width = `${remPct}%`;
+    if (pBar) pBar.style.width = `${pendPct}%`;
+    if (uBar) uBar.style.width = `${usedPct}%`;
+    if (uPct) uPct.textContent = `${remPct}% Available Assets`;
 
   } catch (err) {
     console.error("Leave balance error:", err);
@@ -1414,11 +1393,16 @@ async function loadMyLeaveRequests() {
 
       return `
         <tr>
-          <td class="text-nowrap">${appliedOn}</td>
-          <td class="text-nowrap">${fromD}</td>
-          <td class="text-nowrap">${toD}</td>
-          <td>${l.reason}</td>
-          <td>${statusBadge}</td>
+          <td class="ps-4">
+             <div class="fw-bold text-dark">${appliedOn}</div>
+             <div class="text-muted" style="font-size: 10px;">SUBMISSION_ID: ${l.id}</div>
+          </td>
+          <td>
+             <div class="small fw-bold text-primary">${fromD} – ${toD}</div>
+             <div class="text-muted" style="font-size: 10px;">DURATION NODE</div>
+          </td>
+          <td class="text-muted small">${l.reason}</td>
+          <td class="pe-4">${statusBadge}</td>
         </tr>`;
     }).join("");
 
@@ -1488,14 +1472,16 @@ async function loadMyAttendanceHistory() {
 
       return `
         <tr>
-          <td>${dateStr}</td>
-          <td class="text-muted">${dayName}</td>
-          <td>${fmtIST(r.check_in)}</td>
-          <td>${fmtIST(r.check_out)}</td>
-          <td><span style="background:${s.bg}; color:${s.color}; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600;">${s.label}</span></td>
-          <td class="text-muted">${r.shift_name || "—"}</td>
+          <td class="ps-4">
+             <div class="fw-bold text-dark">${dateStr}</div>
+             <div class="text-muted" style="font-size: 10px;">${dayName.toUpperCase()}</div>
+          </td>
+          <td><div class="small fw-medium">${fmtIST(r.check_in)}</div></td>
+          <td><div class="small fw-medium">${fmtIST(r.check_out)}</div></td>
+          <td><span style="background:${s.bg}; color:${s.color}; padding:4px 12px; border-radius:6px; font-size:0.75rem; font-weight:700;">${s.label}</span></td>
+          <td><div class="text-muted small">${r.shift_name || "—"}</div></td>
           <td>${earlyBadge}</td>
-          <td>${otBadge}</td>
+          <td class="pe-4">${otBadge}</td>
         </tr>`;
     }).join("");
 
