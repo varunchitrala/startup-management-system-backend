@@ -1,6 +1,12 @@
 console.log("👉 db.js file loaded");
 
-const { Pool } = require("pg");
+const { Pool, types } = require("pg");
+
+// TIMESTAMP without time zone is OID 1114.
+// Since we strictly force 'Asia/Kolkata' timezone on all connections, all
+// timestamp without time zone fields from DB reflect IST time implicitly.
+// We must append '+05:30' so the JS Date absolute UTC time is correctly represented.
+types.setTypeParser(1114, str => new Date(str + "+05:30"));
 
 const pool = new Pool({
   connectionString: `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
