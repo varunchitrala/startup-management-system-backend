@@ -1070,7 +1070,7 @@ async function loadMyAttendanceHistory() {
   const tbody = document.getElementById("attendanceHistoryBody");
   const summaryBar = document.getElementById("attendanceSummaryBar");
 
-  tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">Loading...</td></tr>`;
+  tbody.innerHTML = `<div class="text-center py-5 fw-bold" style="color:#94a3b8;">Loading telemetry data...</div>`;
 
   try {
     const res = await fetch(`${API_BASE}/api/attendance/my-history?month=${month}`, {
@@ -1080,7 +1080,7 @@ async function loadMyAttendanceHistory() {
     const records = await res.json();
 
     if (!records.length) {
-      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">No records for this month</td></tr>`;
+      tbody.innerHTML = `<div class="text-center py-5 fw-bold" style="color:#94a3b8;">No records found for this temporal range</div>`;
       summaryBar.innerHTML = "";
       return;
     }
@@ -1113,16 +1113,44 @@ async function loadMyAttendanceHistory() {
         : `<span class="text-muted">—</span>`;
 
       return `
-        <tr>
-          <td>${dateStr}</td>
-          <td class="text-muted">${dayName}</td>
-          <td>${fmtIST(r.check_in)}</td>
-          <td>${fmtIST(r.check_out)}</td>
-          <td><span style="background:${s.bg}; color:${s.color}; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600;">${s.label}</span></td>
-          <td class="text-muted">${r.shift_name || "—"}</td>
-          <td>${earlyBadge}</td>
-          <td>${otBadge}</td>
-        </tr>`;
+        <div class="attendance-card d-flex flex-column flex-xl-row justify-content-between align-items-xl-center p-3 px-4 shadow-sm border border-light" style="border-radius: 20px; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(8px); transition: all 0.3s ease; cursor: default;">
+          
+          <div class="d-flex align-items-center gap-4 mb-3 mb-xl-0">
+             <div class="d-flex flex-column align-items-center justify-content-center" style="min-width: 60px;">
+               <div class="text-uppercase fw-extrabold" style="font-size: 0.75rem; letter-spacing: 1px; color: #6366f1;">${dayName}</div>
+               <div class="fw-black text-dark" style="font-size: 1.6rem; line-height: 1;">${new Date(r.date).getUTCDate()}</div>
+             </div>
+             <div class="border-start ps-4">
+               <span style="background:${s.bg}; color:${s.color}; padding:6px 14px; border-radius:30px; font-size:0.75rem; font-weight:700; display: inline-flex; align-items:center; box-shadow: 0 2px 8px ${s.bg};">
+                 <i class="bi bi-record-circle-fill me-2" style="font-size: 10px;"></i>${s.label}
+               </span>
+               <div class="small fw-semibold text-muted mt-2"><i class="bi bi-person-workspace me-1"></i> Shift: ${r.shift_name || "—"}</div>
+             </div>
+          </div>
+
+          <div class="d-flex flex-wrap gap-4 align-items-center">
+             <div class="d-flex flex-column">
+               <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Check In</span>
+               <div class="fw-bold text-dark d-flex align-items-center gap-2"><i class="bi bi-box-arrow-in-right text-success fs-5"></i> ${fmtIST(r.check_in)}</div>
+             </div>
+             
+             <div class="d-flex flex-column">
+               <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Check Out</span>
+               <div class="fw-bold text-dark d-flex align-items-center gap-2"><i class="bi bi-box-arrow-left text-danger fs-5"></i> ${fmtIST(r.check_out)}</div>
+             </div>
+             
+             <div class="d-flex gap-3 border-start ps-4 ms-2">
+                 <div class="d-flex flex-column align-items-center" title="Early Departure">
+                   <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.65rem;">Early</span>
+                   ${earlyMin > 0 ? `<div class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1 shadow-sm">${earlyMin}m</div>` : `<div class="text-muted opacity-50 fw-bold">—</div>`}
+                 </div>
+                 <div class="d-flex flex-column align-items-center" title="Overtime">
+                   <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.65rem;">OT</span>
+                   ${otMin > 0 ? `<div class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 shadow-sm">${otMin}m</div>` : `<div class="text-muted opacity-50 fw-bold">—</div>`}
+                 </div>
+             </div>
+          </div>
+        </div>`;
     }).join("");
 
     // Summary bar
@@ -1144,7 +1172,7 @@ async function loadMyAttendanceHistory() {
     }
   } catch (err) {
     console.error("Attendance history error:", err);
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Failed to load</td></tr>`;
+    tbody.innerHTML = `<div class="text-center py-5 fw-bold text-danger">Failed to load telemetry records</div>`;
   }
 }
 
@@ -1166,18 +1194,24 @@ async function loadMyAttendancePercentage() {
       const pct = data.percentage;
       const from = new Date(data.from).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
       const to = new Date(data.to).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
-      const color = pct >= 75 ? '#15803d' : pct >= 50 ? '#b45309' : '#dc2626';
-      const bg = pct >= 75 ? '#dcfce7' : pct >= 50 ? '#fef3c7' : '#fee2e2';
-      const emoji = pct >= 75 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
+      const isGood = pct >= 75;
+      const isOk = pct >= 50 && pct < 75;
+      const color = isGood ? '#10b981' : isOk ? '#f59e0b' : '#ef4444';
+      const bgGrade = isGood ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05))' : isOk ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05))' : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05))';
+      
       html += `
-        <div style="background:${bg}; border:2px solid ${color}; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
-          <div style="font-size:2.2rem; font-weight:800; color:${color};">${emoji} ${pct}%</div>
+        <div class="d-flex align-items-center mb-3 p-4 rounded-4 shadow-sm border border-white" style="background: ${bgGrade}; backdrop-filter: blur(10px);">
+          <div class="d-flex flex-column align-items-center justify-content-center me-4 pe-4 border-end border-opacity-25" style="border-color: ${color} !important;">
+            <div class="fw-black" style="font-size: 2.8rem; line-height: 1; color: ${color};">${pct}%</div>
+            <div class="small fw-bold mt-1 text-uppercase" style="letter-spacing: 1px; color: ${color}; opacity: 0.8;">Health</div>
+          </div>
           <div>
-            <div style="font-weight:700; color:${color}; font-size:0.95rem;">Monthly Attendance (2nd – Today)</div>
-            <div style="font-size:0.82rem; color:#64748b;">
-              ${data.present_days} present / ${data.effective_working_days} working days
-              &nbsp;·&nbsp; ${from} – ${to}
+            <div class="fw-extrabold text-dark mb-1" style="font-size: 1.1rem;">Monthly Cycle (2nd – Today)</div>
+            <div class="d-flex align-items-center gap-3 mt-2">
+              <div class="small fw-semibold text-muted bg-white px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-person-check-fill text-success me-1"></i> ${data.present_days} Active</div>
+              <div class="small fw-semibold text-muted bg-white px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-calendar-event me-1"></i> ${data.effective_working_days} Required</div>
             </div>
+            <div class="small fw-medium mt-2" style="color:#64748b; font-size: 0.75rem;"><i class="bi bi-clock-history me-1"></i> Range: ${from} – ${to}</div>
           </div>
         </div>`;
     }
@@ -1187,20 +1221,31 @@ async function loadMyAttendancePercentage() {
       const opct = ov.percentage;
       const ofrom = new Date(ov.from).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
       const oto = new Date(ov.to).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
-      const ocolor = opct >= 75 ? '#1d4ed8' : opct >= 50 ? '#b45309' : '#dc2626';
-      const obg = opct >= 75 ? '#dbeafe' : opct >= 50 ? '#fef3c7' : '#fee2e2';
-      const oemoji = opct >= 75 ? '🔵' : opct >= 50 ? '🟡' : '🔴';
+      const oisGood = opct >= 75;
+      const oisOk = opct >= 50 && opct < 75;
+      const ocolor = oisGood ? '#3b82f6' : oisOk ? '#f59e0b' : '#ef4444';
+      const obgGrade = oisGood ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05))' : oisOk ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05))' : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05))';
+      
       html += `
-        <div style="background:${obg}; border:2px solid ${ocolor}; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-          <div style="font-size:2.2rem; font-weight:800; color:${ocolor};">${oemoji} ${opct}%</div>
+        <div class="d-flex align-items-center p-4 rounded-4 shadow-sm border border-white" style="background: ${obgGrade}; backdrop-filter: blur(10px);">
+          <div class="d-flex flex-column align-items-center justify-content-center me-4 pe-4 border-end border-opacity-25" style="border-color: ${ocolor} !important;">
+            <div class="fw-black" style="font-size: 2.8rem; line-height: 1; color: ${ocolor};">${opct}%</div>
+            <div class="small fw-bold mt-1 text-uppercase" style="letter-spacing: 1px; color: ${ocolor}; opacity: 0.8;">Lifetime</div>
+          </div>
           <div>
-            <div style="font-weight:700; color:${ocolor}; font-size:0.95rem;">Overall Attendance (Since Joining)</div>
-            <div style="font-size:0.82rem; color:#64748b;">
-              ${ov.present_days} present / ${ov.effective_working_days} working days
-              &nbsp;·&nbsp; ${ofrom} – ${oto}
+            <div class="fw-extrabold text-dark mb-1" style="font-size: 1.1rem;">Overall Telemetry (Since Joining)</div>
+            <div class="d-flex align-items-center gap-3 mt-2">
+              <div class="small fw-semibold text-muted bg-white px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-person-check-fill text-success me-1"></i> ${ov.present_days} Active</div>
+              <div class="small fw-semibold text-muted bg-white px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-calendar-event me-1"></i> ${ov.effective_working_days} Required</div>
             </div>
+            <div class="small fw-medium mt-2" style="color:#64748b; font-size: 0.75rem;"><i class="bi bi-clock-history me-1"></i> Range: ${ofrom} – ${oto}</div>
           </div>
         </div>`;
+    }
+
+    // Wrap the html in a grid layout to make them side-by-side if screen wide enough
+    if (html !== '') {
+      html = `<div class="d-flex flex-column gap-1">${html}</div>`;
     }
 
     container.innerHTML = html;

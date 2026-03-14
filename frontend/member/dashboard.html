@@ -1501,38 +1501,52 @@
     </div>
 
     <!-- ===== MY ATTENDANCE HISTORY ===== -->
-    <div class="panel mt-4">
-      <div class="panel-header">
-        <h2 class="panel-title"><i class="bi bi-calendar3"></i> My Attendance Analytics</h2>
-        <input type="month" id="attendanceMonthPicker" class="form-control form-control-sm w-auto shadow-sm"
-          onchange="loadMyAttendanceHistory()">
+    <style>
+      .attendance-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(99, 102, 241, 0.08) !important;
+        border-color: rgba(99, 102, 241, 0.2) !important;
+      }
+      .fw-black { font-weight: 900; }
+      .fw-extrabold { font-weight: 800; }
+      .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
+      .glass-footer { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+      .gradient-circle-bg {
+         position: absolute; top: -100px; right: -50px; width: 300px; height: 300px;
+         background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+         border-radius: 50%; pointer-events: none; z-index: 0;
+      }
+    </style>
+
+    <div class="panel mt-5 border-0 shadow-lg" style="border-radius: 28px; background: linear-gradient(145deg, #ffffff, #f8fafc); position:relative; overflow:hidden;">
+      <div class="gradient-circle-bg"></div>
+      
+      <div class="p-4 d-flex justify-content-between align-items-center flex-wrap gap-3 glass-header" style="position:relative; z-index:1;">
+        <div class="d-flex align-items-center gap-4">
+           <div class="text-white p-3 rounded-4 shadow-sm d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+              <i class="bi bi-activity fs-3"></i>
+           </div>
+           <div>
+             <h2 class="panel-title mb-0 fw-black" style="font-size: 1.4rem; letter-spacing: -0.5px; color: #0f172a;">Attendance Analytics</h2>
+             <div class="small fw-medium mt-1" style="color: #64748b;">Live telemetry of your operational footprint</div>
+           </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <input type="month" id="attendanceMonthPicker" class="form-control form-control-lg border-0 rounded-pill px-4 text-center fw-bold text-primary" style="background: white; min-width: 180px; box-shadow: 0 4px 20px rgba(0,0,0,0.04) !important;" onchange="loadMyAttendanceHistory()">
+        </div>
       </div>
+
       <!-- Attendance Percentage Card (shown for current month) -->
-      <div id="attendancePercentageCard" style="display:none; padding:16px 24px 0;"></div>
-      <div class="panel-body-flush table-responsive" style="max-height:350px;">
-        <table class="table-enterprise">
-          <thead class="sticky-top bg-light shadow-sm">
-            <tr>
-              <th>Date</th>
-              <th>Day</th>
-              <th>Check-In</th>
-              <th>Check-Out</th>
-              <th>Status</th>
-              <th>Shift</th>
-              <th>Early (min)</th>
-              <th>OT (min)</th>
-            </tr>
-          </thead>
-          <tbody id="attendanceHistoryBody">
-            <tr>
-              <td colspan="8" class="text-center text-muted py-4">Select a month to view records</td>
-            </tr>
-          </tbody>
-        </table>
+      <div id="attendancePercentageCard" class="px-4 pt-4" style="display:none; position:relative; z-index:1;"></div>
+
+      <div class="p-4" style="max-height: 550px; overflow-y: auto; position:relative; z-index:1;">
+        <!-- Container for flex cards instead of traditional table -->
+        <div id="attendanceHistoryBody" class="d-flex flex-column gap-3">
+           <div class="text-center py-5 fw-bold" style="color:#94a3b8;">Select a temporal range to view telemetry records</div>
+        </div>
       </div>
-      <div id="attendanceSummaryBar"
-        class="bg-light border-top p-3 small fw-bold text-muted d-flex gap-4 flex-wrap align-items-center">
-      </div>
+      
+      <div id="attendanceSummaryBar" class="p-4 border-top d-flex justify-content-center gap-4 flex-wrap small fw-extrabold text-muted glass-footer"></div>
     </div>
 
     <!-- ===== MY WORK REPORTS ===== -->
