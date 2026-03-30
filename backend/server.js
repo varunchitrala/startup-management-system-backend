@@ -26,6 +26,7 @@ const notificationRoutes = require("./src/routes/notificationRoutes");
 // Add with other routes
 const testRoutes = require('./src/routes/testRoutes');
 app.use('/api/test', testRoutes);
+app.get('/health', (req, res) => res.status(200).send('OK'));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/attendance", attendanceRoutes);
