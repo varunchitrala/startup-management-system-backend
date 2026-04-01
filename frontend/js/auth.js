@@ -1,4 +1,4 @@
-const API_BASE = "https://startup-management-system-backend.onrender.com";;
+const API_BASE = "https://startup-management-system-backend.vercel.app";
 
 async function login() {
   const email = document.getElementById("email").value;
@@ -8,7 +8,7 @@ async function login() {
   errorEl.innerText = "";
 
   try {
-    const res = await fetch(`https://startup-management-system-backend.onrender.com/api/auth/login/`, {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

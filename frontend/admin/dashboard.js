@@ -2,7 +2,7 @@
 /***********************
  * CONFIG
  ***********************/
-const API_BASE = "https://startup-management-system-backend.onrender.com";
+const API_BASE = "https://startup-management-system-backend.vercel.app";
 const token = localStorage.getItem("token");
 
 if (!token) {

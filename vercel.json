@@ -4,12 +4,46 @@
     {
       "src": "backend/server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "backend/api/cron/*.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
+      "src": "/api/cron/auto-checkout",
+      "dest": "backend/api/cron/auto-checkout.js"
+    },
+    {
+      "src": "/api/cron/daily-reminder",
+      "dest": "backend/api/cron/daily-reminder.js"
+    },
+    {
+      "src": "/api/cron/seed-attendance",
+      "dest": "backend/api/cron/seed-attendance.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "backend/server.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/auto-checkout",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cron/daily-reminder",
+      "schedule": "0 11 * * 1-6"
+    },
+    {
+      "path": "/api/cron/daily-reminder",
+      "schedule": "30 11 * * 1-6"
+    },
+    {
+      "path": "/api/cron/seed-attendance",
+      "schedule": "0 18 * * *"
     }
   ]
 }
