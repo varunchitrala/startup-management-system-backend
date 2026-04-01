@@ -40,14 +40,15 @@ const runAttendanceAutomation = require("./src/jobs/attendanceCron");
 
 /* ================= SERVER ================= */
 
-const PORT = process.env.PORT || 5000;
+// Export app for Vercel
+module.exports = app;
 
-app.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
-
-  // Run once on startup
-  await autoCreateTodayAttendance();
-
-  // Start cron automation
-  runAttendanceAutomation();
-});
+// Only listen locally (not on Vercel)
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, async () => {
+    console.log(`Server running on port ${PORT}`);
+    await autoCreateTodayAttendance();
+    runAttendanceAutomation();
+  });
+}
