@@ -21,6 +21,9 @@ const leadRoutes = require("./src/routes/leadRoutes");
 const notificationRoutes = require("./src/routes/notificationRoutes");
 const testRoutes = require("./src/routes/testRoutes");
 
+app.get("/", (req, res) =>
+  res.status(200).json({ status: "OK", message: "API is running" })
+);
 app.get("/health", (req, res) =>
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() })
 );
