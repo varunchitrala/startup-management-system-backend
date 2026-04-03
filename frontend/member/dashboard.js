@@ -654,8 +654,9 @@ document.addEventListener("DOMContentLoaded", () => {
   checkPendingMissed();
 });
 
-// Add this just below DOMContentLoaded
+let pendingMissedData = [];
 let missedCheckoutModalInstance = null;
+
 async function checkPendingMissed() {
   try {
     const res = await fetch(`${API_BASE}/api/work/pending-missed`, {
@@ -663,18 +664,28 @@ async function checkPendingMissed() {
     });
     if (!res.ok) return;
     const pending = await res.json();
+    pendingMissedData = pending;
+
+    // Remove old banner if exists
+    const old = document.getElementById('missedCheckoutBanner');
+    if (old) old.remove();
+
     if (pending && pending.length > 0) {
-      // Show a non-blocking banner instead of a modal that greys out the page
       const banner = document.createElement('div');
       banner.id = 'missedCheckoutBanner';
-      banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:9999;background:#dc2626;color:white;padding:12px 24px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 4px 20px rgba(220,38,38,0.4);display:flex;align-items:center;gap:12px;';
+      banner.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9999;background:#dc2626;color:white;padding:14px 24px;border-radius:14px;font-weight:700;font-size:14px;box-shadow:0 4px 20px rgba(220,38,38,0.5);display:flex;align-items:center;gap:12px;white-space:nowrap;';
       banner.innerHTML = `
         <i class="bi bi-exclamation-octagon-fill fs-5"></i>
-        <span>You have ${pending.length} pending missed checkout report(s).</span>
-        <button onclick="openMissedModal(${JSON.stringify(pending[0])})" style="background:white;color:#dc2626;border:none;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer;">Submit Now</button>
-        <button onclick="this.parentElement.remove()" style="background:transparent;color:white;border:1px solid rgba(255,255,255,0.5);border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
+        <span>You have <strong>${pending.length}</strong> pending missed checkout report(s).</span>
+        <button id="missedBannerBtn" style="background:white;color:#dc2626;border:none;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer;">📝 Submit Now</button>
+        <button onclick="document.getElementById('missedCheckoutBanner').remove()" style="background:transparent;color:white;border:1px solid rgba(255,255,255,0.5);border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
       `;
       document.body.appendChild(banner);
+
+      // Attach click AFTER appending so the element exists
+      document.getElementById('missedBannerBtn').addEventListener('click', () => {
+        openMissedModal(pendingMissedData[0]);
+      });
     }
   } catch (err) {
     console.error("Pending missed check error:", err);
@@ -719,11 +730,16 @@ window.openMissedModal = openMissedModal;
 // Fallback: fetch and open modal manually (called from check-in error button)
 window.forceOpenMissedModal = async function () {
   try {
+    if (pendingMissedData && pendingMissedData.length > 0) {
+      openMissedModal(pendingMissedData[0]);
+      return;
+    }
     const res = await fetch(`${API_BASE}/api/work/pending-missed`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) return;
     const pending = await res.json();
+    pendingMissedData = pending;
     if (pending && pending.length > 0) {
       openMissedModal(pending[0]);
     }
