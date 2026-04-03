@@ -664,7 +664,17 @@ async function checkPendingMissed() {
     if (!res.ok) return;
     const pending = await res.json();
     if (pending && pending.length > 0) {
-      openMissedModal(pending[0]);
+      // Show a non-blocking banner instead of a modal that greys out the page
+      const banner = document.createElement('div');
+      banner.id = 'missedCheckoutBanner';
+      banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:9999;background:#dc2626;color:white;padding:12px 24px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 4px 20px rgba(220,38,38,0.4);display:flex;align-items:center;gap:12px;';
+      banner.innerHTML = `
+        <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+        <span>You have ${pending.length} pending missed checkout report(s).</span>
+        <button onclick="openMissedModal(${JSON.stringify(pending[0])})" style="background:white;color:#dc2626;border:none;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer;">Submit Now</button>
+        <button onclick="this.parentElement.remove()" style="background:transparent;color:white;border:1px solid rgba(255,255,255,0.5);border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
+      `;
+      document.body.appendChild(banner);
     }
   } catch (err) {
     console.error("Pending missed check error:", err);
@@ -1021,7 +1031,7 @@ async function loadMyLeaveRequests() {
     }
 
     tbody.innerHTML = data.map(l => {
-      const appliedOn = new Date(l.created_at).toLocaleDateString("en-IN", {
+      const appliedOn = new Date(l.applied_at || l.created_at).toLocaleDateString("en-IN", {
         day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"
       });
       const fromD = new Date(l.from_date).toLocaleDateString("en-IN", {
