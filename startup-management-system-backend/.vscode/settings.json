@@ -1,0 +1,15 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "localdb",
+            "database": "startup_system",
+            "username": "startup_system"
+        }
+    ],
+    "postman.settings.dotenv-detection-notification-visibility": false
+}
